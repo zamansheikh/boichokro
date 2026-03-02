@@ -135,16 +135,18 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
               children: [
                 const Text('Please select a reason for reporting this user:'),
                 const SizedBox(height: 16),
-                ...reasons.map((reason) => RadioListTile<String>(
-                  title: Text(reason),
-                  value: reason,
-                  groupValue: selectedReason,
-                  onChanged: (value) {
-                    if (value != null) {
-                      setDialogState(() => selectedReason = value);
-                    }
-                  },
-                )),
+                ...reasons.map(
+                  (reason) => RadioListTile<String>(
+                    title: Text(reason),
+                    value: reason,
+                    groupValue: selectedReason,
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() => selectedReason = value);
+                      }
+                    },
+                  ),
+                ),
               ],
             ),
             actions: [
@@ -155,13 +157,15 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
               FilledButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  _userBloc.add(ReportUser(userId: targetUserId, reason: selectedReason));
+                  _userBloc.add(
+                    ReportUser(userId: targetUserId, reason: selectedReason),
+                  );
                 },
                 child: const Text('Submit Report'),
               ),
             ],
           );
-        }
+        },
       ),
     );
   }
@@ -171,7 +175,9 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Block User'),
-        content: const Text('Are you sure you want to block this user? You will no longer receive messages from them, and they will not be able to interact with your books.'),
+        content: const Text(
+          'Are you sure you want to block this user? You will no longer receive messages from them, and they will not be able to interact with your books.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -196,7 +202,10 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   @override
   Widget build(BuildContext context) {
     final currentUserId = getIt<FirebaseService>().currentUser?.uid;
-    final otherUserId = _chatRoom?.participants.firstWhere((id) => id != currentUserId, orElse: () => '');
+    final otherUserId = _chatRoom?.participantIds.firstWhere(
+      (id) => id != currentUserId,
+      orElse: () => '',
+    );
 
     return BlocProvider.value(
       value: _userBloc,
@@ -204,14 +213,26 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
         listener: (context, state) {
           if (state is UserActionSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message, style: const TextStyle(color: Colors.white)), backgroundColor: Colors.green),
+              SnackBar(
+                content: Text(
+                  state.message,
+                  style: const TextStyle(color: Colors.white),
+                ),
+                backgroundColor: Colors.green,
+              ),
             );
             if (state.message.contains('blocked')) {
               context.pop(); // Exit chat room after blocking
             }
           } else if (state is UserError) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message, style: const TextStyle(color: Colors.white)), backgroundColor: Colors.red),
+              SnackBar(
+                content: Text(
+                  state.message,
+                  style: const TextStyle(color: Colors.white),
+                ),
+                backgroundColor: Colors.red,
+              ),
             );
           }
         },
@@ -249,9 +270,18 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                       value: 'block',
                       child: Row(
                         children: [
-                          Icon(Icons.block, size: 20, color: Theme.of(context).colorScheme.error),
+                          Icon(
+                            Icons.block,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.error,
+                          ),
                           const SizedBox(width: 12),
-                          Text('Block User', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                          Text(
+                            'Block User',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -259,126 +289,133 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                 ),
             ],
           ),
-      body: BlocConsumer<ChatBloc, ChatState>(
-        bloc: _chatBloc,
-        listener: (context, state) {
-          // Update chatRoom when loaded
-          if (state is ChatRoomLoaded) {
-            setState(() {
-              _chatRoom = state.chatRoom;
-            });
-          }
-        },
-        builder: (context, state) {
-          // Show loading only if we don't have chat room data yet
-          if (state is ChatLoading && _chatRoom == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          body: BlocConsumer<ChatBloc, ChatState>(
+            bloc: _chatBloc,
+            listener: (context, state) {
+              // Update chatRoom when loaded
+              if (state is ChatRoomLoaded) {
+                setState(() {
+                  _chatRoom = state.chatRoom;
+                });
+              }
+            },
+            builder: (context, state) {
+              // Show loading only if we don't have chat room data yet
+              if (state is ChatLoading && _chatRoom == null) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          if (state is ChatError && _chatRoom == null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text(state.message),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => _chatBloc.add(LoadChatRoom(widget.roomId)),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          if (_chatRoom == null) {
-            return const Center(child: Text('Chat room not found'));
-          }
-
-          final messages = state is MessagesLoaded
-              ? state.messages
-              : <Message>[];
-
-          return Column(
-            children: [
-              // Book Info Section
-              _buildBookInfoSection(),
-
-              // Current Status Section
-              if (_bookRequest != null) _buildStatusSection(),
-
-              // Exchange Arrangement Section
-              if (_bookRequest != null &&
-                  _bookRequest!.status == RequestStatus.accepted &&
-                  _bookRequest!.exchangeMethod != null)
-                _buildExchangeArrangement(),
-
-              const Divider(height: 1),
-
-              // Messages List
-              Expanded(
-                child: messages.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.chat_bubble_outline,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No messages yet',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Start the conversation!',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[500],
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        controller: _scrollController,
-                        reverse: true,
-                        padding: const EdgeInsets.all(16),
-                        itemCount: messages.length,
-                        itemBuilder: (context, index) {
-                          final message = messages[index];
-                          final isMe = message.senderId == currentUserId;
-                          final showDate =
-                              index == messages.length - 1 ||
-                              !_isSameDay(
-                                message.createdAt,
-                                messages[index + 1].createdAt,
-                              );
-
-                          return Column(
-                            children: [
-                              if (showDate)
-                                _buildDateSeparator(message.createdAt),
-                              _buildMessageBubble(message, isMe),
-                            ],
-                          );
-                        },
+              if (state is ChatError && _chatRoom == null) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: Colors.red,
                       ),
-              ),
+                      const SizedBox(height: 16),
+                      Text(state.message),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () =>
+                            _chatBloc.add(LoadChatRoom(widget.roomId)),
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                );
+              }
 
-              // Message Input
-              _buildMessageInput(),
-            ],
-          );
-        },
+              if (_chatRoom == null) {
+                return const Center(child: Text('Chat room not found'));
+              }
+
+              final messages = state is MessagesLoaded
+                  ? state.messages
+                  : <Message>[];
+
+              return Column(
+                children: [
+                  // Book Info Section
+                  _buildBookInfoSection(),
+
+                  // Current Status Section
+                  if (_bookRequest != null) _buildStatusSection(),
+
+                  // Exchange Arrangement Section
+                  if (_bookRequest != null &&
+                      _bookRequest!.status == RequestStatus.accepted &&
+                      _bookRequest!.exchangeMethod != null)
+                    _buildExchangeArrangement(),
+
+                  const Divider(height: 1),
+
+                  // Messages List
+                  Expanded(
+                    child: messages.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.chat_bubble_outline,
+                                  size: 64,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No messages yet',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Start the conversation!',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            controller: _scrollController,
+                            reverse: true,
+                            padding: const EdgeInsets.all(16),
+                            itemCount: messages.length,
+                            itemBuilder: (context, index) {
+                              final message = messages[index];
+                              final isMe = message.senderId == currentUserId;
+                              final showDate =
+                                  index == messages.length - 1 ||
+                                  !_isSameDay(
+                                    message.createdAt,
+                                    messages[index + 1].createdAt,
+                                  );
+
+                              return Column(
+                                children: [
+                                  if (showDate)
+                                    _buildDateSeparator(message.createdAt),
+                                  _buildMessageBubble(message, isMe),
+                                ],
+                              );
+                            },
+                          ),
+                  ),
+
+                  // Message Input
+                  _buildMessageInput(),
+                ],
+              );
+            },
+          ),
+        ),
       ),
     );
   }
