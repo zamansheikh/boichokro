@@ -261,13 +261,13 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: Colors.black,
                         ),
                       )
                     : const Text(
                         'Save',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: Colors.black,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
