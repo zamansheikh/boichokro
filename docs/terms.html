@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Boichokro Terms & Conditions - User agreement and terms of service">
+    <title>Terms & Conditions - Boichokro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6750A4;
+            --primary-light: #8B7BB8;
+            --secondary: #4CAF50;
+            --error: #F44336;
+            --dark-bg: #1a1a1a;
+            --light-bg: #ffffff;
+            --text-dark: #212121;
+            --text-light: #757575;
+            --border: #e0e0e0;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background-color: var(--light-bg);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            opacity: 0.9;
+            margin-bottom: 1rem;
+        }
+
+        .back-link {
+            color: white;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: opacity 0.3s;
+        }
+
+        .back-link:hover {
+            opacity: 0.8;
+        }
+
+        main {
+            padding: 3rem 0;
+        }
+
+        .terms-section {
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .terms-section:last-child {
+            border-bottom: none;
+        }
+
+        h2 {
+            color: var(--primary);
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            margin-top: 2rem;
+        }
+
+        h3 {
+            color: var(--primary-light);
+            font-size: 1.1rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.8rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: var(--text-light);
+            line-height: 1.8;
+        }
+
+        ul,
+        ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+            color: var(--text-light);
+        }
+
+        li {
+            margin-bottom: 0.8rem;
+        }
+
+        strong {
+            color: var(--text-dark);
+            font-weight: 600;
+        }
+
+        .highlight {
+            background-color: #fff3cd;
+            padding: 1.5rem;
+            border-left: 4px solid var(--error);
+            border-radius: 4px;
+            margin: 1.5rem 0;
+            color: #856404;
+        }
+
+        .highlight strong {
+            color: #721c24;
+        }
+
+        .last-updated {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            font-style: italic;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        footer {
+            background-color: var(--text-dark);
+            color: white;
+            padding: 2rem 0;
+            margin-top: 4rem;
+            text-align: center;
+        }
+
+        footer a {
+            color: #b0b0b0;
+            text-decoration: none;
+            margin: 0 1rem;
+            transition: color 0.3s;
+        }
+
+        footer a:hover {
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            h2 {
+                font-size: 1.3rem;
+            }
+
+            h3 {
+                font-size: 1rem;
+            }
+
+            header h1 {
+                font-size: 1.5rem;
+            }
+        }
+
+        .toc {
+            background: #f9f9f9;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--primary);
+        }
+
+        .toc h3 {
+            color: var(--primary);
+            margin-top: 0;
+        }
+
+        .toc ul {
+            margin-left: 1.5rem;
+        }
+
+        .toc a {
+            color: var(--primary);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .toc a:hover {
+            color: var(--secondary);
+        }
+
+        .prohibited {
+            background: #ffebee;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+            border-left: 4px solid var(--error);
+        }
+
+        .prohibited ul {
+            margin-left: 1.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <h1>Terms & Conditions</h1>
+            <p>Last Updated: January 2025</p>
+            <a href="index.html" class="back-link">← Back to Home</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="toc">
+                <h3>Table of Contents</h3>
+                <ul>
+                    <li><a href="#acceptance">Acceptance of Terms</a></li>
+                    <li><a href="#user-eligibility">User Eligibility</a></li>
+                    <li><a href="#account-registration">Account Registration</a></li>
+                    <li><a href="#user-responsibilities">User Responsibilities</a></li>
+                    <li><a href="#prohibited-conduct">Prohibited Conduct</a></li>
+                    <li><a href="#book-listings">Book Listings</a></li>
+                    <li><a href="#exchanges-donations">Exchanges & Donations</a></li>
+                    <li><a href="#ratings-reviews">Ratings & Reviews</a></li>
+                    <li><a href="#intellectual-property">Intellectual Property</a></li>
+                    <li><a href="#limitation-liability">Limitation of Liability</a></li>
+                    <li><a href="#dispute-resolution">Dispute Resolution</a></li>
+                    <li><a href="#termination">Termination</a></li>
+                    <li><a href="#contact">Contact Us</a></li>
+                </ul>
+            </div>
+
+            <div class="highlight">
+                <strong>⚠️ Important:</strong> By using Boichokro, you agree to these Terms & Conditions.
+                If you don't agree, please do not use our Service.
+            </div>
+
+            <section class="terms-section" id="acceptance">
+                <h2>1. Acceptance of Terms</h2>
+                <p>
+                    By accessing and using Boichokro (the "Service"), you accept and agree to be bound by and abide by
+                    the terms and conditions set forth in this Terms & Conditions agreement. If you do not agree to
+                    abide
+                    by the above, please do not use this service.
+                </p>
+                <p>
+                    We reserve the right to modify these terms and conditions at any time. Your continued use of
+                    Boichokro
+                    following the posting of any changes constitutes your acceptance of those changes.
+                </p>
+            </section>
+
+            <section class="terms-section" id="user-eligibility">
+                <h2>2. User Eligibility</h2>
+                <p>
+                    You must be at least 13 years of age to use Boichokro. By using our Service, you represent and
+                    warrant that:
+                </p>
+                <ul>
+                    <li>You are at least 13 years of age</li>
+                    <li>You have the legal capacity to enter into a binding agreement</li>
+                    <li>You are not prohibited by law from using the Service</li>
+                    <li>You will comply with all applicable laws and regulations</li>
+                    <li>You are not located in a country that is under embargoes</li>
+                </ul>
+            </section>
+
+            <section class="terms-section" id="account-registration">
+                <h2>3. Account Registration</h2>
+
+                <h3>3.1 Registration Requirements</h3>
+                <p>
+                    To use certain features of Boichokro, you must create an account. You agree to:
+                </p>
+                <ul>
+                    <li>Provide accurate, complete, and truthful information</li>
+                    <li>Verify your phone number via OTP</li>
+                    <li>Maintain and promptly update your account information</li>
+                    <li>Maintain the confidentiality of your password or PIN</li>
+                    <li>Accept responsibility for all activities under your account</li>
+                </ul>
+
+                <h3>3.2 Account Security</h3>
+                <p>
+                    You are solely responsible for maintaining the confidentiality of your account credentials.
+                    We are not responsible for any unauthorized access or use of your account.
+                    Please notify us immediately of any unauthorized access.
+                </p>
+
+                <h3>3.3 Account Termination</h3>
+                <p>
+                    We reserve the right to suspend or terminate your account if we believe you have violated these
+                    terms
+                    or violated the law, without refund or compensation.
+                </p>
+            </section>
+
+            <section class="terms-section" id="user-responsibilities">
+                <h2>4. User Responsibilities</h2>
+                <p>
+                    As a Boichokro user, you agree to:
+                </p>
+                <ul>
+                    <li>Use the Service for lawful purposes only</li>
+                    <li>Respect the intellectual property rights of others</li>
+                    <li>Not interfere with or disrupt the Service or servers</li>
+                    <li>Provide accurate book information and descriptions</li>
+                    <li>Treat other users with respect and professionalism</li>
+                    <li>Meet agreed-upon exchange dates and times</li>
+                    <li>Verify book condition before accepting exchanges</li>
+                    <li>Rate and review other users honestly and fairly</li>
+                    <li>Report any suspicious or inappropriate behavior</li>
+                </ul>
+            </section>
+
+            <section class="terms-section" id="prohibited-conduct">
+                <h2>5. Prohibited Conduct</h2>
+                <p>
+                    You agree NOT to engage in any of the following prohibited conduct:
+                </p>
+
+                <div class="prohibited">
+                    <h3 style="margin-top: 0; color: var(--error);">Prohibited Activities:</h3>
+                    <ul>
+                        <li><strong>Fraudulent Activity:</strong> Misrepresenting books, falsifying information,
+                            scamming other users</li>
+                        <li><strong>Harassment & Abuse:</strong> Threatening, bullying, harassing, or abusing other
+                            users</li>
+                        <li><strong>Illegal Content:</strong> Posting illegal, obscene, or hateful content</li>
+                        <li><strong>Spam & Solicitation:</strong> Spam messages, unauthorized advertising, or
+                            unsolicited offers</li>
+                        <li><strong>Hacking & Manipulation:</strong> Attempting to hack accounts or manipulate the
+                            Service</li>
+                        <li><strong>Non-Books:</strong> Listing items that are not books or modified/damaged beyond
+                            repair</li>
+                        <li><strong>Stolen Property:</strong> Listing or exchanging stolen or counterfeit books</li>
+                        <li><strong>Impersonation:</strong> Pretending to be someone else or misrepresenting identity
+                        </li>
+                        <li><strong>Bot Activity:</strong> Using automated tools or scripts to scrape data or manipulate
+                            the Service</li>
+                        <li><strong>Sexually Explicit Content:</strong> Posting NSFW or sexually explicit material</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="terms-section" id="book-listings">
+                <h2>6. Book Listings</h2>
+
+                <h3>6.1 Listing Guidelines</h3>
+                <p>
+                    When listing books on Boichokro, you agree to:
+                </p>
+                <ul>
+                    <li>Provide accurate title, author, and ISBN information</li>
+                    <li>Accurately describe the book's condition (Like New, Very Good, Good, Fair, Worn)</li>
+                    <li>Use clear, real photos of the actual book you're offering</li>
+                    <li>Disclose any damage, markings, or defects</li>
+                    <li>Specify whether you're offering to donate or exchange</li>
+                    <li>List books you actually own and can deliver</li>
+                </ul>
+
+                <h3>6.2 Content Guidelines</h3>
+                <p>
+                    We reserve the right to remove listings that:
+                </p>
+                <ul>
+                    <li>Contain false or misleading information</li>
+                    <li>Violate copyright or intellectual property rights</li>
+                    <li>Promote illegal or harmful content</li>
+                    <li>Use inappropriate images or language</li>
+                </ul>
+
+                <h3>6.3 Listing Duration</h3>
+                <p>
+                    Listings remain active until you delete them or the book is exchanged/donated.
+                    We may automatically deactivate listings that haven't been updated in 6 months.
+                </p>
+            </section>
+
+            <section class="terms-section" id="exchanges-donations">
+                <h2>7. Exchanges & Donations</h2>
+
+                <h3>7.1 Request Process</h3>
+                <p>
+                    When requesting a book or offering to exchange, you are entering into a direct agreement with
+                    another user.
+                    Boichokro acts as a platform facilitator and is not responsible for:
+                </p>
+                <ul>
+                    <li>Enforcing exchanges or donations</li>
+                    <li>Compensating losses or disputes between users</li>
+                    <li>Verifying the condition of exchanged books</li>
+                    <li>Resolving conflicts about exchange terms</li>
+                </ul>
+
+                <h3>7.2 Meeting Safety</h3>
+                <p>
+                    Boichokro provides in-app location sharing for safe meetups. However, we strongly recommend:
+                </p>
+                <ul>
+                    <li>Meeting in public places (cafés, libraries, parks)</li>
+                    <li>Meeting during daylight hours when possible</li>
+                    <li>Not disclosing personal address information</li>
+                    <li>Verifying user ratings and reviews before meeting</li>
+                    <li>Using the in-app messaging only (not personal phone numbers)</li>
+                    <li>Informing a trusted person of your meetup location and time</li>
+                </ul>
+
+                <h3>7.3 No Refunds</h3>
+                <p>
+                    Since Boichokro is a free exchange and donation platform, there are no refunds or financial
+                    transactions.
+                    Any disputes must be resolved directly between users or through our dispute resolution process.
+                </p>
+            </section>
+
+            <section class="terms-section" id="ratings-reviews">
+                <h2>8. Ratings & Reviews</h2>
+
+                <h3>8.1 Rating Guidelines</h3>
+                <p>
+                    Users can rate each other after completing an exchange. Ratings should be:
+                </p>
+                <ul>
+                    <li>Honest and based on actual experience</li>
+                    <li>Fair and not used for revenge or manipulation</li>
+                    <li>Free from false accusations or defamatory content</li>
+                    <li>Not used to spam or promote other services</li>
+                </ul>
+
+                <h3>8.2 Removing Reviews</h3>
+                <p>
+                    We may remove reviews that violate these guidelines. Users can request review removal if:
+                </p>
+                <ul>
+                    <li>The review contains false or defamatory information</li>
+                    <li>The review violates community guidelines</li>
+                    <li>The exchange was successfully resolved despite initial dispute</li>
+                </ul>
+
+                <h3>8.3 Verified Badge</h3>
+                <p>
+                    Users earn a "Verified" badge after successfully completing one exchange with positive ratings.
+                    This badge indicates a trusted community member but is not a guarantee of quality.
+                </p>
+            </section>
+
+            <section class="terms-section" id="intellectual-property">
+                <h2>9. Intellectual Property Rights</h2>
+
+                <h3>9.1 User Content</h3>
+                <p>
+                    You retain ownership of all content you create on Boichokro (photos, descriptions, reviews).
+                    By posting content, you grant Boichokro a non-exclusive, worldwide, royalty-free license to use,
+                    copy, and display your content on our platform.
+                </p>
+
+                <h3>9.2 Our Intellectual Property</h3>
+                <p>
+                    All Boichokro trademarks, logos, designs, and software are the exclusive property of Boichokro and
+                    protected by law.
+                    You may not use, reproduce, or distribute our intellectual property without permission.
+                </p>
+
+                <h3>9.3 Book Content</h3>
+                <p>
+                    Book covers, synopses, and bibliographic data are the property of their respective publishers.
+                    We use this information under fair use for identification and discovery purposes.
+                </p>
+            </section>
+
+            <section class="terms-section" id="limitation-liability">
+                <h2>10. Limitation of Liability</h2>
+
+                <h3>10.1 Disclaimer</h3>
+                <p>
+                    Boichokro is provided "AS IS" without warranties of any kind, expressed or implied.
+                    We do not warrant that:
+                </p>
+                <ul>
+                    <li>The Service will be uninterrupted or error-free</li>
+                    <li>The Service will meet your specific requirements</li>
+                    <li>Users will be honest or follow these terms</li>
+                    <li>Exchanges will be completed successfully</li>
+                    <li>Books will be in the condition described</li>
+                </ul>
+
+                <h3>10.2 Limitation of Damages</h3>
+                <p>
+                    To the fullest extent permitted by law, Boichokro shall not be liable for:
+                </p>
+                <ul>
+                    <li>Indirect, incidental, consequential, or punitive damages</li>
+                    <li>Loss of profits, data, or business opportunities</li>
+                    <li>Disputes or disagreements between users</li>
+                    <li>Damage to books or property during exchanges</li>
+                    <li>Third-party claims or conduct</li>
+                </ul>
+
+                <h3>10.3 Maximum Liability</h3>
+                <p>
+                    Our total liability for any claim shall not exceed the amount you paid to Boichokro in the past 12
+                    months
+                    (which is typically $0 for free users).
+                </p>
+            </section>
+
+            <section class="terms-section" id="dispute-resolution">
+                <h2>11. Dispute Resolution</h2>
+
+                <h3>11.1 Community Guidelines Enforcement</h3>
+                <p>
+                    If we believe you have violated these terms, we may:
+                </p>
+                <ul>
+                    <li>Issue a warning or temporary suspension</li>
+                    <li>Remove inappropriate content</li>
+                    <li>Suspend your account for repeated violations</li>
+                    <li>Permanently ban you from the platform</li>
+                </ul>
+
+                <h3>11.2 User-to-User Disputes</h3>
+                <p>
+                    If you have a dispute with another user, please:
+                </p>
+                <ul>
+                    <li>Contact the other user through in-app messaging to resolve</li>
+                    <li>Document the issue with screenshots and details</li>
+                    <li>Report the issue to our support team with evidence</li>
+                    <li>Provide a reasonable description of the problem</li>
+                </ul>
+
+                <h3>11.3 Dispute Resolution Process</h3>
+                <p>
+                    We will review disputes and may:
+                </p>
+                <ul>
+                    <li>Mediate between users to find a resolution</li>
+                    <li>Request additional information from both parties</li>
+                    <li>Make a decision based on available evidence</li>
+                    <li>Recommend resolution steps if applicable</li>
+                </ul>
+
+                <h3>11.4 Moderation & Appeals</h3>
+                <p>
+                    If we take action against your account, you can appeal by contacting us with details of why you
+                    believe
+                    the decision was incorrect.
+                </p>
+            </section>
+
+            <section class="terms-section" id="termination">
+                <h2>12. Termination</h2>
+
+                <h3>12.1 Our Right to Terminate</h3>
+                <p>
+                    We may terminate or suspend your account immediately and without notice if:
+                </p>
+                <ul>
+                    <li>You violate these Terms & Conditions</li>
+                    <li>You engage in fraudulent or illegal activity</li>
+                    <li>You violate our community guidelines</li>
+                    <li>We reasonably believe your account is harmful to others</li>
+                </ul>
+
+                <h3>12.2 Your Right to Terminate</h3>
+                <p>
+                    You may delete your account at any time through your account settings.
+                    Your data will be deleted in accordance with our Privacy Policy.
+                </p>
+
+                <h3>12.3 Effect of Termination</h3>
+                <p>
+                    Upon termination, your right to use Boichokro immediately ceases.
+                    These terms survive termination except as otherwise noted.
+                </p>
+            </section>
+
+            <section class="terms-section" id="contact">
+                <h2>13. Contact Us</h2>
+                <p>
+                    If you have questions about these Terms & Conditions, or need to report a violation, please contact
+                    us:
+                </p>
+                <ul>
+                    <li><strong>Email:</strong> <a href="mailto:zaman6545@gmail.com">zaman6545@gmail.com</a></li>
+                    <li><strong>Developer:</strong> Md. Shamsuzzaman</li>
+                    <li><strong>Company:</strong> ProgrammerNexus</li>
+                    <li><strong>GitHub:</strong> <a href="https://github.com/zamansheikh">github.com/zamansheikh</a>
+                    </li>
+                </ul>
+                <p>
+                    We will respond to inquiries within 30 days.
+                </p>
+            </section>
+
+            <section class="terms-section">
+                <h2>14. Severability & Amendments</h2>
+                <p>
+                    If any provision of these Terms & Conditions is found to be invalid or unenforceable,
+                    the remaining provisions shall remain in effect.
+                </p>
+                <p>
+                    We reserve the right to amend these Terms & Conditions at any time by posting the updated version on
+                    our website.
+                    Your continued use constitutes acceptance of the amended terms.
+                </p>
+            </section>
+
+            <div class="last-updated">
+                <strong>Last Updated:</strong> November 2025<br>
+                <strong>Version:</strong> 1.0<br>
+                <strong>Effective Date:</strong> November 2025
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <a href="index.html">Home</a>
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="mailto:zaman6545@gmail.com">Contact</a>
+            <p style="margin-top: 1rem;">&copy; 2025 Boichokro by ProgrammerNexus. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+
+</html>

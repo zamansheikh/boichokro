@@ -1,0 +1,1195 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../core/di/injection_container.dart';
+import '../../../../core/network/firebase_service.dart';
+import '../../../../core/utils/constants.dart';
+import '../../../discover/domain/entities/book.dart';
+import '../../domain/entities/request.dart';
+import '../../domain/usecases/get_request_by_id_usecase.dart';
+import '../../../discover/domain/usecases/book_usecases.dart';
+import '../../../discover/domain/entities/user.dart';
+import '../../../discover/domain/usecases/user_usecases.dart';
+import '../../../discover/presentation/bloc/book/book_bloc.dart';
+import '../../../discover/presentation/bloc/book/book_event.dart';
+import '../../../discover/presentation/bloc/book/book_state.dart';
+import '../../../discover/presentation/bloc/request/request_bloc.dart';
+import '../../../discover/presentation/bloc/request/request_event.dart';
+import '../../../discover/presentation/bloc/request/request_state.dart';
+
+/// My Library Page - User's books
+class MyLibraryPage extends StatefulWidget {
+  const MyLibraryPage({super.key});
+
+  @override
+  State<MyLibraryPage> createState() => _MyLibraryPageState();
+}
+
+class _MyLibraryPageState extends State<MyLibraryPage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  late BookBloc _bookBloc;
+  late RequestBloc _requestBloc;
+  final Map<String, Future<BookRequest?>> _requestCache = {};
+  String? _currentUserId;
+  late final GetUserByIdUseCase _getUserByIdUseCase;
+  final Map<String, Future<User?>> _userCache = {};
+  late final GetBookByIdUseCase _getBookByIdUseCase;
+  final Map<String, Future<Book?>> _bookCache = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _requestBloc = getIt<RequestBloc>();
+    final currentUser = getIt<FirebaseService>().auth.currentUser;
+    _currentUserId = currentUser?.uid;
+    _getUserByIdUseCase = getIt<GetUserByIdUseCase>();
+    _getBookByIdUseCase = getIt<GetBookByIdUseCase>();
+    if (currentUser != null) {
+      _bookBloc = getIt<BookBloc>()..add(LoadMyBooks(currentUser.uid));
+      _requestBloc.add(LoadMyRequests(currentUser.uid));
+    } else {
+      _bookBloc = getIt<BookBloc>();
+    }
+  }
+
+  Widget? _buildBookStatusSection(Book book) {
+    switch (book.status) {
+      case BookStatus.available:
+        return null;
+      case BookStatus.pending:
+        final requestId = book.activeRequestId;
+        if (requestId == null || requestId.isEmpty) {
+          return _buildInfoBanner(
+            context,
+            icon: Icons.info_outline,
+            color: Colors.orange,
+            message:
+                'This book is marked as pending, but the active request could not be found. Open the book detail page to review.',
+            action: TextButton(
+              onPressed: () => context.push('/book/${book.id}'),
+              child: const Text('Open details'),
+            ),
+          );
+        }
+
+        final future = _requestCache[requestId] ??= _fetchRequest(requestId);
+        return FutureBuilder<BookRequest?>(
+          future: future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return _buildInfoBanner(
+                context,
+                icon: Icons.sync,
+                color: Theme.of(context).colorScheme.primary,
+                message: 'Loading exchange details...',
+                showProgress: true,
+              );
+            }
+
+            if (snapshot.hasError) {
+              return _buildInfoBanner(
+                context,
+                icon: Icons.error_outline,
+                color: Colors.red,
+                message:
+                    'Could not load exchange details. Please try again or open the book page.',
+                action: TextButton(
+                  onPressed: () {
+                    if (!mounted) return;
+                    setState(() {
+                      _requestCache[requestId] = _fetchRequest(requestId);
+                    });
+                  },
+                  child: const Text('Retry'),
+                ),
+              );
+            }
+
+            final request = snapshot.data;
+            if (request == null) {
+              return _buildInfoBanner(
+                context,
+                icon: Icons.info_outline,
+                color: Colors.orange,
+                message:
+                    'Exchange data is not available yet. Manage the request from the book page.',
+                action: TextButton(
+                  onPressed: () => context.push('/book/${book.id}'),
+                  child: const Text('Open details'),
+                ),
+              );
+            }
+
+            return _buildPendingExchangeDetails(context, book, request);
+          },
+        );
+      case BookStatus.completed:
+        return _buildInfoBanner(
+          context,
+          icon: Icons.emoji_events_outlined,
+          color: Colors.green,
+          message:
+              'Exchange completed. Capture feedback or relist the book once it is back in your library.',
+          action: TextButton(
+            onPressed: () => context.push('/book/${book.id}'),
+            child: const Text('View exchange'),
+          ),
+        );
+      case BookStatus.requested:
+        return _buildInfoBanner(
+          context,
+          icon: Icons.mark_email_unread_outlined,
+          color: Colors.blue,
+          message:
+              'Readers have requested this book. Open the detail page to review and accept one.',
+          action: TextButton(
+            onPressed: () => context.push('/book/${book.id}'),
+            child: const Text('Review requests'),
+          ),
+        );
+    }
+  }
+
+  Widget _buildPendingExchangeDetails(
+    BuildContext context,
+    Book book,
+    BookRequest request,
+  ) {
+    final theme = Theme.of(context);
+    final bool ownerConfirmed = request.ownerConfirmed;
+    final bool seekerConfirmed = request.seekerConfirmed;
+    final bool chatAvailable =
+        request.chatRoomId != null && request.chatRoomId!.isNotEmpty;
+
+    final canConfirm = !ownerConfirmed;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.bolt, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Active exchange',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Spacer(),
+              _buildStatusChip(context, request.status),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _buildUserLine('Reader', request.seekerId),
+          if (request.acceptedAt != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Accepted on ${_formatDate(request.acceptedAt!)}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.outline,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          _buildConfirmationRow(
+            context,
+            label: 'Your confirmation',
+            confirmed: ownerConfirmed,
+          ),
+          const SizedBox(height: 8),
+          _buildConfirmationRow(
+            context,
+            label: 'Reader confirmation',
+            confirmed: seekerConfirmed,
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              FilledButton.icon(
+                onPressed: canConfirm
+                    ? () => _confirmExchange(context, request)
+                    : null,
+                icon: const Icon(Icons.verified),
+                label: Text(ownerConfirmed ? 'Confirmed' : 'Confirm exchange'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => _openChatForRequest(context, request, book),
+                icon: const Icon(Icons.chat_bubble_outline),
+                label: Text(chatAvailable ? 'Open chat' : 'Message reader'),
+              ),
+              TextButton(
+                onPressed: () => context.push('/book/${book.id}'),
+                child: const Text('Manage in detail'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoBanner(
+    BuildContext context, {
+    required IconData icon,
+    required Color color,
+    required String message,
+    Widget? action,
+    bool showProgress = false,
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (showProgress) ...[
+            SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+                strokeWidth: 2.5,
+              ),
+            ),
+          ] else ...[
+            Icon(icon, color: color),
+          ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: theme.textTheme.bodyMedium?.copyWith(color: color),
+            ),
+          ),
+          if (action != null) ...[const SizedBox(width: 12), action],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfirmationRow(
+    BuildContext context, {
+    required String label,
+    required bool confirmed,
+  }) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Icon(
+          confirmed ? Icons.check_circle : Icons.radio_button_unchecked,
+          color: confirmed ? Colors.green : theme.colorScheme.outline,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          confirmed ? '$label received' : '$label pending',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: confirmed ? FontWeight.w600 : FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUserLine(String label, String userId) {
+    final future = _getUserFuture(userId);
+    return FutureBuilder<User?>(
+      future: future,
+      builder: (context, snapshot) {
+        final theme = Theme.of(context);
+        final isLoading = snapshot.connectionState == ConnectionState.waiting;
+        if (isLoading && snapshot.data == null) {
+          return Row(
+            children: [
+              SizedBox(
+                height: 18,
+                width: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text('Loading $label...'),
+            ],
+          );
+        }
+
+        final user = snapshot.data;
+        final name = user?.name ?? _formatUserLabel(userId);
+        final rating = user?.ratingAvg ?? 0;
+
+        return Row(
+          children: [
+            Text(
+              '$label:',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 8),
+            CircleAvatar(
+              radius: 14,
+              backgroundImage: _userPhotoProvider(user),
+              child: _userPhotoProvider(user) != null
+                  ? null
+                  : const Icon(Icons.person_outline, size: 16),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                name,
+                style: theme.textTheme.bodyMedium,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (rating > 0) ...[
+              const SizedBox(width: 8),
+              Icon(Icons.star, size: 14, color: Colors.amber.shade700),
+              const SizedBox(width: 2),
+              Text(
+                rating.toStringAsFixed(1),
+                style: theme.textTheme.labelSmall,
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  ImageProvider<Object>? _userPhotoProvider(User? user) {
+    final photoUrl = user?.photoUrl;
+    if (photoUrl == null || photoUrl.isEmpty) {
+      return null;
+    }
+    return CachedNetworkImageProvider(photoUrl);
+  }
+
+  Future<User?> _getUserFuture(String userId) {
+    return _userCache[userId] ??= _fetchUser(userId);
+  }
+
+  Future<User?> _fetchUser(String userId) async {
+    final result = await _getUserByIdUseCase(GetUserByIdParams(userId));
+    return result.fold((_) => null, (user) => user);
+  }
+
+  Future<BookRequest?> _fetchRequest(String requestId) async {
+    final useCase = getIt<GetRequestByIdUseCase>();
+    final result = await useCase(GetRequestByIdParams(requestId));
+    return result.fold((_) => null, (request) => request);
+  }
+
+  void _confirmExchange(BuildContext context, BookRequest request) {
+    final currentUser = getIt<FirebaseService>().auth.currentUser;
+
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please sign in to confirm the exchange.'),
+        ),
+      );
+      return;
+    }
+
+    _requestBloc.add(
+      ConfirmExchange(requestId: request.id, userId: currentUser.uid),
+    );
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => BlocProvider.value(
+        value: _requestBloc,
+        child: BlocConsumer<RequestBloc, RequestState>(
+          listener: (context, state) {
+            if (state is RequestUpdated) {
+              final updatedRequest = state.request;
+              if (updatedRequest.id != request.id) return;
+              Navigator.pop(dialogContext);
+              if (!mounted) return;
+              setState(() {
+                _requestCache[request.id] = Future.value(updatedRequest);
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Exchange confirmation recorded.'),
+                ),
+              );
+            } else if (state is RequestError) {
+              final message = state.message;
+              Navigator.pop(dialogContext);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to confirm exchange: $message'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+          builder: (context, state) {
+            return AlertDialog(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Confirming exchange...',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _openChatForRequest(
+    BuildContext context,
+    BookRequest request,
+    Book book,
+  ) {
+    final chatRoomId = request.chatRoomId;
+    if (chatRoomId != null && chatRoomId.isNotEmpty) {
+      context.push('${RoutePaths.chat}/$chatRoomId');
+      return;
+    }
+
+    // Fallback to book detail page to manage the conversation creation
+    context.push('/book/${book.id}');
+  }
+
+  Widget _buildStatusChip(BuildContext context, RequestStatus status) {
+    final color = _statusColor(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        status.displayName,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Color _statusColor(RequestStatus status) {
+    switch (status) {
+      case RequestStatus.pending:
+        return Colors.orange;
+      case RequestStatus.accepted:
+        return Colors.blue;
+      case RequestStatus.declined:
+        return Colors.red.shade400;
+      case RequestStatus.cancelled:
+        return Colors.grey;
+      case RequestStatus.completed:
+        return Colors.green;
+    }
+  }
+
+  String _formatDate(DateTime dateTime) {
+    final day = dateTime.day.toString().padLeft(2, '0');
+    final month = dateTime.month.toString().padLeft(2, '0');
+    final year = dateTime.year.toString();
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    return '$day/$month/$year at $hour:$minute';
+  }
+
+  String _formatUserLabel(String userId) {
+    if (userId.length <= 8) return userId;
+    return '${userId.substring(0, 4)}...${userId.substring(userId.length - 4)}';
+  }
+
+  @override
+  void dispose() {
+    _bookBloc.close();
+    _requestBloc.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider.value(value: _bookBloc),
+        BlocProvider.value(value: _requestBloc),
+      ],
+      child: MultiBlocListener(
+        listeners: [
+          BlocListener<RequestBloc, RequestState>(
+            listener: (context, state) {
+              if (state is RequestUpdated) {
+                final request = state.request;
+                _requestCache.remove(request.id);
+                final userId = _currentUserId;
+                if (userId != null) {
+                  _bookBloc.add(LoadMyBooks(userId));
+                }
+              } else if (state is RequestDeleted) {
+                final userId = _currentUserId;
+                if (userId != null) {
+                  _bookBloc.add(LoadMyBooks(userId));
+                }
+              } else if (state is RequestError) {
+                final message = state.message;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Request update failed: $message'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+          ),
+        ],
+        child: DefaultTabController(
+          length: 4,
+          child: Scaffold(
+            appBar: AppBar(
+              centerTitle: true,
+              title: const Text('My Library'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: () {
+                    final userId = _currentUserId;
+                    if (userId != null) {
+                      _bookBloc.add(LoadMyBooks(userId));
+                      _requestBloc.add(LoadMyRequests(userId));
+                    }
+                  },
+                  tooltip: 'Refresh',
+                ),
+              ],
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(102),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 32, 16, 14),
+                  child: _buildLibraryTabBar(context),
+                ),
+              ),
+            ),
+            body: TabBarView(
+              children: [
+                _buildBookList(BookStatus.available),
+                _buildBookList(BookStatus.pending),
+                _buildBookList(BookStatus.completed),
+                _buildRequestsList(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLibraryTabBar(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      padding: const EdgeInsets.all(6),
+      child: TabBar(
+        indicator: BoxDecoration(
+          color: theme.colorScheme.primary,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        labelColor: theme.colorScheme.onPrimary,
+        unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+        labelStyle: theme.textTheme.bodyMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: theme.textTheme.bodyMedium,
+        tabs: const [
+          Tab(
+            icon: Icon(Icons.inventory_2_outlined),
+            text: 'Available',
+            height: 60,
+            iconMargin: EdgeInsets.only(bottom: 4),
+          ),
+          Tab(
+            icon: Icon(Icons.hourglass_bottom_outlined),
+            text: 'Pending',
+            height: 60,
+            iconMargin: EdgeInsets.only(bottom: 4),
+          ),
+          Tab(
+            icon: Icon(Icons.history_outlined),
+            text: 'Past',
+            height: 60,
+            iconMargin: EdgeInsets.only(bottom: 4),
+          ),
+          Tab(
+            icon: Icon(Icons.outbound_outlined),
+            text: 'Requests',
+            height: 60,
+            iconMargin: EdgeInsets.only(bottom: 4),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBookList(BookStatus status) {
+    return BlocConsumer<BookBloc, BookState>(
+      listener: (context, state) {
+        // Auto-reload when a book is added or deleted (especially important when list was empty)
+        final userId = _currentUserId;
+        if (userId != null) {
+          if (state is BookAdded) {
+            context.read<BookBloc>().add(LoadMyBooks(userId));
+          } else if (state is BookDeleted) {
+            context.read<BookBloc>().add(LoadMyBooks(userId));
+          }
+        }
+      },
+      builder: (context, state) {
+        if (state is BookInitial) {
+          return const SizedBox.shrink();
+        } else if (state is BookLoading) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (state is BookLoaded) {
+          final books = state.books;
+          final filteredBooks = books
+              .where((book) => book.status == status)
+              .toList();
+
+          if (filteredBooks.isEmpty) {
+            return _buildEmptyState(status);
+          }
+
+          return RefreshIndicator(
+            onRefresh: () async {
+              final userId = _currentUserId;
+              if (userId != null) {
+                context.read<BookBloc>().add(LoadMyBooks(userId));
+              }
+            },
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              itemCount: filteredBooks.length,
+              separatorBuilder: (_, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                return _buildMyBookCard(filteredBooks[index]);
+              },
+            ),
+          );
+        } else if (state is BookDetailLoaded) {
+          return const SizedBox.shrink();
+        } else if (state is BookAdded) {
+          return const SizedBox.shrink();
+        } else if (state is BookUpdated) {
+          return const SizedBox.shrink();
+        } else if (state is BookDeleted) {
+          return const SizedBox.shrink();
+        } else if (state is BookError) {
+          final message = state.message;
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(message, textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    final userId = _currentUserId;
+                    if (userId != null) {
+                      context.read<BookBloc>().add(LoadMyBooks(userId));
+                    }
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildRequestsList() {
+    return BlocBuilder<RequestBloc, RequestState>(
+      buildWhen: (previous, current) {
+        if (current is RequestLoaded) {
+          return true;
+        } else if (current is RequestLoading) {
+          return true;
+        } else if (current is RequestError) {
+          return true;
+        }
+        return false;
+      },
+      builder: (context, state) {
+        if (state is RequestLoading) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (state is RequestLoaded) {
+          final requests = state.requests;
+          if (requests.isEmpty) {
+            return _buildEmptyState(BookStatus.requested);
+          }
+          return RefreshIndicator(
+            onRefresh: () async {
+              final userId = _currentUserId;
+              if (userId != null) {
+                context.read<RequestBloc>().add(LoadMyRequests(userId));
+              }
+            },
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              itemCount: requests.length,
+              separatorBuilder: (_, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                return _buildRequestCard(requests[index]);
+              },
+            ),
+          );
+        } else if (state is RequestError) {
+          final message = state.message;
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(message, textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    final userId = _currentUserId;
+                    if (userId != null) {
+                      context.read<RequestBloc>().add(LoadMyRequests(userId));
+                    }
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildRequestCard(BookRequest request) {
+    final future = _bookCache[request.bookId] ??= _fetchBook(request.bookId);
+
+    return FutureBuilder<Book?>(
+      future: future,
+      builder: (context, snapshot) {
+        final theme = Theme.of(context);
+        final book = snapshot.data;
+        final isLoading = snapshot.connectionState == ConnectionState.waiting;
+
+        if (isLoading) {
+          return Card(
+            margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+            child: Container(
+              height: 100,
+              alignment: Alignment.center,
+              child: const CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (book == null) {
+          return const SizedBox.shrink();
+        }
+
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => context.push('/book/${book.id}'),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: CachedNetworkImage(
+                          imageUrl: book.coverUrl,
+                          width: 60,
+                          height: 90,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) =>
+                              Container(color: Colors.grey[300]),
+                          errorWidget: (context, url, error) =>
+                              const Icon(Icons.error),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              book.title,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              book.author,
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            _buildStatusChip(context, request.status),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (request.status == RequestStatus.accepted) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () =>
+                            _openChatForRequest(context, request, book),
+                        icon: const Icon(Icons.chat_bubble_outline),
+                        label: const Text('Open Chat'),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<Book?> _fetchBook(String bookId) async {
+    final result = await _getBookByIdUseCase(GetBookByIdParams(bookId));
+    return result.fold((_) => null, (book) => book);
+  }
+
+  Widget _buildEmptyState(BookStatus status) {
+    String title;
+    String subtitle;
+
+    switch (status) {
+      case BookStatus.available:
+        title = 'No Available Books';
+        subtitle = 'Add your first book to get started';
+        break;
+      case BookStatus.pending:
+        title = 'No Pending Exchanges';
+        subtitle = 'Books involved in active exchanges will appear here';
+        break;
+      case BookStatus.completed:
+        title = 'No Past Exchanges';
+        subtitle = 'Your completed exchanges will appear here';
+        break;
+      case BookStatus.requested:
+        title = 'No Requests Found';
+        subtitle = 'Books you have requested from others will appear here';
+        break;
+    }
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.library_books_outlined,
+            size: 80,
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: 16),
+          Text(title, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).textTheme.bodySmall?.color,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (status == BookStatus.available) ...[
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: () => context.push(RoutePaths.addBook),
+              icon: const Icon(Icons.add),
+              label: const Text('Add Book'),
+            ),
+          ],
+          if (status == BookStatus.requested) ...[
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: () =>
+                  context.go(RoutePaths.home, extra: {'initialIndex': 0}),
+              icon: const Icon(Icons.search),
+              label: const Text('Discover Books'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMyBookCard(Book book) {
+    final theme = Theme.of(context);
+    final isAvailable = book.status == BookStatus.available;
+    final statusSection = _buildBookStatusSection(book);
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => context.push('/book/${book.id}'),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Hero(
+                    tag: 'library_book_${book.id}',
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: CachedNetworkImage(
+                        imageUrl: book.coverUrl,
+                        width: 90,
+                        height: 130,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          width: 90,
+                          height: 130,
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          child: Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          width: 90,
+                          height: 130,
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          child: Icon(
+                            Icons.menu_book_rounded,
+                            size: 36,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          book.title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          book.author,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            _buildSimpleChip(
+                              Icons.auto_stories,
+                              AppConstants.bookConditions[book.condition],
+                            ),
+                            _buildSimpleChip(
+                              book.mode == BookMode.donate
+                                  ? Icons.volunteer_activism_outlined
+                                  : Icons.sync_alt,
+                              book.mode.displayName,
+                            ),
+                          ],
+                        ),
+                        if (book.genres.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            book.genres.take(3).join(' • '),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (statusSection != null) ...[
+                const SizedBox(height: 12),
+                statusSection,
+              ],
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.tonalIcon(
+                      onPressed: isAvailable
+                          ? () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Edit coming soon!'),
+                                ),
+                              );
+                            }
+                          : null,
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                      label: const Text('Edit'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: isAvailable
+                          ? () => _showDeleteConfirmation(context, book)
+                          : null,
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      label: const Text('Delete'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        foregroundColor: theme.colorScheme.error,
+                        side: BorderSide(color: theme.colorScheme.error),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (!isAvailable) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Editing and deleting are disabled while this book is involved in an exchange.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.outline,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSimpleChip(IconData icon, String label) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: theme.colorScheme.primary),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, Book book) {
+    final bookBloc = _bookBloc; // Capture the BookBloc reference
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Book'),
+        content: Text('Are you sure you want to delete "${book.title}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              bookBloc.add(DeleteBook(book.id));
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Book deleted')));
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Boichokro - Share books, discover hidden gems, build connections. Free book exchange and donation platform for your community.">
+    <meta name="keywords" content="book exchange, book donation, free books, community, reading, local books">
+    <meta name="author" content="Md. Shamsuzzaman">
+    <meta property="og:title" content="Boichokro - Share Books, Swap Stories">
+    <meta property="og:description"
+        content="Turn the books you've read into new reads for someone else – for free, nearby, and safe.">
+    <meta property="og:image" content="https://github.com/zamansheikh/boichokro/raw/main/docs/assets/icon.png">
+    <meta property="og:url" content="https://zamansheikh.github.io/boichokro/">
+    <meta name="twitter:card" content="summary_large_image">
+    <title>Boichokro - Share Books, Swap Stories</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6750A4;
+            --primary-light: #8B7BB8;
+            --secondary: #4CAF50;
+            --accent: #FF9800;
+            --success: #4CAF50;
+            --error: #F44336;
+            --dark-bg: #1a1a1a;
+            --light-bg: #ffffff;
+            --text-dark: #212121;
+            --text-light: #757575;
+            --border: #e0e0e0;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background-color: var(--light-bg);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header & Navigation */
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            position: relative;
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .logo img {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+        }
+
+        nav {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.3s;
+        }
+
+        nav a:hover {
+            opacity: 0.8;
+        }
+
+        .btn-primary {
+            background-color: var(--secondary);
+            color: white;
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: white;
+            padding: 0.7rem 1.5rem;
+            border: 2px solid white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-secondary:hover {
+            background-color: white;
+            color: var(--primary);
+        }
+
+        /* Hamburger menu styles */
+        .menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+            margin-left: 1rem;
+            z-index: 1001;
+            align-items: center;
+        }
+
+        .menu-icon {
+            width: 28px;
+            height: 3px;
+            background: white;
+            position: relative;
+            border-radius: 2px;
+            display: block;
+        }
+
+        .menu-icon::before,
+        .menu-icon::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            width: 28px;
+            height: 3px;
+            background: white;
+            border-radius: 2px;
+            transition: 0.3s;
+        }
+
+        .menu-icon::before {
+            top: -8px;
+        }
+
+        .menu-icon::after {
+            top: 8px;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 4rem 0;
+            text-align: center;
+        }
+
+        .hero-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .hero-text h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .hero-text p {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+            line-height: 1.6;
+        }
+
+        .hero-image {
+            text-align: center;
+        }
+
+        .hero-image img {
+            max-width: 300px;
+            height: auto;
+            filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.2));
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn-playstore,
+        .btn-appstore {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.8rem 1.5rem;
+            background-color: white;
+            color: var(--primary);
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .btn-playstore:hover,
+        .btn-appstore:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 4rem 0;
+            background-color: #f9f9f9;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 3rem;
+            color: var(--text-dark);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+
+        .feature-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        .feature-card p {
+            color: var(--text-light);
+            font-size: 0.95rem;
+        }
+
+        /* How It Works */
+        .how-it-works {
+            padding: 4rem 0;
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .step-card {
+            text-align: center;
+            padding: 2rem;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(103, 80, 164, 0.1) 0%, rgba(76, 175, 80, 0.1) 100%);
+            border: 2px solid var(--border);
+            position: relative;
+        }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .step-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        .step-card p {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        /* Safety Section */
+        .safety {
+            padding: 4rem 0;
+            background: linear-gradient(135deg, rgba(244, 67, 54, 0.05) 0%, rgba(76, 175, 80, 0.05) 100%);
+        }
+
+        .safety-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .safety-list {
+            list-style: none;
+        }
+
+        .safety-list li {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .safety-list li::before {
+            content: "✓";
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            background-color: var(--secondary);
+            color: white;
+            border-radius: 50%;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--text-dark);
+            color: white;
+            padding: 3rem 0 1rem;
+            margin-top: 4rem;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-section h3 {
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .footer-section a,
+        .footer-section p {
+            color: #b0b0b0;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 0.5rem;
+            transition: color 0.3s;
+        }
+
+        .footer-section a:hover {
+            color: white;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .social-links a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 50%;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .social-links a:hover {
+            background-color: var(--secondary);
+            transform: translateY(-3px);
+        }
+
+        .footer-bottom {
+            border-top: 1px solid #404040;
+            padding-top: 2rem;
+            text-align: center;
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: #888;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: white;
+        }
+
+        /* CTA Section */
+        .cta {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 3rem 0;
+            text-align: center;
+            border-radius: 12px;
+            margin: 4rem 0;
+        }
+
+        .cta h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .cta p {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Testimonials */
+        .testimonials {
+            padding: 4rem 0;
+            background-color: #f9f9f9;
+        }
+
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .testimonial-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--secondary);
+        }
+
+        .testimonial-text {
+            font-style: italic;
+            margin-bottom: 1rem;
+            color: var(--text-light);
+        }
+
+        .testimonial-author {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .rating {
+            color: #FFC107;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 1024px) {
+            .hero-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .hero-image img {
+                max-width: 250px;
+            }
+
+            .safety-content {
+                grid-template-columns: 1fr;
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 15px;
+            }
+
+            .header-content {
+                flex-direction: row;
+                align-items: center;
+                gap: 0;
+            }
+
+            .logo {
+                flex: 1 1 auto;
+                min-width: 0;
+            }
+
+            nav {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                width: 100%;
+                background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+                flex-direction: column;
+                gap: 0;
+                z-index: 999;
+                box-shadow: var(--shadow-lg);
+            }
+
+            nav.open {
+                display: flex;
+            }
+
+            nav a {
+                padding: 1.2rem;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                color: white;
+                font-size: 1.1rem;
+                text-align: center;
+                width: 100%;
+            }
+
+            .btn-secondary {
+                margin: 0.5rem 0;
+                width: calc(100% - 2rem);
+                text-align: center;
+            }
+
+            .menu-btn {
+                display: flex;
+                margin-left: auto;
+            }
+
+            .hero {
+                padding: 3rem 0;
+            }
+
+            .hero-text h1 {
+                font-size: 2rem;
+            }
+
+            .hero-text p {
+                font-size: 1rem;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+            }
+
+            .hero-buttons > * {
+                width: 100%;
+                text-align: center;
+            }
+
+            .section-title {
+                font-size: 1.8rem;
+                margin-bottom: 2rem;
+            }
+
+            .features {
+                padding: 3rem 0;
+            }
+
+            .feature-card {
+                padding: 1.5rem;
+            }
+
+            .feature-card h3 {
+                font-size: 1.2rem;
+            }
+
+            .how-it-works {
+                padding: 3rem 0;
+            }
+
+            .steps-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .step-card {
+                padding: 1.5rem;
+            }
+
+            .safety {
+                padding: 3rem 0;
+            }
+
+            .safety-list li {
+                flex-direction: column;
+                text-align: center;
+                gap: 0.5rem;
+            }
+
+            .safety-list li::before {
+                margin: 0 auto 0.5rem;
+            }
+
+            .testimonials {
+                padding: 3rem 0;
+            }
+
+            .testimonial-card {
+                padding: 1.5rem;
+            }
+
+            .cta {
+                padding: 2rem 0;
+                margin: 3rem 0;
+            }
+
+            .cta h2 {
+                font-size: 1.8rem;
+            }
+
+            .cta p {
+                font-size: 1rem;
+            }
+
+            footer {
+                padding: 2rem 0 1rem;
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-section {
+                text-align: center;
+            }
+
+            .social-links {
+                justify-content: center;
+            }
+
+            .footer-links {
+                gap: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo {
+                font-size: 1.2rem;
+            }
+
+            .logo img {
+                width: 30px;
+                height: 30px;
+            }
+
+            .btn-primary, .btn-secondary, .btn-playstore, .btn-appstore {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.9rem;
+            }
+
+            .hero {
+                padding: 2rem 0;
+            }
+
+            .hero-text h1 {
+                font-size: 1.8rem;
+            }
+
+            .hero-image img {
+                max-width: 200px;
+            }
+
+            .section-title {
+                font-size: 1.5rem;
+            }
+
+            .feature-icon {
+                font-size: 2.5rem;
+            }
+
+            .feature-card h3 {
+                font-size: 1.1rem;
+            }
+
+            .feature-card p {
+                font-size: 0.9rem;
+            }
+
+            .step-number {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+            }
+
+            .step-card h3 {
+                font-size: 1rem;
+            }
+
+            .step-card p {
+                font-size: 0.85rem;
+            }
+
+            .cta h2 {
+                font-size: 1.5rem;
+            }
+
+            .footer-bottom {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <img src="icon.png" alt="Boichokro Logo">
+                    <span>Boichokro</span>
+                </div>
+                <nav id="main-nav">
+                    <a href="#features">Features</a>
+                    <a href="#how-it-works">How It Works</a>
+                    <a href="#safety">Safety</a>
+                    <a href="#contact">Contact</a>
+                    <a href="privacy.html" class="btn-secondary">Privacy</a>
+                </nav>
+                <button class="menu-btn" id="menu-btn" aria-label="Open menu">
+                    <span class="menu-icon"></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu Script -->
+    <script>
+        const menuBtn = document.getElementById('menu-btn');
+        const mainNav = document.getElementById('main-nav');
+        menuBtn.addEventListener('click', function () {
+            mainNav.classList.toggle('open');
+        });
+        // Close menu when clicking outside
+        document.addEventListener('click', function (e) {
+            if (!menuBtn.contains(e.target) && !mainNav.contains(e.target)) {
+                mainNav.classList.remove('open');
+            }
+        });
+    </script>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1>Share Books, Swap Stories</h1>
+                    <p>Turn the books you've already read into new reads for someone else – for free, nearby, and safe.
+                    </p>
+                    <p style="font-size: 0.95rem; opacity: 0.9;">Join a community of book lovers sharing knowledge and
+                        stories in your neighborhood.</p>
+                    <div class="hero-buttons">
+                        <a href="https://play.google.com/store/apps/details?id=com.programmernexus.boichokro"
+                            class="btn-playstore">
+                            📱 Get on Play Store
+                        </a>
+                        <a href="https://apps.apple.com/app/boichokro/id6123456789" class="btn-appstore">
+                            🍎 Get on App Store
+                        </a>
+                    </div>
+                </div>
+                <div class="hero-image">
+                    <img src="icon.png" alt="Boichokro App" style="border-radius:16px;">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section-title">Why Choose Boichokro?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📚</div>
+                    <h3>Share Locally</h3>
+                    <p>Find and share books with readers just around the corner. Keep books in circulation within your
+                        community.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💚</div>
+                    <h3>Free Exchange</h3>
+                    <p>No payment required. Donate or swap books based on your preference. Complete freedom to choose.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <h3>Smart Discovery</h3>
+                    <p>Use our map and filters to discover hidden gems. Search by genre, condition, or distance.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>Verified & Safe</h3>
+                    <p>Phone verification, user ratings, and community trust ratings keep everyone safe.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💬</div>
+                    <h3>In-App Chat</h3>
+                    <p>Message book owners directly within the app. Plan meetups safely with location sharing.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⭐</div>
+                    <h3>Community Ratings</h3>
+                    <p>Help others by rating your book exchange experience. Build reputation and trust badges.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="container">
+            <h2 class="section-title">How It Works</h2>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h3>Sign Up</h3>
+                    <p>Quick registration with phone OTP. Verify your identity to start sharing.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h3>Add Books</h3>
+                    <p>Snap a photo, add title/author. Choose to donate or exchange.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h3>Browse & Connect</h3>
+                    <p>Explore books near you. Chat with owners to arrange pickup.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <h3>Meet & Exchange</h3>
+                    <p>Meet at a safe public place. Complete the exchange and rate.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Safety Section -->
+    <section class="safety" id="safety">
+        <div class="container">
+            <h2 class="section-title">Safety First</h2>
+            <div class="safety-content">
+                <div>
+                    <ul class="safety-list">
+                        <li><strong>Phone Verification:</strong> All users verified via OTP</li>
+                        <li><strong>Community Ratings:</strong> Rate and review other users</li>
+                        <li><strong>Safe Meetup:</strong> In-app location sharing for handoffs</li>
+                        <li><strong>Report & Block:</strong> Report inappropriate behavior instantly</li>
+                        <li><strong>Verified Badge:</strong> Earn trust through successful exchanges</li>
+                        <li><strong>Emergency Support:</strong> Report safety concerns to our team</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="margin-bottom: 1rem; color: var(--primary);">Our Commitment</h3>
+                    <p style="margin-bottom: 1rem; color: var(--text-light);">
+                        Boichokro is committed to creating a safe and inclusive community for all book lovers. We take
+                        safety seriously and enforce strict community guidelines.
+                    </p>
+                    <p style="color: var(--text-light);">
+                        Every user is verified, exchanges are transparent, and our moderation team works 24/7 to ensure
+                        a positive experience for everyone.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="testimonials">
+        <div class="container">
+            <h2 class="section-title">What Readers Say</h2>
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="rating">★★★★★</div>
+                    <p class="testimonial-text">"Finally a platform where I can share my loved books with others! The
+                        community is amazing."</p>
+                    <p class="testimonial-author">— Ananya R.</p>
+                </div>
+                <div class="testimonial-card">
+                    <div class="rating">★★★★★</div>
+                    <p class="testimonial-text">"I've found so many hidden gems through Boichokro. Highly recommended
+                        for book lovers!"</p>
+                    <p class="testimonial-author">— Karim M.</p>
+                </div>
+                <div class="testimonial-card">
+                    <div class="rating">★★★★★</div>
+                    <p class="testimonial-text">"Love how easy it is to list books and connect with local readers. Great
+                        experience!"</p>
+                    <p class="testimonial-author">— Sophia T.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="container">
+            <h2>Ready to Share Your Stories?</h2>
+            <p>Join thousands of book lovers in your community</p>
+            <a href="https://play.google.com/store/apps/details?id=com.programmernexus.boichokro"
+                class="btn-primary">Download Now</a>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="contact" id="contact">
+        <div class="container">
+            <h2>Contact Us</h2>
+            <p>Have questions, feedback, or want to report an issue? Reach out to us!</p>
+            <ul style="list-style:none; padding-left:0;">
+                <li><strong>Email:</strong> <a href="mailto:zaman6545@gmail.com">zaman6545@gmail.com</a></li>
+                <li><strong>Developer:</strong> Md. Shamsuzzaman</li>
+                <li><strong>Company:</strong> ProgrammerNexus</li>
+                <li><strong>GitHub:</strong> <a href="https://github.com/zamansheikh" target="_blank">zamansheikh</a>
+                </li>
+                <li><strong>Facebook:</strong> <a href="https://facebook.com/zamansheikh.404"
+                        target="_blank">zamansheikh.404</a></li>
+            </ul>
+            <p style="margin-top:1rem;">We respond to inquiries within 48 hours.</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Boichokro</h3>
+                    <p>Share books, swap stories, build community.</p>
+                    <div class="social-links">
+                        <a href="https://github.com/zamansheikh" aria-label="GitHub" target="_blank"
+                            rel="noopener noreferrer">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20"
+                                fill="currentColor" aria-hidden="true">
+                                <path
+                                    d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.11.82-.26.82-.577 0-.285-.01-1.04-.016-2.04-3.338.726-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.757-1.333-1.757-1.09-.745.083-.73.083-.73 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.774.418-1.305.762-1.605-2.665-.304-5.466-1.333-5.466-5.93 0-1.31.47-2.38 1.235-3.22-.123-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.3 1.23.957-.266 1.98-.399 3-.404 1.02.005 2.043.138 3 .404 2.29-1.553 3.297-1.23 3.297-1.23.653 1.653.241 2.873.118 3.176.77.84 1.233 1.91 1.233 3.22 0 4.61-2.805 5.624-5.475 5.92.43.37.823 1.1.823 2.22 0 1.605-.014 2.897-.014 3.293 0 .32.216.694.825.576C20.565 21.795 24 17.297 24 12 24 5.37 18.63 0 12 0z" />
+                            </svg>
+                        </a>
+                        <a href="https://facebook.com/zamansheikh.404" aria-label="Facebook" target="_blank"
+                            rel="noopener noreferrer">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20"
+                                fill="currentColor" aria-hidden="true">
+                                <path
+                                    d="M22 12.073C22 6.507 17.523 2 12 2S2 6.507 2 12.073C2 17.097 5.657 21.157 10.437 21.98v-6.99H7.898v-2.91h2.54V9.845c0-2.507 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562v1.875h2.773l-.444 2.91h-2.329v6.99C18.343 21.157 22 17.097 22 12.073z" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <a href="#features">Features</a>
+                    <a href="#how-it-works">How It Works</a>
+                    <a href="#safety">Safety</a>
+                    <a href="privacy.html">Privacy Policy</a>
+                    <a href="terms.html">Terms & Conditions</a>
+                </div>
+                <div class="footer-section">
+                    <h3>Contact</h3>
+                    <a href="mailto:zaman6545@gmail.com">zaman6545@gmail.com</a>
+                    <p>Developed by <strong>ProgrammerNexus</strong></p>
+                    <p style="margin-top: 0.5rem;">Made with 💚 for book lovers</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Download</h3>
+                    <a href="https://play.google.com/store/apps/details?id=com.programmernexus.boichokro">Google
+                        Play</a>
+                    <a href="https://apps.apple.com/app/boichokro/id6123456789">App Store</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <div class="footer-links">
+                    <a href="privacy.html">Privacy Policy</a>
+                    <a href="terms.html">Terms & Conditions</a>
+                    <a href="mailto:zaman6545@gmail.com">Contact Us</a>
+                </div>
+                <p>&copy; 2025 Boichokro by ProgrammerNexus. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+
+</html>
