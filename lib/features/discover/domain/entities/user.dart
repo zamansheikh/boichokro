@@ -10,6 +10,7 @@ class User extends Equatable {
   final int totalSwaps;
   final bool verifiedBadge;
   final List<String> blockedBy;
+  final List<String> blockedUsers;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -22,23 +23,25 @@ class User extends Equatable {
     required this.totalSwaps,
     required this.verifiedBadge,
     required this.blockedBy,
+    required this.blockedUsers,
     required this.createdAt,
     required this.updatedAt,
   });
 
   @override
   List<Object?> get props => [
-        id,
-        phone,
-        name,
-        photoUrl,
-        ratingAvg,
-        totalSwaps,
-        verifiedBadge,
-        blockedBy,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    phone,
+    name,
+    photoUrl,
+    ratingAvg,
+    totalSwaps,
+    verifiedBadge,
+    blockedBy,
+    blockedUsers,
+    createdAt,
+    updatedAt,
+  ];
 
   User copyWith({
     String? id,
@@ -49,6 +52,7 @@ class User extends Equatable {
     int? totalSwaps,
     bool? verifiedBadge,
     List<String>? blockedBy,
+    List<String>? blockedUsers,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -61,6 +65,7 @@ class User extends Equatable {
       totalSwaps: totalSwaps ?? this.totalSwaps,
       verifiedBadge: verifiedBadge ?? this.verifiedBadge,
       blockedBy: blockedBy ?? this.blockedBy,
+      blockedUsers: blockedUsers ?? this.blockedUsers,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

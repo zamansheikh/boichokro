@@ -7,9 +7,13 @@ import '../../../../core/network/firebase_service.dart';
 import '../../domain/entities/chat.dart';
 import '../../../library/domain/entities/request.dart';
 import '../../../library/presentation/widgets/request_timeline_widget.dart';
-import '../bloc/chat_bloc.dart';
 import '../bloc/chat_event.dart';
 import '../bloc/chat_state.dart';
+import '../../../../core/utils/snackbar_utils.dart';
+import '../../../../core/utils/dialog_utils.dart';
+import '../../../discover/presentation/bloc/user/user_bloc.dart';
+import '../../../discover/presentation/bloc/user/user_event.dart';
+import '../../../discover/presentation/bloc/user/user_state.dart';
 
 /// Chat Room Page - Individual chat conversation with book context
 class ChatRoomPage extends StatefulWidget {
@@ -23,6 +27,7 @@ class ChatRoomPage extends StatefulWidget {
 
 class _ChatRoomPageState extends State<ChatRoomPage> {
   late ChatBloc _chatBloc;
+  late UserBloc _userBloc;
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   ChatRoom? _chatRoom;
@@ -34,6 +39,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     _chatBloc = getIt<ChatBloc>()
       ..add(LoadChatRoom(widget.roomId))
       ..add(SubscribeToMessages(widget.roomId));
+    _userBloc = getIt<UserBloc>();
   }
 
   @override
@@ -114,22 +120,129 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     );
   }
 
+  void _showReportDialog(String targetUserId) {
+    String selectedReason = 'Spam';
+    final reasons = ['Spam', 'Harassment', 'Inappropriate Content', 'Other'];
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Report User'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Please select a reason for reporting this user:'),
+                const SizedBox(height: 16),
+                ...reasons.map((reason) => RadioListTile<String>(
+                  title: Text(reason),
+                  value: reason,
+                  groupValue: selectedReason,
+                  onChanged: (value) {
+                    if (value != null) {
+                      setDialogState(() => selectedReason = value);
+                    }
+                  },
+                )),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _userBloc.add(ReportUser(userId: targetUserId, reason: selectedReason));
+                },
+                child: const Text('Submit Report'),
+              ),
+            ],
+          );
+        }
+      ),
+    );
+  }
+
+  void _showBlockDialog(String targetUserId) {
+    DialogUtils.showConfirmationDialog(
+      context: context,
+      title: 'Block User',
+      content: 'Are you sure you want to block this user? You will no longer receive messages from them, and they will not be able to interact with your books.',
+      confirmText: 'Block',
+      cancelText: 'Cancel',
+      isDestructive: true,
+      onConfirm: () {
+        _userBloc.add(BlockUser(targetUserId));
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentUserId = getIt<FirebaseService>().currentUser?.uid;
+    final otherUserId = _chatRoom?.participants.firstWhere((id) => id != currentUserId, orElse: () => '');
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_chatRoom?.chatName ?? 'Chat'),
-        actions: [
-          if (_chatRoom?.bookId != null)
-            IconButton(
-              icon: const Icon(Icons.info_outline),
-              onPressed: () => context.push('/book/${_chatRoom!.bookId}'),
-              tooltip: 'View Book Details',
-            ),
-        ],
-      ),
+    return BlocProvider.value(
+      value: _userBloc,
+      child: BlocListener<UserBloc, UserState>(
+        listener: (context, state) {
+          if (state is UserActionSuccess) {
+            SnackBarUtils.showSuccess(context, state.message);
+            if (state.message.contains('blocked')) {
+              context.pop(); // Exit chat room after blocking
+            }
+          } else if (state is UserError) {
+            SnackBarUtils.showError(context, state.message);
+          }
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text(_chatRoom?.chatName ?? 'Chat'),
+            actions: [
+              if (_chatRoom?.bookId != null)
+                IconButton(
+                  icon: const Icon(Icons.info_outline),
+                  onPressed: () => context.push('/book/${_chatRoom!.bookId}'),
+                  tooltip: 'View Book Details',
+                ),
+              if (otherUserId != null && otherUserId.isNotEmpty)
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'report') {
+                      _showReportDialog(otherUserId);
+                    } else if (value == 'block') {
+                      _showBlockDialog(otherUserId);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'report',
+                      child: Row(
+                        children: [
+                          Icon(Icons.flag_outlined, size: 20),
+                          SizedBox(width: 12),
+                          Text('Report User'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'block',
+                      child: Row(
+                        children: [
+                          Icon(Icons.block, size: 20, color: Theme.of(context).colorScheme.error),
+                          const SizedBox(width: 12),
+                          Text('Block User', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
       body: BlocConsumer<ChatBloc, ChatState>(
         bloc: _chatBloc,
         listener: (context, state) {

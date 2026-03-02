@@ -141,6 +141,10 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
   Future<void> blockUser(String userId) async {
     try {
       final currentUser = await getCurrentUser();
+      if (currentUser.id == userId) {
+        throw ServerException('Cannot block yourself');
+      }
+
       final targetUser = await getUserById(userId);
 
       final blockedBy = List<String>.from(targetUser.blockedBy);
@@ -148,13 +152,32 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
         blockedBy.add(currentUser.id);
       }
 
-      await _firebaseService.firestore
+      final blockedUsers = List<String>.from(currentUser.blockedUsers);
+      if (!blockedUsers.contains(userId)) {
+        blockedUsers.add(userId);
+      }
+
+      final batch = _firebaseService.firestore.batch();
+
+      // Update target user's blockedBy list
+      final targetRef = _firebaseService.firestore
           .collection(FirebaseConstants.usersCollection)
-          .doc(userId)
-          .update({
-            'blockedBy': blockedBy,
-            'updatedAt': DateTime.now().toIso8601String(),
-          });
+          .doc(userId);
+      batch.update(targetRef, {
+        'blockedBy': blockedBy,
+        'updatedAt': DateTime.now().toIso8601String(),
+      });
+
+      // Update current user's blockedUsers list
+      final currentUserRef = _firebaseService.firestore
+          .collection(FirebaseConstants.usersCollection)
+          .doc(currentUser.id);
+      batch.update(currentUserRef, {
+        'blockedUsers': blockedUsers,
+        'updatedAt': DateTime.now().toIso8601String(),
+      });
+
+      await batch.commit();
     } on FirebaseException catch (e) {
       throw ServerException(e.message ?? 'Failed to block user');
     } catch (e) {

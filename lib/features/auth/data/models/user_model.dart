@@ -38,12 +38,31 @@ class UserModel extends User {
     required super.totalSwaps,
     required super.verifiedBadge,
     required super.blockedBy,
+    required super.blockedUsers,
     @FirestoreDateTimeConverter() required super.createdAt,
     @FirestoreDateTimeConverter() required super.updatedAt,
   });
 
-  factory UserModel.fromJson(Map<String, dynamic> json) =>
-      _$UserModelFromJson(json);
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    final original = _$UserModelFromJson(json);
+    return UserModel(
+      id: original.id,
+      phone: original.phone,
+      name: original.name,
+      photoUrl: original.photoUrl,
+      ratingAvg: original.ratingAvg,
+      totalSwaps: original.totalSwaps,
+      verifiedBadge: original.verifiedBadge,
+      blockedBy: original.blockedBy,
+      blockedUsers:
+          (json['blockedUsers'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      createdAt: original.createdAt,
+      updatedAt: original.updatedAt,
+    );
+  }
 
   Map<String, dynamic> toJson() => _$UserModelToJson(this);
   factory UserModel.fromEntity(User user) {
@@ -56,6 +75,7 @@ class UserModel extends User {
       totalSwaps: user.totalSwaps,
       verifiedBadge: user.verifiedBadge,
       blockedBy: user.blockedBy,
+      blockedUsers: user.blockedUsers,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     );
