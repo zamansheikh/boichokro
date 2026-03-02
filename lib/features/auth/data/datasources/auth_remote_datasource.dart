@@ -38,11 +38,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
 
       // Sign in to Firebase with the Google credential
-      final UserCredential userCredential = 
-          await _firebaseService.auth.signInWithCredential(credential);
+      final UserCredential userCredential = await _firebaseService.auth
+          .signInWithCredential(credential);
 
       final User? firebaseUser = userCredential.user;
-      
+
       if (firebaseUser == null) {
         throw const AuthException('Failed to sign in with Google');
       }
@@ -65,7 +65,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           ratingAvg: 0.0,
           totalSwaps: 0,
           verifiedBadge: firebaseUser.emailVerified,
-          blockedBy: [],
+          blockedBy: const [],
+          blockedUsers: const [],
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         );
@@ -126,7 +127,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<UserModel> getCurrentUser() async {
     try {
       final userId = _firebaseService.currentUserId;
-      
+
       if (userId == null) {
         throw const AuthException('No authenticated user');
       }

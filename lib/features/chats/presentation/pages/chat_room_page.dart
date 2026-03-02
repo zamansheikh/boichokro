@@ -7,10 +7,9 @@ import '../../../../core/network/firebase_service.dart';
 import '../../domain/entities/chat.dart';
 import '../../../library/domain/entities/request.dart';
 import '../../../library/presentation/widgets/request_timeline_widget.dart';
+import '../bloc/chat_bloc.dart';
 import '../bloc/chat_event.dart';
 import '../bloc/chat_state.dart';
-import '../../../../core/utils/snackbar_utils.dart';
-import '../../../../core/utils/dialog_utils.dart';
 import '../../../discover/presentation/bloc/user/user_bloc.dart';
 import '../../../discover/presentation/bloc/user/user_event.dart';
 import '../../../discover/presentation/bloc/user/user_state.dart';
@@ -168,16 +167,29 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   }
 
   void _showBlockDialog(String targetUserId) {
-    DialogUtils.showConfirmationDialog(
+    showDialog(
       context: context,
-      title: 'Block User',
-      content: 'Are you sure you want to block this user? You will no longer receive messages from them, and they will not be able to interact with your books.',
-      confirmText: 'Block',
-      cancelText: 'Cancel',
-      isDestructive: true,
-      onConfirm: () {
-        _userBloc.add(BlockUser(targetUserId));
-      },
+      builder: (context) => AlertDialog(
+        title: const Text('Block User'),
+        content: const Text('Are you sure you want to block this user? You will no longer receive messages from them, and they will not be able to interact with your books.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              _userBloc.add(BlockUser(targetUserId));
+            },
+            child: const Text('Block'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -191,12 +203,16 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
       child: BlocListener<UserBloc, UserState>(
         listener: (context, state) {
           if (state is UserActionSuccess) {
-            SnackBarUtils.showSuccess(context, state.message);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message, style: const TextStyle(color: Colors.white)), backgroundColor: Colors.green),
+            );
             if (state.message.contains('blocked')) {
               context.pop(); // Exit chat room after blocking
             }
           } else if (state is UserError) {
-            SnackBarUtils.showError(context, state.message);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message, style: const TextStyle(color: Colors.white)), backgroundColor: Colors.red),
+            );
           }
         },
         child: Scaffold(
