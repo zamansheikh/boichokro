@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/network/firebase_service.dart';
 import '../../../../core/utils/constants.dart';

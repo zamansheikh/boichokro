@@ -26,6 +26,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
   String _selectedAddress = '';
   bool _isLoading = false;
   final TextEditingController _searchController = TextEditingController();
+  final geo.Geocoding _geocoding = geo.Geocoding();
 
   @override
   void initState() {
@@ -122,7 +123,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
     setState(() => _isLoading = true);
 
     try {
-      final locations = await geo.locationFromAddress(query);
+      final locations = await _geocoding.locationFromAddress(query);
       if (locations.isNotEmpty) {
         final location = LatLng(
           locations.first.latitude,
@@ -161,7 +162,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
 
     try {
       // Reverse geocode to get address
-      final placemarks = await geo.placemarkFromCoordinates(
+      final placemarks = await _geocoding.placemarkFromCoordinates(
         location.latitude,
         location.longitude,
       );

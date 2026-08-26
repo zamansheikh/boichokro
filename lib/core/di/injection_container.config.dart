@@ -35,7 +35,7 @@ import '../../features/chats/domain/usecases/get_messages_usecase.dart' as _i24;
 import '../../features/chats/domain/usecases/get_user_chat_rooms_usecase.dart'
     as _i117;
 import '../../features/chats/domain/usecases/mark_messages_as_read_usecase.dart'
-    as _i656;
+    as _i657;
 import '../../features/chats/domain/usecases/send_message_usecase.dart'
     as _i561;
 import '../../features/chats/domain/usecases/subscribe_to_chat_room_usecase.dart'
@@ -229,8 +229,8 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i117.GetUserChatRoomsUseCase>(
       () => _i117.GetUserChatRoomsUseCase(gh<_i844.ChatRepository>()),
     );
-    gh.factory<_i656.MarkMessagesAsReadUseCase>(
-      () => _i656.MarkMessagesAsReadUseCase(gh<_i844.ChatRepository>()),
+    gh.factory<_i657.MarkMessagesAsReadUseCase>(
+      () => _i657.MarkMessagesAsReadUseCase(gh<_i844.ChatRepository>()),
     );
     gh.factory<_i561.SendMessageUseCase>(
       () => _i561.SendMessageUseCase(gh<_i844.ChatRepository>()),
@@ -304,7 +304,7 @@ extension GetItInjectableX on _i174.GetIt {
         createOrGetChatRoomUseCase: gh<_i95.CreateOrGetChatRoomUseCase>(),
         getMessagesUseCase: gh<_i24.GetMessagesUseCase>(),
         sendMessageUseCase: gh<_i561.SendMessageUseCase>(),
-        markMessagesAsReadUseCase: gh<_i656.MarkMessagesAsReadUseCase>(),
+        markMessagesAsReadUseCase: gh<_i657.MarkMessagesAsReadUseCase>(),
         subscribeToMessagesUseCase: gh<_i11.SubscribeToMessagesUseCase>(),
       ),
     );

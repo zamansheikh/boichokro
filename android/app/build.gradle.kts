@@ -20,7 +20,9 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.programmernexus.boichokro"
-    compileSdk = flutter.compileSdkVersion
+    // permission_handler_android 14.x requires compileSdk 37.
+    // targetSdk stays at 36 (flutter.targetSdkVersion) per Play policy.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -28,8 +30,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+    kotlin {
+        compilerOptions {
+            jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
+        }
     }
 
     defaultConfig {
@@ -38,8 +42,8 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        targetSdk = 35
-        versionCode = 1
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true
     }

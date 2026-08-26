@@ -9,6 +9,13 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  # Generated build output. Contains vendored plugin example/test sources
+  # (e.g. build/ios/SourcePackages/**) that are not part of this project and
+  # do not resolve, so `flutter analyze` reports errors for them.
+  exclude:
+    - build/**
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`
