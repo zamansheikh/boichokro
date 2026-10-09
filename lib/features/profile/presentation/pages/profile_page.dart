@@ -2,22 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../../core/design/design.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/network/firebase_service.dart';
 import '../../../../core/utils/constants.dart';
-import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../discover/domain/entities/book.dart';
 import '../../../discover/domain/entities/user.dart';
 import '../../../discover/presentation/bloc/book/book_bloc.dart';
 import '../../../discover/presentation/bloc/book/book_event.dart';
 import '../../../discover/presentation/bloc/book/book_state.dart';
+import '../../../discover/presentation/pages/home_page.dart';
 import '../bloc/profile_bloc.dart';
 import '../bloc/profile_event.dart';
 import '../bloc/profile_state.dart';
-import 'settings_page.dart'
-    show ProfileMenuGroup, ProfileMenuRow, appVersionLabel;
+import 'settings_page.dart' show ProfileMenuGroup, ProfileMenuRow;
 
 /// Profile Page - User profile
 class ProfilePage extends StatefulWidget {
@@ -60,17 +59,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-        actions: [
-          IconButton(
-            tooltip: 'Settings',
-            icon: const Icon(LucideIcons.settings),
-            onPressed: () => context.push(RoutePaths.settings),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Profile')),
       body: BlocConsumer<ProfileBloc, ProfileState>(
         listener: (context, state) {
           // After profile update, reload to show latest data
@@ -132,77 +121,36 @@ class _ProfilePageState extends State<ProfilePage> {
                       onEdit: () =>
                           context.push(RoutePaths.editProfile, extra: userData),
                     ),
+                    if (!_JourneyCard.isComplete(userData, myBooks)) ...[
+                      const SizedBox(height: AppSpacing.lg),
+                      _JourneyCard(user: userData, books: myBooks),
+                    ],
                     const SizedBox(height: AppSpacing.xxl),
+                    _ShelfSection(books: myBooks),
+                    const SizedBox(height: AppSpacing.xxl),
+                    const _InviteCard(),
+                    const SizedBox(height: AppSpacing.xxl),
+                    // Legal pages, about, sign out and account deletion all
+                    // live in Settings so each has exactly one home.
                     ProfileMenuGroup(
-                      label: 'Library',
                       children: [
                         ProfileMenuRow(
                           icon: LucideIcons.history,
                           tone: AppTone.exchange,
-                          title: 'Exchange history',
-                          subtitle: 'Books you have swapped or given away',
+                          title: 'History & reviews',
+                          subtitle: 'Past hand-offs and the ratings you got',
                           onTap: () => context.push(
                             RoutePaths.myLibrary,
                             extra: 3, // index 3 = History tab
                           ),
                         ),
                         ProfileMenuRow(
-                          icon: LucideIcons.star,
-                          tone: AppTone.exchange,
-                          title: 'My reviews',
-                          subtitle: 'Ratings from your past exchanges',
-                          onTap: () => context.push(
-                            RoutePaths.myLibrary,
-                            extra: 3, // History tab shows reviews
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.xxl),
-                    ProfileMenuGroup(
-                      label: 'App',
-                      children: [
-                        ProfileMenuRow(
                           icon: LucideIcons.settings,
                           title: 'Settings',
+                          subtitle: 'Account, privacy, terms and about',
                           onTap: () => context.push(RoutePaths.settings),
                         ),
-                        ProfileMenuRow(
-                          icon: LucideIcons.shieldCheck,
-                          title: 'Privacy policy',
-                          onTap: () => context.push(RoutePaths.privacyPolicy),
-                        ),
-                        ProfileMenuRow(
-                          icon: LucideIcons.fileText,
-                          title: 'Terms & conditions',
-                          onTap: () => context.push(RoutePaths.termsConditions),
-                        ),
-                        ProfileMenuRow(
-                          icon: LucideIcons.info,
-                          title: 'About Boichokro',
-                          onTap: () => context.push(RoutePaths.about),
-                        ),
                       ],
-                    ),
-                    const SizedBox(height: AppSpacing.xxl),
-                    ProfileMenuGroup(
-                      label: 'Account',
-                      children: [
-                        ProfileMenuRow(
-                          icon: LucideIcons.logOut,
-                          tone: AppTone.danger,
-                          title: 'Sign out',
-                          onTap: () => _showSignOutDialog(context),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.xxl),
-                    Text(
-                      'Boichokro · Version $appVersionLabel',
-                      textAlign: TextAlign.center,
-                      style: context.text.bodySmall?.copyWith(
-                        color: context.colors.onSurfaceVariant,
-                      ),
                     ),
                   ],
                 ),
@@ -213,42 +161,361 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
+}
 
-  void _showSignOutDialog(BuildContext context) {
-    final danger = context.tone(AppTone.danger);
+/// "Getting started" card: three milestones around a progress wheel. Hidden
+/// once all three are done.
+class _JourneyCard extends StatelessWidget {
+  const _JourneyCard({required this.user, required this.books});
 
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        icon: Icon(LucideIcons.logOut, color: danger.solid, size: 32),
-        title: const Text('Sign out?'),
-        content: const Text(
-          'You will need to sign in again to see your books and messages.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
+  final User user;
+  final List<Book>? books;
+
+  static bool _shared(User user, List<Book>? books) =>
+      (books?.isNotEmpty ?? false) || user.totalSwaps > 0;
+
+  static bool isComplete(User user, List<Book>? books) =>
+      _shared(user, books) && user.totalSwaps > 0 && user.ratingAvg > 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final steps = [
+      (
+        done: _shared(user, books),
+        title: 'Share your first book',
+        hint: 'Put a book you have finished into the circle',
+      ),
+      (
+        done: user.totalSwaps > 0,
+        title: 'Complete a hand-off',
+        hint: 'Give a book away or swap one with a reader',
+      ),
+      (
+        done: user.ratingAvg > 0,
+        title: 'Earn your first rating',
+        hint: 'Readers rate each other after a hand-off',
+      ),
+    ];
+    final doneCount = steps.where((s) => s.done).length;
+    final nextIndex = steps.indexWhere((s) => !s.done);
+
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ChokroMark(
+                size: 56,
+                icon: LucideIcons.sprout,
+                progress: doneCount / steps.length,
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Join the circle', style: context.text.titleLarge),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$doneCount of ${steps.length} steps done',
+                      style: context.text.bodySmall?.copyWith(
+                        color: context.colors.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-
-              // Sign out from Firebase and Google
-              final authBloc = getIt<AuthBloc>();
-              authBloc.add(const SignOut());
-
-              // Show confirmation and navigate
-              showAppSnack(context, 'You have been signed out');
-
-              // Navigate to auth
-              context.go(RoutePaths.auth);
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: context.colors.error,
-              foregroundColor: context.colors.onError,
+          const SizedBox(height: AppSpacing.lg),
+          for (int i = 0; i < steps.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.md),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    steps[i].done
+                        ? LucideIcons.circleCheck
+                        : LucideIcons.circle,
+                    size: 20,
+                    color: steps[i].done
+                        ? context.palette.success
+                        : i == nextIndex
+                        ? context.colors.primary
+                        : context.colors.outline,
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          steps[i].title,
+                          style: context.text.titleSmall?.copyWith(
+                            color: steps[i].done
+                                ? context.colors.onSurfaceVariant
+                                : context.colors.onSurface,
+                            decoration: steps[i].done
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
+                        ),
+                        if (i == nextIndex) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            steps[i].hint,
+                            style: context.text.bodySmall?.copyWith(
+                              color: context.colors.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: const Text('Sign out'),
+          if (nextIndex == 0) ...[
+            const SizedBox(height: AppSpacing.lg),
+            FilledButton.icon(
+              onPressed: () => context.push(RoutePaths.addBook),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+              ),
+              icon: const Icon(LucideIcons.plus, size: 18),
+              label: const Text('Share a book'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The reader's own books as a row of covers.
+class _ShelfSection extends StatelessWidget {
+  const _ShelfSection({required this.books});
+
+  /// Null while the books are still loading.
+  final List<Book>? books;
+
+  static const double _coverWidth = 84;
+
+  @override
+  Widget build(BuildContext context) {
+    final listed = books;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(
+          title: 'Your shelf',
+          subtitle: listed == null || listed.isEmpty
+              ? 'Books you share show up here'
+              : listed.length == 1
+              ? '1 book in the circle'
+              : '${listed.length} books in the circle',
+          actionLabel: listed != null && listed.isNotEmpty
+              ? 'Open library'
+              : null,
+          onAction: () => HomePage.goToTab(context, 1),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        if (listed == null)
+          const Row(
+            children: [
+              Skeleton(width: _coverWidth, height: 126),
+              SizedBox(width: AppSpacing.md),
+              Skeleton(width: _coverWidth, height: 126),
+              SizedBox(width: AppSpacing.md),
+              Skeleton(width: _coverWidth, height: 126),
+            ],
+          )
+        else if (listed.isEmpty)
+          const _EmptyShelf()
+        else
+          SizedBox(
+            height: 186,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
+              itemCount: listed.length,
+              separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.lg),
+              itemBuilder: (context, index) {
+                final book = listed[index];
+                return InkWell(
+                  onTap: () => context.push('/book/${book.id}'),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  child: SizedBox(
+                    width: _coverWidth,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        BookCover(
+                          imageUrl: book.coverUrl,
+                          title: book.title,
+                          width: _coverWidth,
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          book.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.text.labelMedium?.copyWith(
+                            color: context.colors.onSurface,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Placeholder shelf: three faded book spines waiting to be filled.
+class _EmptyShelf extends StatelessWidget {
+  const _EmptyShelf();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    Widget slot(double height) {
+      return Container(
+        width: 46,
+        height: height,
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHigh,
+          borderRadius: const BorderRadius.horizontal(
+            left: Radius.circular(2),
+            right: Radius.circular(6),
+          ),
+          border: Border.all(color: colors.outlineVariant),
+        ),
+      );
+    }
+
+    return AppCard(
+      color: colors.surfaceContainerLow,
+      onTap: () => context.push(RoutePaths.addBook),
+      child: Row(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              slot(62),
+              const SizedBox(width: 6),
+              slot(74),
+              const SizedBox(width: 6),
+              Container(
+                width: 46,
+                height: 68,
+                decoration: BoxDecoration(
+                  color: colors.primaryContainer,
+                  borderRadius: const BorderRadius.horizontal(
+                    left: Radius.circular(2),
+                    right: Radius.circular(6),
+                  ),
+                ),
+                child: Icon(
+                  LucideIcons.plus,
+                  size: 20,
+                  color: colors.onPrimaryContainer,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: AppSpacing.lg),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Your shelf is empty', style: context.text.titleMedium),
+                const SizedBox(height: 2),
+                Text(
+                  'Tap to add a book you have finished reading.',
+                  style: context.text.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Invite banner: opens the system share sheet with the store link.
+class _InviteCard extends StatelessWidget {
+  const _InviteCard();
+
+  static const String _storeUrl =
+      'https://play.google.com/store/apps/details?id=com.programmernexus.boichokro';
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return AppCard(
+      color: colors.primaryContainer,
+      borderColor: Colors.transparent,
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xl,
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Bring a friend into the circle',
+                  style: context.text.titleMedium?.copyWith(
+                    color: colors.onPrimaryContainer,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'More readers nearby means more books to choose from.',
+                  style: context.text.bodySmall?.copyWith(
+                    color: colors.onPrimaryContainer.withValues(alpha: 0.8),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          FilledButton.icon(
+            onPressed: () => SharePlus.instance.share(
+              ShareParams(
+                text:
+                    'I am sharing and finding books for free on Boichokro. '
+                    'Join me: $_storeUrl',
+              ),
+            ),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 44),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            ),
+            icon: const Icon(LucideIcons.share2, size: 16),
+            label: const Text('Invite'),
           ),
         ],
       ),

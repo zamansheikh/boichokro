@@ -188,6 +188,7 @@ class SettingsPage extends StatelessWidget {
                 ProfileMenuRow(
                   icon: LucideIcons.info,
                   title: 'About Boichokro',
+                  subtitle: 'What it is for and how to reach us',
                   onTap: () => context.push(RoutePaths.about),
                 ),
                 ProfileMenuRow(
@@ -208,6 +209,13 @@ class SettingsPage extends StatelessWidget {
               label: 'Account',
               children: [
                 ProfileMenuRow(
+                  icon: LucideIcons.logOut,
+                  tone: AppTone.neutral,
+                  title: 'Sign out',
+                  subtitle: 'Your books and chats stay safe',
+                  onTap: () => _showSignOutDialog(context),
+                ),
+                ProfileMenuRow(
                   icon: LucideIcons.trash2,
                   tone: AppTone.danger,
                   title: 'Delete account',
@@ -218,6 +226,42 @@ class SettingsPage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showSignOutDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: Icon(LucideIcons.logOut, color: context.colors.primary, size: 32),
+        title: const Text('Sign out?'),
+        content: const Text(
+          'You will need to sign in again to see your books and messages.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+
+              // Sign out from Firebase and Google
+              final authBloc = getIt<AuthBloc>();
+              authBloc.add(const SignOut());
+
+              // Show confirmation and navigate
+              showAppSnack(context, 'You have been signed out');
+
+              // Navigate to auth
+              context.go(RoutePaths.auth);
+            },
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+            child: const Text('Sign out'),
+          ),
+        ],
       ),
     );
   }
