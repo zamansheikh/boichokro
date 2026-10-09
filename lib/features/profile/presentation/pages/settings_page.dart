@@ -10,7 +10,7 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 
 /// Version shown on the profile, settings and about screens.
-const String appVersionLabel = '1.0.1';
+const String appVersionLabel = '1.1.0';
 
 /// A labelled group of [ProfileMenuRow]s inside one paper card.
 ///

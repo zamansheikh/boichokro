@@ -1,1072 +1,977 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description"
-        content="Boichokro - Share books, discover hidden gems, build connections. Free book exchange and donation platform for your community.">
-    <meta name="keywords" content="book exchange, book donation, free books, community, reading, local books">
+        content="Boichokro (বইচক্র) — a free app for giving away and swapping books with readers near you.">
+    <meta name="keywords" content="book exchange, book donation, free books, বই বিনিময়, বই দান, বইচক্র, Boichokro">
     <meta name="author" content="Md. Shamsuzzaman">
-    <meta property="og:title" content="Boichokro - Share Books, Swap Stories">
+    <meta property="og:title" content="Boichokro — Books that keep moving">
     <meta property="og:description"
-        content="Turn the books you've read into new reads for someone else – for free, nearby, and safe.">
-    <meta property="og:image" content="https://github.com/zamansheikh/boichokro/raw/main/docs/assets/icon.png">
+        content="Give away the books you have finished, or swap them for one you want. Free, with readers near you.">
+    <meta property="og:image" content="https://zamansheikh.github.io/boichokro/assets/screens/en/01-discover.jpg">
     <meta property="og:url" content="https://zamansheikh.github.io/boichokro/">
     <meta name="twitter:card" content="summary_large_image">
-    <title>Boichokro - Share Books, Swap Stories</title>
+    <meta name="theme-color" content="#1F5C4A">
+    <title>Boichokro — Books that keep moving</title>
+    <link rel="icon" href="icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600&family=Noto+Serif+Bengali:wght@600;700&display=swap"
+        rel="stylesheet">
     <style>
+        :root {
+            --paper: #F7F3EA;
+            --surface: #FFFDF8;
+            --ink: #1D2A26;
+            --muted: #5F6B66;
+            --line: #E4DCCB;
+            --primary: #1F5C4A;
+            --primary-deep: #123B30;
+            --primary-soft: #D5EADF;
+            --swap: #B8690F;
+            --swap-soft: #FBE7C9;
+            --give: #B4493A;
+            --give-soft: #F9DFD8;
+            --on-hero: #FFFDF8;
+            --serif: 'Noto Serif Bengali', Georgia, serif;
+            --sans: 'Hind Siliguri', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        :root {
-            --primary: #6750A4;
-            --primary-light: #8B7BB8;
-            --secondary: #4CAF50;
-            --accent: #FF9800;
-            --success: #4CAF50;
-            --error: #F44336;
-            --dark-bg: #1a1a1a;
-            --light-bg: #ffffff;
-            --text-dark: #212121;
-            --text-light: #757575;
-            --border: #e0e0e0;
-            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+        html {
+            scroll-behavior: smooth;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            font-family: var(--sans);
+            font-size: 17px;
             line-height: 1.6;
-            color: var(--text-dark);
-            background-color: var(--light-bg);
+            color: var(--ink);
+            background: var(--paper);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        a {
+            color: inherit;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1120px;
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 0 24px;
         }
 
-        /* Header & Navigation */
+        h1,
+        h2,
+        h3 {
+            font-family: var(--serif);
+            font-weight: 700;
+            line-height: 1.25;
+            letter-spacing: -0.01em;
+        }
+
+        .eyebrow {
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--swap);
+        }
+
+        html[lang="bn"] .eyebrow {
+            letter-spacing: 0;
+            font-size: 0.95rem;
+        }
+
+        /* Header */
         header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            color: white;
-            padding: 1rem 0;
             position: sticky;
             top: 0;
-            z-index: 1000;
-            box-shadow: var(--shadow);
+            z-index: 50;
+            background: rgba(247, 243, 234, 0.92);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--line);
         }
 
-        .header-content {
+        .header-row {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            padding: 1rem 0;
-            position: relative;
-            flex-wrap: wrap;
+            gap: 20px;
+            height: 68px;
         }
 
-        .logo {
+        .brand {
             display: flex;
             align-items: center;
             gap: 10px;
-            font-size: 1.5rem;
-            font-weight: bold;
+            font-family: var(--serif);
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: var(--primary);
+            text-decoration: none;
+            margin-right: auto;
         }
 
-        .logo img {
+        .brand-mark {
             width: 40px;
             height: 40px;
-            border-radius: 8px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            overflow: hidden;
+            flex: none;
+        }
+
+        .brand-mark img {
+            transform: scale(1.55);
         }
 
         nav {
             display: flex;
-            gap: 2rem;
-            align-items: center;
-            transition: all 0.3s;
+            gap: 26px;
         }
 
         nav a {
-            color: white;
             text-decoration: none;
             font-weight: 500;
-            transition: opacity 0.3s;
+            color: var(--muted);
         }
 
         nav a:hover {
-            opacity: 0.8;
+            color: var(--primary);
+        }
+
+        .lang {
+            display: flex;
+            padding: 3px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: var(--surface);
+        }
+
+        .lang button {
+            font: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            min-width: 62px;
+            min-height: 36px;
+            padding: 0 12px;
+            border: 0;
+            border-radius: 999px;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+        }
+
+        .lang button[aria-pressed="true"] {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-height: 54px;
+            padding: 0 26px;
+            border-radius: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
         }
 
         .btn-primary {
-            background-color: var(--secondary);
-            color: white;
-            padding: 0.7rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-block;
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 10px 24px rgba(31, 92, 74, 0.22);
         }
 
-        .btn-primary:hover {
-            background-color: #45a049;
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
+        .btn-light {
+            background: var(--on-hero);
+            color: var(--primary-deep);
         }
 
-        .btn-secondary {
-            background-color: transparent;
-            color: white;
-            padding: 0.7rem 1.5rem;
-            border: 2px solid white;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-block;
+        .btn svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
         }
 
-        .btn-secondary:hover {
-            background-color: white;
-            color: var(--primary);
+        /* Hero */
+        .hero {
+            position: relative;
+            overflow: hidden;
+            padding: 72px 0 0;
         }
 
-        /* Hamburger menu styles */
-        .menu-btn {
-            display: none;
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 0.5rem;
-            margin-left: 1rem;
-            z-index: 1001;
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 48px;
             align-items: center;
         }
 
-        .menu-icon {
-            width: 28px;
-            height: 3px;
-            background: white;
+        .hero h1 {
+            font-size: clamp(2.3rem, 5vw, 3.7rem);
+            margin: 14px 0 18px;
+        }
+
+        .hero p.lead {
+            font-size: 1.2rem;
+            color: var(--muted);
+            max-width: 34ch;
+            margin-bottom: 30px;
+        }
+
+        .pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 26px;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 14px;
+            border-radius: 999px;
+            font-size: 0.92rem;
+            font-weight: 600;
+        }
+
+        .pill.give {
+            background: var(--give-soft);
+            color: #5C1D14;
+        }
+
+        .pill.swap {
+            background: var(--swap-soft);
+            color: #5A3306;
+        }
+
+        .pill.near {
+            background: var(--primary-soft);
+            color: #0C3327;
+        }
+
+        .phone-wrap {
             position: relative;
-            border-radius: 2px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        .rings {
+            position: absolute;
+            left: 50%;
+            top: 46%;
+            width: 0;
+            height: 0;
+        }
+
+        .rings i {
+            position: absolute;
+            border: 1.5px solid rgba(31, 92, 74, 0.1);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .phone {
+            position: relative;
+            width: min(330px, 78vw);
+            padding: 9px;
+            border-radius: 40px 40px 0 0;
+            background: #101613;
+            box-shadow: 0 40px 70px rgba(18, 40, 32, 0.3);
+            margin-bottom: -2px;
+        }
+
+        .phone img {
+            border-radius: 32px 32px 0 0;
+            width: 100%;
+            aspect-ratio: 540 / 1000;
+            object-fit: cover;
+            object-position: top;
+            background: var(--paper);
+        }
+
+        /* Sections */
+        section {
+            padding: 88px 0;
+        }
+
+        .section-head {
+            max-width: 620px;
+            margin-bottom: 44px;
+        }
+
+        .section-head h2 {
+            font-size: clamp(1.8rem, 3.4vw, 2.5rem);
+            margin: 10px 0 12px;
+        }
+
+        .section-head p {
+            color: var(--muted);
+            font-size: 1.08rem;
+        }
+
+        /* Screens gallery */
+        .screens {
+            background: var(--surface);
+            border-top: 1px solid var(--line);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .gallery {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            padding: 4px 24px 24px;
+            margin: 0 -24px;
+            scrollbar-width: thin;
+        }
+
+        .gallery img {
+            flex: none;
+            width: min(290px, 72vw);
+            aspect-ratio: 9 / 16;
+            border-radius: 22px;
+            border: 1px solid var(--line);
+            scroll-snap-align: center;
+            background: var(--paper);
+        }
+
+        /* Cards */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 26px;
+        }
+
+        .card .icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            background: var(--primary-soft);
+            color: #0C3327;
+            margin-bottom: 18px;
+        }
+
+        .card .icon.swap {
+            background: var(--swap-soft);
+            color: #5A3306;
+        }
+
+        .card .icon.give {
+            background: var(--give-soft);
+            color: #5C1D14;
+        }
+
+        .card .icon svg {
+            width: 22px;
+            height: 22px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+
+        .card p {
+            color: var(--muted);
+            font-size: 1rem;
+        }
+
+        /* Steps */
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+            counter-reset: step;
+        }
+
+        .step {
+            position: relative;
+            padding: 26px 22px 24px;
+            border-radius: 20px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+        }
+
+        .step .num {
+            font-family: var(--serif);
+            font-weight: 700;
+            font-size: 1.05rem;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: var(--primary);
+            color: #fff;
+            margin-bottom: 16px;
+        }
+
+        .step h3 {
+            font-size: 1.12rem;
+            margin-bottom: 6px;
+        }
+
+        .step p {
+            color: var(--muted);
+            font-size: 0.98rem;
+        }
+
+        /* Safety */
+        .safety {
+            background: linear-gradient(160deg, var(--primary) 0%, var(--primary-deep) 100%);
+            color: var(--on-hero);
+        }
+
+        .safety .eyebrow {
+            color: #F0B062;
+        }
+
+        .safety .section-head p {
+            color: rgba(255, 253, 248, 0.8);
+        }
+
+        .safety-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+        }
+
+        .safety-item {
+            display: flex;
+            gap: 14px;
+            padding: 18px 20px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .safety-item svg {
+            flex: none;
+            width: 22px;
+            height: 22px;
+            margin-top: 3px;
+            fill: none;
+            stroke: #8FD6B8;
+            stroke-width: 2.4;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .safety-item strong {
             display: block;
         }
 
-        .menu-icon::before,
-        .menu-icon::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            width: 28px;
-            height: 3px;
-            background: white;
-            border-radius: 2px;
-            transition: 0.3s;
+        .safety-item span {
+            color: rgba(255, 253, 248, 0.78);
+            font-size: 0.97rem;
         }
 
-        .menu-icon::before {
-            top: -8px;
-        }
-
-        .menu-icon::after {
-            top: 8px;
-        }
-
-        /* Hero Section */
-        .hero {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            color: white;
-            padding: 4rem 0;
-            text-align: center;
-        }
-
-        .hero-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 3rem;
-            align-items: center;
-        }
-
-        .hero-text h1 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            font-weight: 700;
-            line-height: 1.2;
-        }
-
-        .hero-text p {
-            font-size: 1.1rem;
-            margin-bottom: 2rem;
-            opacity: 0.95;
-            line-height: 1.6;
-        }
-
-        .hero-image {
-            text-align: center;
-        }
-
-        .hero-image img {
-            max-width: 300px;
-            height: auto;
-            filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.2));
-            animation: float 3s ease-in-out infinite;
-        }
-
-        @keyframes float {
-
-            0%,
-            100% {
-                transform: translateY(0px);
-            }
-
-            50% {
-                transform: translateY(-20px);
-            }
-        }
-
-        .hero-buttons {
+        /* CTA */
+        .cta-box {
             display: flex;
-            gap: 1rem;
-            margin-top: 2rem;
-        }
-
-        .btn-playstore,
-        .btn-appstore {
-            display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.8rem 1.5rem;
-            background-color: white;
-            color: var(--primary);
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.3s;
-            border: 2px solid transparent;
+            justify-content: space-between;
+            gap: 28px;
+            flex-wrap: wrap;
+            padding: 44px;
+            border-radius: 28px;
+            background: var(--primary-soft);
         }
 
-        .btn-playstore:hover,
-        .btn-appstore:hover {
-            transform: scale(1.05);
-            box-shadow: var(--shadow-lg);
+        .cta-box h2 {
+            font-size: clamp(1.6rem, 3vw, 2.2rem);
+            color: #0C3327;
         }
 
-        /* Features Section */
-        .features {
-            padding: 4rem 0;
-            background-color: #f9f9f9;
+        .cta-box p {
+            color: #2C5546;
+            margin-top: 6px;
         }
 
-        .section-title {
-            text-align: center;
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 3rem;
-            color: var(--text-dark);
-        }
-
-        .features-grid {
+        /* Contact + footer */
+        .contact-list {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+            list-style: none;
+            max-width: 720px;
         }
 
-        .feature-card {
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: var(--shadow);
-            transition: all 0.3s;
+        .contact-list li {
+            padding: 16px 20px;
+            border-radius: 16px;
+            background: var(--surface);
+            border: 1px solid var(--line);
         }
 
-        .feature-card:hover {
-            transform: translateY(-8px);
-            box-shadow: var(--shadow-lg);
+        .contact-list small {
+            display: block;
+            color: var(--muted);
+            font-size: 0.85rem;
         }
 
-        .feature-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            display: inline-block;
-        }
-
-        .feature-card h3 {
-            font-size: 1.3rem;
-            margin-bottom: 0.5rem;
+        .contact-list a {
             color: var(--primary);
+            font-weight: 600;
+            text-decoration: none;
+            word-break: break-word;
         }
 
-        .feature-card p {
-            color: var(--text-light);
+        footer {
+            border-top: 1px solid var(--line);
+            padding: 36px 0 44px;
+            color: var(--muted);
             font-size: 0.95rem;
         }
 
-        /* How It Works */
-        .how-it-works {
-            padding: 4rem 0;
-        }
-
-        .steps-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 2rem;
-            margin-top: 3rem;
-        }
-
-        .step-card {
-            text-align: center;
-            padding: 2rem;
-            border-radius: 12px;
-            background: linear-gradient(135deg, rgba(103, 80, 164, 0.1) 0%, rgba(76, 175, 80, 0.1) 100%);
-            border: 2px solid var(--border);
-            position: relative;
-        }
-
-        .step-number {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 50px;
-            height: 50px;
-            background-color: var(--primary);
-            color: white;
-            border-radius: 50%;
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-        }
-
-        .step-card h3 {
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
-            color: var(--primary);
-        }
-
-        .step-card p {
-            color: var(--text-light);
-            font-size: 0.9rem;
-        }
-
-        /* Safety Section */
-        .safety {
-            padding: 4rem 0;
-            background: linear-gradient(135deg, rgba(244, 67, 54, 0.05) 0%, rgba(76, 175, 80, 0.05) 100%);
-        }
-
-        .safety-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 3rem;
-            align-items: center;
-        }
-
-        .safety-list {
-            list-style: none;
-        }
-
-        .safety-list li {
+        .footer-row {
             display: flex;
+            flex-wrap: wrap;
+            gap: 14px 26px;
             align-items: center;
-            gap: 1rem;
-            margin-bottom: 1rem;
-            padding: 1rem;
-            background: white;
-            border-radius: 8px;
-            box-shadow: var(--shadow);
-        }
-
-        .safety-list li::before {
-            content: "✓";
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 30px;
-            height: 30px;
-            background-color: var(--secondary);
-            color: white;
-            border-radius: 50%;
-            font-weight: bold;
-            flex-shrink: 0;
-        }
-
-        /* Footer */
-        footer {
-            background-color: var(--text-dark);
-            color: white;
-            padding: 3rem 0 1rem;
-            margin-top: 4rem;
-        }
-
-        .footer-content {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-            margin-bottom: 2rem;
-        }
-
-        .footer-section h3 {
-            margin-bottom: 1rem;
-            font-size: 1.1rem;
-        }
-
-        .footer-section a,
-        .footer-section p {
-            color: #b0b0b0;
-            text-decoration: none;
-            display: block;
-            margin-bottom: 0.5rem;
-            transition: color 0.3s;
-        }
-
-        .footer-section a:hover {
-            color: white;
-        }
-
-        .social-links {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-
-        .social-links a {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            background-color: var(--primary);
-            color: white;
-            border-radius: 50%;
-            text-decoration: none;
-            transition: all 0.3s;
-        }
-
-        .social-links a:hover {
-            background-color: var(--secondary);
-            transform: translateY(-3px);
-        }
-
-        .footer-bottom {
-            border-top: 1px solid #404040;
-            padding-top: 2rem;
-            text-align: center;
-            color: #888;
-            font-size: 0.9rem;
+            justify-content: space-between;
         }
 
         .footer-links {
             display: flex;
-            justify-content: center;
-            gap: 2rem;
-            margin-bottom: 1rem;
             flex-wrap: wrap;
+            gap: 8px 22px;
         }
 
         .footer-links a {
-            color: #888;
             text-decoration: none;
-            transition: color 0.3s;
         }
 
         .footer-links a:hover {
-            color: white;
-        }
-
-        /* CTA Section */
-        .cta {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            color: white;
-            padding: 3rem 0;
-            text-align: center;
-            border-radius: 12px;
-            margin: 4rem 0;
-        }
-
-        .cta h2 {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-        }
-
-        .cta p {
-            font-size: 1.1rem;
-            margin-bottom: 2rem;
-        }
-
-        /* Testimonials */
-        .testimonials {
-            padding: 4rem 0;
-            background-color: #f9f9f9;
-        }
-
-        .testimonials-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-            margin-top: 3rem;
-        }
-
-        .testimonial-card {
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-            border-left: 4px solid var(--secondary);
-        }
-
-        .testimonial-text {
-            font-style: italic;
-            margin-bottom: 1rem;
-            color: var(--text-light);
-        }
-
-        .testimonial-author {
-            font-weight: 600;
             color: var(--primary);
         }
 
-        .rating {
-            color: #FFC107;
-            margin-bottom: 0.5rem;
-        }
-
-        /* Responsive Styles */
-        @media (max-width: 1024px) {
-            .hero-content {
-                grid-template-columns: 1fr;
-                text-align: center;
-            }
-
-            .hero-image img {
-                max-width: 250px;
-            }
-
-            .safety-content {
-                grid-template-columns: 1fr;
-            }
-
-            .features-grid {
-                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            }
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 0 15px;
-            }
-
-            .header-content {
-                flex-direction: row;
-                align-items: center;
-                gap: 0;
-            }
-
-            .logo {
-                flex: 1 1 auto;
-                min-width: 0;
-            }
-
+        @media (max-width: 900px) {
             nav {
                 display: none;
-                position: absolute;
-                top: 100%;
-                left: 0;
-                width: 100%;
-                background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-                flex-direction: column;
-                gap: 0;
-                z-index: 999;
-                box-shadow: var(--shadow-lg);
-            }
-
-            nav.open {
-                display: flex;
-            }
-
-            nav a {
-                padding: 1.2rem;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-                color: white;
-                font-size: 1.1rem;
-                text-align: center;
-                width: 100%;
-            }
-
-            .btn-secondary {
-                margin: 0.5rem 0;
-                width: calc(100% - 2rem);
-                text-align: center;
-            }
-
-            .menu-btn {
-                display: flex;
-                margin-left: auto;
             }
 
             .hero {
-                padding: 3rem 0;
+                padding-top: 44px;
             }
 
-            .hero-text h1 {
-                font-size: 2rem;
-            }
-
-            .hero-text p {
-                font-size: 1rem;
-            }
-
-            .hero-buttons {
-                flex-direction: column;
-            }
-
-            .hero-buttons>* {
-                width: 100%;
-                text-align: center;
-            }
-
-            .section-title {
-                font-size: 1.8rem;
-                margin-bottom: 2rem;
-            }
-
-            .features {
-                padding: 3rem 0;
-            }
-
-            .feature-card {
-                padding: 1.5rem;
-            }
-
-            .feature-card h3 {
-                font-size: 1.2rem;
-            }
-
-            .how-it-works {
-                padding: 3rem 0;
-            }
-
-            .steps-grid {
+            .hero-grid {
                 grid-template-columns: 1fr;
+                gap: 44px;
             }
 
-            .step-card {
-                padding: 1.5rem;
+            .grid,
+            .steps {
+                grid-template-columns: repeat(2, 1fr);
             }
 
-            .safety {
-                padding: 3rem 0;
-            }
-
-            .safety-list li {
-                flex-direction: column;
-                text-align: center;
-                gap: 0.5rem;
-            }
-
-            .safety-list li::before {
-                margin: 0 auto 0.5rem;
-            }
-
-            .testimonials {
-                padding: 3rem 0;
-            }
-
-            .testimonial-card {
-                padding: 1.5rem;
-            }
-
-            .cta {
-                padding: 2rem 0;
-                margin: 3rem 0;
-            }
-
-            .cta h2 {
-                font-size: 1.8rem;
-            }
-
-            .cta p {
-                font-size: 1rem;
-            }
-
-            footer {
-                padding: 2rem 0 1rem;
-            }
-
-            .footer-content {
-                grid-template-columns: 1fr;
-            }
-
-            .footer-section {
-                text-align: center;
-            }
-
-            .social-links {
-                justify-content: center;
-            }
-
-            .footer-links {
-                gap: 1rem;
+            section {
+                padding: 64px 0;
             }
         }
 
-        @media (max-width: 480px) {
-            .logo {
-                font-size: 1.2rem;
+        @media (max-width: 600px) {
+            body {
+                font-size: 16px;
             }
 
-            .logo img {
-                width: 30px;
-                height: 30px;
+            .container {
+                padding: 0 18px;
             }
 
-            .btn-primary,
-            .btn-secondary,
-            .btn-playstore,
-            .btn-appstore {
-                padding: 0.6rem 1.2rem;
-                font-size: 0.9rem;
+            .gallery {
+                padding: 4px 18px 20px;
+                margin: 0 -18px;
             }
 
-            .hero {
-                padding: 2rem 0;
+            .grid,
+            .steps,
+            .safety-grid,
+            .contact-list {
+                grid-template-columns: 1fr;
             }
 
-            .hero-text h1 {
-                font-size: 1.8rem;
+            .brand span.name {
+                font-size: 1.15rem;
             }
 
-            .hero-image img {
-                max-width: 200px;
+            .cta-box {
+                padding: 30px 24px;
             }
 
-            .section-title {
-                font-size: 1.5rem;
-            }
-
-            .feature-icon {
-                font-size: 2.5rem;
-            }
-
-            .feature-card h3 {
-                font-size: 1.1rem;
-            }
-
-            .feature-card p {
-                font-size: 0.9rem;
-            }
-
-            .step-number {
-                width: 40px;
-                height: 40px;
-                font-size: 1.2rem;
-            }
-
-            .step-card h3 {
-                font-size: 1rem;
-            }
-
-            .step-card p {
-                font-size: 0.85rem;
-            }
-
-            .cta h2 {
-                font-size: 1.5rem;
-            }
-
-            .footer-bottom {
-                font-size: 0.8rem;
+            .btn {
+                width: 100%;
             }
         }
     </style>
 </head>
 
 <body>
-    <!-- Header -->
     <header>
-        <div class="container">
-            <div class="header-content">
-                <div class="logo">
-                    <img src="icon.png" alt="Boichokro Logo">
-                    <span>Boichokro</span>
-                </div>
-                <nav id="main-nav">
-                    <a href="#features">Features</a>
-                    <a href="#how-it-works">How It Works</a>
-                    <a href="#safety">Safety</a>
-                    <a href="#contact">Contact</a>
-                    <a href="privacy.html" class="btn-secondary">Privacy</a>
-                </nav>
-                <button class="menu-btn" id="menu-btn" aria-label="Open menu">
-                    <span class="menu-icon"></span>
-                </button>
+        <div class="container header-row">
+            <a class="brand" href="#top">
+                <span class="brand-mark"><img src="assets/logo.png" alt=""></span>
+                <span class="name" data-i18n="brand">বইচক্র</span>
+            </a>
+            <nav>
+                <a href="#screens" data-i18n="navScreens">অ্যাপটি দেখুন</a>
+                <a href="#features" data-i18n="navFeatures">সুবিধা</a>
+                <a href="#how" data-i18n="navHow">যেভাবে কাজ করে</a>
+                <a href="#safety" data-i18n="navSafety">নিরাপত্তা</a>
+            </nav>
+            <div class="lang" role="group" aria-label="Language">
+                <button type="button" data-lang="bn" aria-pressed="true">বাংলা</button>
+                <button type="button" data-lang="en" aria-pressed="false">English</button>
             </div>
         </div>
     </header>
 
-    <!-- Mobile Menu Script -->
-    <script>
-        const menuBtn = document.getElementById('menu-btn');
-        const mainNav = document.getElementById('main-nav');
-        menuBtn.addEventListener('click', function () {
-            mainNav.classList.toggle('open');
-        });
-        // Close menu when clicking outside
-        document.addEventListener('click', function (e) {
-            if (!menuBtn.contains(e.target) && !mainNav.contains(e.target)) {
-                mainNav.classList.remove('open');
-            }
-        });
-    </script>
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="container">
-            <div class="hero-content">
-                <div class="hero-text">
-                    <h1>Share Books, Swap Stories</h1>
-                    <p>Turn the books you've already read into new reads for someone else – for free, nearby, and safe.
-                    </p>
-                    <p style="font-size: 0.95rem; opacity: 0.9;">Join a community of book lovers sharing knowledge and
-                        stories in your neighborhood.</p>
-                    <div class="hero-buttons">
-                        <a href="https://play.google.com/store/apps/details?id=com.programmernexus.boichokro"
-                            class="btn-playstore">
-                            📱 Get on Play Store
-                        </a>
-                        <a href="https://apps.apple.com/app/boichokro/id6123456789" class="btn-appstore">
-                            🍎 Get on App Store
-                        </a>
+    <main id="top">
+        <section class="hero">
+            <div class="container hero-grid">
+                <div>
+                    <div class="eyebrow" data-i18n="heroEyebrow">বিনামূল্যে বই দান ও বিনিময়</div>
+                    <h1 data-i18n="heroTitle">পড়া শেষ? বই ঘুরুক হাতে হাতে</h1>
+                    <p class="lead" data-i18n="heroLead">পড়া হয়ে যাওয়া বই কাছের পাঠককে দিয়ে দিন, অথবা পছন্দের
+                        বইয়ের সঙ্গে বিনিময় করুন। কোনো টাকা লাগে না।</p>
+                    <a class="btn btn-primary"
+                        href="https://play.google.com/store/apps/details?id=com.programmernexus.boichokro">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 2.8v18.4c0 .6.6 1 1.2.7l15.300-9.200c.5-.3.5-1.100 0-1.400L5.200 2.100C4.600 1.800 4 2.200 4 2.800z" />
+                        </svg>
+                        <span data-i18n="ctaPlay">গুগল প্লে থেকে নামিয়ে নিন</span>
+                    </a>
+                    <div class="pills">
+                        <span class="pill give" data-i18n="pillGive">বিনামূল্যে দান</span>
+                        <span class="pill swap" data-i18n="pillSwap">বইয়ের বদলে বই</span>
+                        <span class="pill near" data-i18n="pillNear">আপনার আশপাশে</span>
                     </div>
                 </div>
-                <div class="hero-image">
-                    <img src="icon.png" alt="Boichokro App" style="border-radius:16px;">
+                <div class="phone-wrap">
+                    <div class="rings" aria-hidden="true">
+                        <i style="width:420px;height:420px"></i>
+                        <i style="width:600px;height:600px"></i>
+                        <i style="width:780px;height:780px"></i>
+                        <i style="width:960px;height:960px"></i>
+                    </div>
+                    <div class="phone">
+                        <img data-shot="hero" src="assets/screens/bn/hero.jpg" width="540" height="1095"
+                            alt="Boichokro app showing books to discover">
+                    </div>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- Features Section -->
-    <section class="features" id="features">
-        <div class="container">
-            <h2 class="section-title">Why Choose Boichokro?</h2>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">📚</div>
-                    <h3>Share Locally</h3>
-                    <p>Find and share books with readers just around the corner. Keep books in circulation within your
-                        community.</p>
+        <section class="screens" id="screens">
+            <div class="container">
+                <div class="section-head">
+                    <div class="eyebrow" data-i18n="screensEyebrow">অ্যাপটি দেখুন</div>
+                    <h2 data-i18n="screensTitle">খোঁজা থেকে হাতবদল — সব এক জায়গায়</h2>
+                    <p data-i18n="screensLead">কাছের বই খুঁজুন, অনুরোধ পাঠান, চ্যাটে সময় ঠিক করুন, তারপর দেখা করে বই
+                        বুঝে নিন।</p>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon">💚</div>
-                    <h3>Free Exchange</h3>
-                    <p>No payment required. Donate or swap books based on your preference. Complete freedom to choose.
-                    </p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🔍</div>
-                    <h3>Smart Discovery</h3>
-                    <p>Use our map and filters to discover hidden gems. Search by genre, condition, or distance.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🛡️</div>
-                    <h3>Verified & Safe</h3>
-                    <p>Phone verification, user ratings, and community trust ratings keep everyone safe.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">💬</div>
-                    <h3>In-App Chat</h3>
-                    <p>Message book owners directly within the app. Plan meetups safely with location sharing.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">⭐</div>
-                    <h3>Community Ratings</h3>
-                    <p>Help others by rating your book exchange experience. Build reputation and trust badges.</p>
+                <div class="gallery">
+                    <img data-shot="01-discover" src="assets/screens/bn/01-discover.jpg" loading="lazy" width="720"
+                        height="1280" alt="Discover books near you">
+                    <img data-shot="02-book" src="assets/screens/bn/02-book.jpg" loading="lazy" width="720"
+                        height="1280" alt="Book details">
+                    <img data-shot="03-swap" src="assets/screens/bn/03-swap.jpg" loading="lazy" width="720"
+                        height="1280" alt="Offer a book in return">
+                    <img data-shot="04-map" src="assets/screens/bn/04-map.jpg" loading="lazy" width="720"
+                        height="1280" alt="Books on the map">
+                    <img data-shot="05-requests" src="assets/screens/bn/05-requests.jpg" loading="lazy" width="720"
+                        height="1280" alt="Requests and hand-off steps">
+                    <img data-shot="06-chat" src="assets/screens/bn/06-chat.jpg" loading="lazy" width="720"
+                        height="1280" alt="Chat with the other reader">
+                    <img data-shot="07-profile" src="assets/screens/bn/07-profile.jpg" loading="lazy" width="720"
+                        height="1280" alt="Reader profile">
+                    <img data-shot="08-shelf" src="assets/screens/bn/08-shelf.jpg" loading="lazy" width="720"
+                        height="1280" alt="Your shelf">
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- How It Works -->
-    <section class="how-it-works" id="how-it-works">
-        <div class="container">
-            <h2 class="section-title">How It Works</h2>
-            <div class="steps-grid">
-                <div class="step-card">
-                    <div class="step-number">1</div>
-                    <h3>Sign Up</h3>
-                    <p>Quick registration with phone OTP. Verify your identity to start sharing.</p>
+        <section id="features">
+            <div class="container">
+                <div class="section-head">
+                    <div class="eyebrow" data-i18n="featEyebrow">সুবিধা</div>
+                    <h2 data-i18n="featTitle">বই ভাগাভাগির জন্য যা যা দরকার</h2>
                 </div>
-                <div class="step-card">
-                    <div class="step-number">2</div>
-                    <h3>Add Books</h3>
-                    <p>Snap a photo, add title/author. Choose to donate or exchange.</p>
-                </div>
-                <div class="step-card">
-                    <div class="step-number">3</div>
-                    <h3>Browse & Connect</h3>
-                    <p>Explore books near you. Chat with owners to arrange pickup.</p>
-                </div>
-                <div class="step-card">
-                    <div class="step-number">4</div>
-                    <h3>Meet & Exchange</h3>
-                    <p>Meet at a safe public place. Complete the exchange and rate.</p>
+                <div class="grid">
+                    <div class="card">
+                        <div class="icon give"><svg viewBox="0 0 24 24">
+                                <rect x="3" y="8" width="18" height="4" rx="1" />
+                                <path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7M7.500 8a2.500 2.500 0 0 1 0-5C11 3 12 8 12 8s1-5 4.500-5a2.500 2.500 0 0 1 0 5" />
+                            </svg></div>
+                        <h3 data-i18n="f1Title">দান করুন</h3>
+                        <p data-i18n="f1Body">পড়া বইটি তাকে ফেলে না রেখে এমন কাউকে দিন, যিনি সত্যিই পড়তে চান।</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon swap"><svg viewBox="0 0 24 24">
+                                <path d="m17 2 4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3" />
+                            </svg></div>
+                        <h3 data-i18n="f2Title">বিনিময় করুন</h3>
+                        <p data-i18n="f2Body">নিজের শেলফ থেকে একটি বই প্রস্তাব করুন। মালিক রাজি হলেই বদলে নিন।</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon"><svg viewBox="0 0 24 24">
+                                <path d="M20 10c0 5-8 12-8 12s-8-7-8-12a8 8 0 0 1 16 0Z" />
+                                <circle cx="12" cy="10" r="3" />
+                            </svg></div>
+                        <h3 data-i18n="f3Title">কাছের বই খুঁজুন</h3>
+                        <p data-i18n="f3Body">তালিকা বা ম্যাপে দেখুন, ধরন, অবস্থা আর দূরত্ব দিয়ে ফিল্টার করুন।</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon"><svg viewBox="0 0 24 24">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                            </svg></div>
+                        <h3 data-i18n="f4Title">অ্যাপেই চ্যাট</h3>
+                        <p data-i18n="f4Body">কখন, কোথায় দেখা হবে চ্যাটে ঠিক করুন। চাইলে দেখা করার জায়গাটি ম্যাপসহ
+                            পাঠান।</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon swap"><svg viewBox="0 0 24 24">
+                                <path d="M12 2 15 8.500 22 9.300 17 14 18.200 21 12 17.800 5.800 21 7 14 2 9.300 9 8.500z" />
+                            </svg></div>
+                        <h3 data-i18n="f5Title">রেটিং ও রিভিউ</h3>
+                        <p data-i18n="f5Body">হাতবদলের পর একে অপরকে রেটিং দিন। প্রোফাইল দেখে পাঠককে চিনে নিন।</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon give"><svg viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" />
+                            </svg></div>
+                        <h3 data-i18n="f6Title">বাংলা ও ইংরেজি</h3>
+                        <p data-i18n="f6Body">পুরো অ্যাপ বাংলায়, চাইলে এক ট্যাপে ইংরেজিতে বদলে নিন।</p>
+                    </div>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- Safety Section -->
-    <section class="safety" id="safety">
-        <div class="container">
-            <h2 class="section-title">Safety First</h2>
-            <div class="safety-content">
-                <div>
-                    <ul class="safety-list">
-                        <li><strong>Phone Verification:</strong> All users verified via OTP</li>
-                        <li><strong>Community Ratings:</strong> Rate and review other users</li>
-                        <li><strong>Safe Meetup:</strong> In-app location sharing for handoffs</li>
-                        <li><strong>Report & Block:</strong> Report inappropriate behavior instantly</li>
-                        <li><strong>Verified Badge:</strong> Earn trust through successful exchanges</li>
-                        <li><strong>Emergency Support:</strong> Report safety concerns to our team</li>
-                    </ul>
+        <section id="how" style="padding-top:0">
+            <div class="container">
+                <div class="section-head">
+                    <div class="eyebrow" data-i18n="howEyebrow">যেভাবে কাজ করে</div>
+                    <h2 data-i18n="howTitle">চার ধাপে বই হাতবদল</h2>
                 </div>
-                <div>
-                    <h3 style="margin-bottom: 1rem; color: var(--primary);">Our Commitment</h3>
-                    <p style="margin-bottom: 1rem; color: var(--text-light);">
-                        Boichokro is committed to creating a safe and inclusive community for all book lovers. We take
-                        safety seriously and enforce strict community guidelines.
-                    </p>
-                    <p style="color: var(--text-light);">
-                        Every user is verified, exchanges are transparent, and our moderation team works 24/7 to ensure
-                        a positive experience for everyone.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Testimonials -->
-    <section class="testimonials">
-        <div class="container">
-            <h2 class="section-title">What Readers Say</h2>
-            <div class="testimonials-grid">
-                <div class="testimonial-card">
-                    <div class="rating">★★★★★</div>
-                    <p class="testimonial-text">"Finally a platform where I can share my loved books with others! The
-                        community is amazing."</p>
-                    <p class="testimonial-author">— Ananya R.</p>
-                </div>
-                <div class="testimonial-card">
-                    <div class="rating">★★★★★</div>
-                    <p class="testimonial-text">"I've found so many hidden gems through Boichokro. Highly recommended
-                        for book lovers!"</p>
-                    <p class="testimonial-author">— Karim M.</p>
-                </div>
-                <div class="testimonial-card">
-                    <div class="rating">★★★★★</div>
-                    <p class="testimonial-text">"Love how easy it is to list books and connect with local readers. Great
-                        experience!"</p>
-                    <p class="testimonial-author">— Sophia T.</p>
+                <div class="steps">
+                    <div class="step">
+                        <div class="num" data-i18n="n1">১</div>
+                        <h3 data-i18n="s1Title">সাইন ইন করুন</h3>
+                        <p data-i18n="s1Body">গুগল অ্যাকাউন্ট দিয়ে এক ট্যাপে শুরু করুন।</p>
+                    </div>
+                    <div class="step">
+                        <div class="num" data-i18n="n2">২</div>
+                        <h3 data-i18n="s2Title">বই যোগ করুন</h3>
+                        <p data-i18n="s2Body">কভারের ছবি তুলুন, অবস্থা জানান, দান না বিনিময় বেছে নিন।</p>
+                    </div>
+                    <div class="step">
+                        <div class="num" data-i18n="n3">৩</div>
+                        <h3 data-i18n="s3Title">অনুরোধ পাঠান</h3>
+                        <p data-i18n="s3Body">পছন্দের বইয়ের জন্য অনুরোধ করুন বা বিনিময়ের প্রস্তাব দিন।</p>
+                    </div>
+                    <div class="step">
+                        <div class="num" data-i18n="n4">৪</div>
+                        <h3 data-i18n="s4Title">দেখা করে বুঝে নিন</h3>
+                        <p data-i18n="s4Body">চ্যাটে সময় ঠিক করে দেখা করুন, দুজনেই নিশ্চিত করুন, রেটিং দিন।</p>
+                    </div>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- CTA Section -->
-    <section class="cta">
-        <div class="container">
-            <h2>Ready to Share Your Stories?</h2>
-            <p>Join thousands of book lovers in your community</p>
-            <a href="https://play.google.com/store/apps/details?id=com.programmernexus.boichokro"
-                class="btn-primary">Download Now</a>
-        </div>
-    </section>
+        <section class="safety" id="safety">
+            <div class="container">
+                <div class="section-head">
+                    <div class="eyebrow" data-i18n="safeEyebrow">নিরাপত্তা</div>
+                    <h2 data-i18n="safeTitle">ভরসা রেখে বই হাতবদল</h2>
+                    <p data-i18n="safeLead">অচেনা কারও সঙ্গে দেখা করার আগে যা জানা দরকার, অ্যাপেই পাবেন।</p>
+                </div>
+                <div class="safety-grid">
+                    <div class="safety-item"><svg viewBox="0 0 24 24">
+                            <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                        <div><strong data-i18n="sf1Title">পাঠকের প্রোফাইল</strong><span data-i18n="sf1Body">রেটিং,
+                                সম্পন্ন হাতবদল আর শেলফ দেখে নিন।</span></div>
+                    </div>
+                    <div class="safety-item"><svg viewBox="0 0 24 24">
+                            <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                        <div><strong data-i18n="sf2Title">রিপোর্ট ও ব্লক</strong><span data-i18n="sf2Body">যেকোনো পাঠক বা
+                                বই রিপোর্ট করুন, প্রয়োজনে ব্লক করুন।</span></div>
+                    </div>
+                    <div class="safety-item"><svg viewBox="0 0 24 24">
+                            <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                        <div><strong data-i18n="sf3Title">নিরাপদে দেখা করুন</strong><span data-i18n="sf3Body">দিনের বেলায়,
+                                লোকজন আছে এমন জায়গায় দেখা করুন। চ্যাটে টাকা বা ব্যক্তিগত তথ্য পাঠাবেন না।</span></div>
+                    </div>
+                    <div class="safety-item"><svg viewBox="0 0 24 24">
+                            <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                        <div><strong data-i18n="sf4Title">আপনার তথ্য, আপনার নিয়ন্ত্রণে</strong><span
+                                data-i18n="sf4Body">লোকেশন শুধু দূরত্ব মাপতে লাগে। চাইলে যেকোনো সময় অ্যাকাউন্ট মুছে
+                                ফেলুন।</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-    <!-- Contact Section -->
-    <section class="contact" id="contact">
-        <div class="container">
-            <h2>Contact Us</h2>
-            <p>Have questions, feedback, or want to report an issue? Reach out to us!</p>
-            <ul style="list-style:none; padding-left:0;">
-                <li><strong>Email:</strong> <a href="mailto:zaman6545@gmail.com">zaman6545@gmail.com</a></li>
-                <li><strong>Developer:</strong> Md. Shamsuzzaman</li>
-                <li><strong>Company:</strong> ProgrammerNexus</li>
-                <li><strong>GitHub:</strong> <a href="https://github.com/zamansheikh" target="_blank">zamansheikh</a>
-                </li>
-                <li><strong>Facebook:</strong> <a href="https://facebook.com/zamansheikh.404"
-                        target="_blank">zamansheikh.404</a></li>
-            </ul>
-            <p style="margin-top:1rem;">We respond to inquiries within 48 hours.</p>
-        </div>
-    </section>
+        <section>
+            <div class="container">
+                <div class="cta-box">
+                    <div>
+                        <h2 data-i18n="ctaTitle">আপনার বইটি কারও অপেক্ষায় আছে</h2>
+                        <p data-i18n="ctaBody">আজই প্রথম বইটি শেয়ার করুন।</p>
+                    </div>
+                    <a class="btn btn-primary"
+                        href="https://play.google.com/store/apps/details?id=com.programmernexus.boichokro">
+                        <span data-i18n="ctaPlay">গুগল প্লে থেকে নামিয়ে নিন</span>
+                    </a>
+                </div>
+            </div>
+        </section>
 
-    <!-- Footer -->
+        <section id="contact" style="padding-top:0">
+            <div class="container">
+                <div class="section-head">
+                    <div class="eyebrow" data-i18n="contactEyebrow">যোগাযোগ</div>
+                    <h2 data-i18n="contactTitle">প্রশ্ন বা মতামত আছে?</h2>
+                    <p data-i18n="contactLead">লিখে জানান। আমরা সাধারণত ৪৮ ঘণ্টার মধ্যে উত্তর দিই।</p>
+                </div>
+                <ul class="contact-list">
+                    <li><small data-i18n="cEmail">ইমেইল</small><a
+                            href="mailto:zaman6545@gmail.com">zaman6545@gmail.com</a></li>
+                    <li><small data-i18n="cDev">ডেভেলপার</small>Md. Shamsuzzaman · ProgrammerNexus</li>
+                    <li><small>GitHub</small><a href="https://github.com/zamansheikh" target="_blank"
+                            rel="noopener noreferrer">zamansheikh</a></li>
+                    <li><small>Facebook</small><a href="https://facebook.com/zamansheikh.404" target="_blank"
+                            rel="noopener noreferrer">zamansheikh.404</a></li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
     <footer>
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h3>Boichokro</h3>
-                    <p>Share books, swap stories, build community.</p>
-                    <div class="social-links">
-                        <a href="https://github.com/zamansheikh" aria-label="GitHub" target="_blank"
-                            rel="noopener noreferrer">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20"
-                                fill="currentColor" aria-hidden="true">
-                                <path
-                                    d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.11.82-.26.82-.577 0-.285-.01-1.04-.016-2.04-3.338.726-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.757-1.333-1.757-1.09-.745.083-.73.083-.73 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.774.418-1.305.762-1.605-2.665-.304-5.466-1.333-5.466-5.93 0-1.31.47-2.38 1.235-3.22-.123-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.3 1.23.957-.266 1.98-.399 3-.404 1.02.005 2.043.138 3 .404 2.29-1.553 3.297-1.23 3.297-1.23.653 1.653.241 2.873.118 3.176.77.84 1.233 1.91 1.233 3.22 0 4.61-2.805 5.624-5.475 5.92.43.37.823 1.1.823 2.22 0 1.605-.014 2.897-.014 3.293 0 .32.216.694.825.576C20.565 21.795 24 17.297 24 12 24 5.37 18.63 0 12 0z" />
-                            </svg>
-                        </a>
-                        <a href="https://facebook.com/zamansheikh.404" aria-label="Facebook" target="_blank"
-                            rel="noopener noreferrer">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20"
-                                fill="currentColor" aria-hidden="true">
-                                <path
-                                    d="M22 12.073C22 6.507 17.523 2 12 2S2 6.507 2 12.073C2 17.097 5.657 21.157 10.437 21.98v-6.99H7.898v-2.91h2.54V9.845c0-2.507 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562v1.875h2.773l-.444 2.91h-2.329v6.99C18.343 21.157 22 17.097 22 12.073z" />
-                            </svg>
-                        </a>
-                    </div>
-                </div>
-                <div class="footer-section">
-                    <h3>Quick Links</h3>
-                    <a href="#features">Features</a>
-                    <a href="#how-it-works">How It Works</a>
-                    <a href="#safety">Safety</a>
-                    <a href="privacy.html">Privacy Policy</a>
-                    <a href="terms.html">Terms & Conditions</a>
-                    <a href="csae.html">CSAE Policy</a>
-                </div>
-                <div class="footer-section">
-                    <h3>Contact</h3>
-                    <a href="mailto:zaman6545@gmail.com">zaman6545@gmail.com</a>
-                    <p>Developed by <strong>ProgrammerNexus</strong></p>
-                    <p style="margin-top: 0.5rem;">Made with 💚 for book lovers</p>
-                </div>
-                <div class="footer-section">
-                    <h3>Download</h3>
-                    <a href="https://play.google.com/store/apps/details?id=com.programmernexus.boichokro">Google
-                        Play</a>
-                    <a href="https://apps.apple.com/app/boichokro/id6123456789">App Store</a>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <div class="footer-links">
-                    <a href="privacy.html">Privacy Policy</a>
-                    <a href="terms.html">Terms & Conditions</a>
-                    <a href="csae.html">CSAE Policy</a>
-                    <a href="mailto:zaman6545@gmail.com">Contact Us</a>
-                </div>
-                <p>&copy; 2025 Boichokro by ProgrammerNexus. All rights reserved.</p>
+        <div class="container footer-row">
+            <div>&copy; 2026 <span data-i18n="brand">বইচক্র</span> · ProgrammerNexus</div>
+            <div class="footer-links">
+                <a href="privacy.html" data-i18n="fPrivacy">গোপনীয়তা নীতি</a>
+                <a href="terms.html" data-i18n="fTerms">শর্তাবলি</a>
+                <a href="csae.html" data-i18n="fCsae">শিশু সুরক্ষা নীতি</a>
+                <a href="delete-account.html" data-i18n="fDelete">অ্যাকাউন্ট মুছুন</a>
             </div>
         </div>
     </footer>
+
+    <script>
+        // English copy; the Bangla copy is the page's own markup.
+        const en = {
+            brand: 'Boichokro',
+            navScreens: 'See the app', navFeatures: 'Features', navHow: 'How it works', navSafety: 'Safety',
+            heroEyebrow: 'Free book giving and swapping',
+            heroTitle: 'Books that keep moving',
+            heroLead: 'Give the books you have finished to a reader nearby, or swap them for one you want. No money involved.',
+            ctaPlay: 'Get it on Google Play',
+            pillGive: 'Give for free', pillSwap: 'Swap book for book', pillNear: 'Readers near you',
+            screensEyebrow: 'See the app',
+            screensTitle: 'From finding a book to handing it over',
+            screensLead: 'Find a book nearby, send a request, agree on a time in chat, then meet and hand it over.',
+            featEyebrow: 'Features', featTitle: 'Everything you need to share books',
+            f1Title: 'Give it away', f1Body: 'Pass a finished book to someone who really wants to read it.',
+            f2Title: 'Swap', f2Body: 'Offer a book from your shelf. If the owner agrees, you swap.',
+            f3Title: 'Find books nearby', f3Body: 'Browse a list or a map, and filter by genre, condition and distance.',
+            f4Title: 'Chat in the app', f4Body: 'Agree on when and where to meet. You can send the meeting point with a map.',
+            f5Title: 'Ratings and reviews', f5Body: 'Rate each other after a hand-off, and check a reader\'s profile first.',
+            f6Title: 'Bangla and English', f6Body: 'The whole app is in Bangla, with English one tap away.',
+            howEyebrow: 'How it works', howTitle: 'A hand-off in four steps',
+            n1: '1', n2: '2', n3: '3', n4: '4',
+            s1Title: 'Sign in', s1Body: 'Start in one tap with your Google account.',
+            s2Title: 'Add a book', s2Body: 'Snap the cover, set the condition, choose give or swap.',
+            s3Title: 'Send a request', s3Body: 'Ask for a book you like, or offer one of yours in return.',
+            s4Title: 'Meet and hand over', s4Body: 'Agree on a time in chat, meet, both confirm, then rate.',
+            safeEyebrow: 'Safety', safeTitle: 'Hand books over with confidence',
+            safeLead: 'What you need to know before meeting someone new is in the app.',
+            sf1Title: 'Reader profiles', sf1Body: 'See ratings, completed hand-offs and their shelf.',
+            sf2Title: 'Report and block', sf2Body: 'Report any reader or book, and block when you need to.',
+            sf3Title: 'Meet safely', sf3Body: 'Meet in a busy public place during the day. Never send money or personal details in chat.',
+            sf4Title: 'Your data, your call', sf4Body: 'Location is used only to measure distance. Delete your account any time.',
+            ctaTitle: 'Someone is waiting for your book', ctaBody: 'Share your first book today.',
+            contactEyebrow: 'Contact', contactTitle: 'Questions or feedback?',
+            contactLead: 'Write to us. We usually reply within 48 hours.',
+            cEmail: 'Email', cDev: 'Developer',
+            fPrivacy: 'Privacy policy', fTerms: 'Terms', fCsae: 'Child safety policy', fDelete: 'Delete account'
+        };
+
+        const nodes = [...document.querySelectorAll('[data-i18n]')];
+        const bn = Object.fromEntries(nodes.map(n => [n.dataset.i18n, n.textContent.replace(/\s+/g, ' ').trim()]));
+
+        function setLang(lang) {
+            const copy = lang === 'en' ? en : bn;
+            nodes.forEach(n => { n.textContent = copy[n.dataset.i18n]; });
+            document.querySelectorAll('[data-shot]').forEach(img => {
+                img.src = `assets/screens/${lang}/${img.dataset.shot}.jpg`;
+            });
+            document.querySelectorAll('.lang button').forEach(b => {
+                b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+            });
+            document.documentElement.lang = lang;
+            document.title = lang === 'en'
+                ? 'Boichokro — Books that keep moving'
+                : 'বইচক্র — বই ঘুরুক হাতে হাতে';
+            try { localStorage.setItem('lang', lang); } catch (_) { }
+        }
+
+        document.querySelectorAll('.lang button').forEach(b => {
+            b.addEventListener('click', () => setLang(b.dataset.lang));
+        });
+
+        let saved = null;
+        try { saved = localStorage.getItem('lang'); } catch (_) { }
+        if (saved === 'en') setLang('en');
+    </script>
 </body>
 
 </html>
