@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -7,11 +9,14 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/design/design.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/network/firebase_service.dart';
-import '../../../../core/utils/extensions.dart';
+import '../../../../l10n/account/gen/account_l10n.dart';
 import '../../../discover/domain/entities/book.dart';
 import '../../../discover/domain/entities/user.dart';
 import '../../../discover/domain/usecases/book_usecases.dart';
 import '../../../discover/domain/usecases/user_usecases.dart';
+import '../../../discover/presentation/bloc/user/user_bloc.dart';
+import '../../../discover/presentation/bloc/user/user_event.dart';
+import '../../../discover/presentation/bloc/user/user_state.dart';
 import '../../../library/domain/entities/request.dart';
 import '../../../library/domain/usecases/get_requests_by_owner_usecase.dart';
 import '../../../library/domain/usecases/get_requests_by_seeker_usecase.dart';
@@ -59,10 +64,38 @@ class _UserProfilePageState extends State<UserProfilePage> {
   bool get _isMe =>
       getIt<FirebaseService>().auth.currentUser?.uid == widget.userId;
 
+  late final UserBloc _userBloc = getIt<UserBloc>();
+  StreamSubscription<UserState>? _userActions;
+
+  /// True while a report (not a block) is the action waiting for its outcome,
+  /// so the confirmation can be shown in the reader's language.
+  bool _lastActionWasReport = false;
+
   @override
   void initState() {
     super.initState();
     _load();
+    // Outcome of a report or block.
+    _userActions = _userBloc.stream.listen((state) {
+      if (!mounted) return;
+      if (state is UserActionSuccess) {
+        final l = AccountL10n.of(context);
+        showAppSnack(
+          context,
+          _lastActionWasReport ? l.userReportedSnack : l.userBlockedSnack,
+          tone: AppTone.success,
+        );
+      } else if (state is UserError) {
+        showAppSnack(context, state.message, tone: AppTone.danger);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _userActions?.cancel();
+    _userBloc.close();
+    super.dispose();
   }
 
   void _load() {
@@ -128,6 +161,123 @@ class _UserProfilePageState extends State<UserProfilePage> {
     return reviews;
   }
 
+  /// Stored with the report, so these stay in English whatever the app
+  /// language is. [_reportReasonLabel] gives the text shown to the reader.
+  static const List<String> _reportReasons = [
+    'Spam',
+    'Harassment',
+    'Inappropriate Content',
+    'Other',
+  ];
+
+  static String _reportReasonLabel(AccountL10n l, String stored) {
+    switch (stored) {
+      case 'Spam':
+        return l.userReportReasonSpam;
+      case 'Harassment':
+        return l.userReportReasonHarassment;
+      case 'Inappropriate Content':
+        return l.userReportReasonInappropriate;
+      case 'Other':
+        return l.userReportReasonOther;
+    }
+    return stored;
+  }
+
+  Future<void> _showActions(User user) async {
+    final l = AccountL10n.of(context);
+    final cancelLabel = context.core.commonCancel;
+    final name = user.name.trim().isEmpty ? l.userThisReader : user.name.trim();
+    final action = await showAppSheet<String>(
+      context,
+      builder: (sheetContext) => SheetScaffold(
+        title: name,
+        padding: EdgeInsets.zero,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.page,
+              ),
+              leading: const Icon(LucideIcons.flag),
+              title: Text(l.userReport),
+              subtitle: Text(l.userReportSubtitle),
+              onTap: () => Navigator.pop(sheetContext, 'report'),
+            ),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.page,
+              ),
+              leading: Icon(LucideIcons.ban, color: sheetContext.colors.error),
+              title: Text(
+                l.userBlock,
+                style: TextStyle(color: sheetContext.colors.error),
+              ),
+              subtitle: Text(l.userBlockSubtitle),
+              onTap: () => Navigator.pop(sheetContext, 'block'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || action == null) return;
+
+    if (action == 'report') {
+      final reason = await showAppSheet<String>(
+        context,
+        builder: (sheetContext) => SheetScaffold(
+          title: l.userReportTitle(name),
+          subtitle: l.userReportQuestion,
+          padding: EdgeInsets.zero,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final reason in _reportReasons)
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.page,
+                  ),
+                  title: Text(_reportReasonLabel(l, reason)),
+                  trailing: const Icon(LucideIcons.chevronRight, size: 18),
+                  onTap: () => Navigator.pop(sheetContext, reason),
+                ),
+            ],
+          ),
+        ),
+      );
+      if (reason == null) return;
+      _lastActionWasReport = true;
+      _userBloc.add(ReportUser(userId: user.id, reason: reason));
+    } else {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(l.userBlockConfirmTitle(name)),
+          content: Text(l.userBlockConfirmBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(cancelLabel),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(0, 44),
+                backgroundColor: dialogContext.colors.error,
+                foregroundColor: dialogContext.colors.onError,
+              ),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(l.userBlock),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+      _lastActionWasReport = false;
+      _userBloc.add(BlockUser(user.id));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -141,8 +291,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
           if (user == null) {
             return _ProfileScaffold(
               child: AppErrorState(
-                title: 'Reader not found',
-                message: 'This profile could not be loaded right now.',
+                title: AccountL10n.of(context).userNotFoundTitle,
+                message: AccountL10n.of(context).userNotFoundBody,
                 onRetry: () => setState(_load),
               ),
             );
@@ -155,11 +305,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   Widget _buildProfile(BuildContext context, User user) {
     final firstName = user.name.trim().split(RegExp(r'\s+')).first;
+    final l = AccountL10n.of(context);
     final shelfTitle = _isMe
-        ? 'Your shelf'
+        ? l.shelfYours
         : firstName.isEmpty
-        ? 'On their shelf'
-        : "On $firstName's shelf";
+        ? l.shelfTheirs
+        : l.shelfOfName(firstName);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
@@ -173,10 +324,14 @@ class _UserProfilePageState extends State<UserProfilePage> {
             bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xxxl,
           ),
           children: [
-            _Header(user: user, books: _books),
+            _Header(
+              user: user,
+              books: _books,
+              onMore: _isMe ? null : () => _showActions(user),
+            ),
             if (_isMe)
-              const Padding(
-                padding: EdgeInsets.fromLTRB(
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
                   AppSpacing.page,
                   AppSpacing.lg,
                   AppSpacing.page,
@@ -185,7 +340,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 child: AppBanner(
                   icon: LucideIcons.eye,
                   tone: AppTone.neutral,
-                  message: 'This is how other readers see your profile.',
+                  message: l.userOwnPreviewBanner,
                 ),
               ),
             const SizedBox(height: AppSpacing.xxl),
@@ -224,7 +379,7 @@ class _ProfileScaffold extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.sm),
               child: IconButton(
-                tooltip: 'Back',
+                tooltip: context.core.commonBack,
                 icon: const Icon(LucideIcons.arrowLeft),
                 onPressed: () => context.pop(),
               ),
@@ -240,10 +395,17 @@ class _ProfileScaffold extends StatelessWidget {
 /// Brand band with the avatar overlapping its lower edge, then name, facts
 /// and the three headline numbers.
 class _Header extends StatelessWidget {
-  const _Header({required this.user, required this.books});
+  const _Header({
+    required this.user,
+    required this.books,
+    required this.onMore,
+  });
 
   final User user;
   final Future<List<Book>> books;
+
+  /// Opens report / block; null on the reader's own profile.
+  final VoidCallback? onMore;
 
   static const double _bandHeight = 148;
   static const double _avatarRadius = 52;
@@ -253,7 +415,8 @@ class _Header extends StatelessWidget {
     final palette = context.palette;
     final colors = context.colors;
     final top = MediaQuery.paddingOf(context).top;
-    final joined = DateFormat('MMMM yyyy').format(user.createdAt);
+    final joined = context.date(user.createdAt, 'MMMM yyyy');
+    final l = AccountL10n.of(context);
 
     return Column(
       children: [
@@ -294,11 +457,24 @@ class _Header extends StatelessWidget {
                 top: top + AppSpacing.xs,
                 left: AppSpacing.sm,
                 child: IconButton(
-                  tooltip: 'Back',
+                  tooltip: context.core.commonBack,
                   icon: Icon(LucideIcons.arrowLeft, color: palette.onHero),
                   onPressed: () => context.pop(),
                 ),
               ),
+              if (onMore != null)
+                Positioned(
+                  top: top + AppSpacing.xs,
+                  right: AppSpacing.sm,
+                  child: IconButton(
+                    tooltip: l.userMore,
+                    icon: Icon(
+                      LucideIcons.ellipsisVertical,
+                      color: palette.onHero,
+                    ),
+                    onPressed: onMore,
+                  ),
+                ),
               Positioned(
                 left: 0,
                 right: 0,
@@ -328,7 +504,7 @@ class _Header extends StatelessWidget {
           child: Column(
             children: [
               Text(
-                user.name.trim().isEmpty ? 'A reader' : user.name,
+                user.name.trim().isEmpty ? context.core.aReader : user.name,
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -336,7 +512,7 @@ class _Header extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                'Reader since $joined',
+                l.userReaderSince(joined),
                 textAlign: TextAlign.center,
                 style: context.text.bodyMedium?.copyWith(
                   color: colors.onSurfaceVariant,
@@ -344,8 +520,8 @@ class _Header extends StatelessWidget {
               ),
               if (user.verifiedBadge) ...[
                 const SizedBox(height: AppSpacing.md),
-                const StatusPill(
-                  label: 'Verified reader',
+                StatusPill(
+                  label: l.verifiedReader,
                   icon: LucideIcons.badgeCheck,
                   tone: AppTone.success,
                 ),
@@ -364,9 +540,12 @@ class _Header extends StatelessWidget {
                   Expanded(
                     child: _Stat(
                       value: user.ratingAvg > 0
-                          ? user.ratingAvg.toStringAsFixed(1)
+                          ? NumberFormat(
+                              '0.0',
+                              context.core.localeName,
+                            ).format(user.ratingAvg)
                           : '–',
-                      label: 'Rating',
+                      label: l.statRating,
                       leading: Icon(
                         Icons.star_rounded,
                         size: 20,
@@ -377,8 +556,8 @@ class _Header extends StatelessWidget {
                   VerticalDivider(width: 1, color: colors.outlineVariant),
                   Expanded(
                     child: _Stat(
-                      value: '${user.totalSwaps}',
-                      label: user.totalSwaps == 1 ? 'Hand-off' : 'Hand-offs',
+                      value: context.number(user.totalSwaps),
+                      label: l.statHandoffs(user.totalSwaps),
                     ),
                   ),
                   VerticalDivider(width: 1, color: colors.outlineVariant),
@@ -387,9 +566,9 @@ class _Header extends StatelessWidget {
                       future: books,
                       builder: (context, snapshot) => _Stat(
                         value: snapshot.hasData
-                            ? '${snapshot.data!.length}'
+                            ? context.number(snapshot.data!.length)
                             : '·',
-                        label: snapshot.data?.length == 1 ? 'Book' : 'Books',
+                        label: l.statBooks(snapshot.data?.length ?? 0),
                       ),
                     ),
                   ),
@@ -448,6 +627,8 @@ class _Stat extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: context.text.bodySmall?.copyWith(
             color: context.colors.onSurfaceVariant,
           ),
@@ -465,36 +646,35 @@ class _TrustCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AccountL10n.of(context);
     final rows = <({IconData icon, AppTone tone, String title, String detail})>[
       if (user.verifiedBadge)
         (
           icon: LucideIcons.badgeCheck,
           tone: AppTone.success,
-          title: 'Verified reader',
-          detail: 'This reader carries the verified badge.',
+          title: l.verifiedReader,
+          detail: l.trustVerifiedBody,
         )
       else
         (
           icon: LucideIcons.shieldQuestion,
           tone: AppTone.neutral,
-          title: 'Not verified yet',
-          detail: 'Meet in a busy public place, as with any new reader.',
+          title: l.trustNotVerifiedTitle,
+          detail: l.trustNotVerifiedBody,
         ),
       if (user.totalSwaps > 0)
         (
           icon: LucideIcons.handshake,
           tone: AppTone.primary,
-          title: user.totalSwaps == 1
-              ? '1 completed hand-off'
-              : '${user.totalSwaps} completed hand-offs',
-          detail: 'Books given, received or swapped through the app.',
+          title: l.trustHandoffsTitle(user.totalSwaps),
+          detail: l.trustHandoffsBody,
         )
       else
         (
           icon: LucideIcons.sprout,
           tone: AppTone.exchange,
-          title: 'New to the circle',
-          detail: 'No completed hand-offs yet. Everyone starts here.',
+          title: l.trustNewTitle,
+          detail: l.trustNewBody,
         ),
     ];
 
@@ -581,10 +761,8 @@ class _ShelfSection extends StatelessWidget {
                   : list.isEmpty
                   ? null
                   : available == 0
-                  ? 'Nothing available right now'
-                  : available == 1
-                  ? '1 book you can ask for'
-                  : '$available books you can ask for',
+                  ? AccountL10n.of(context).shelfNothingAvailable
+                  : AccountL10n.of(context).shelfAvailableCount(available),
             ),
             const SizedBox(height: AppSpacing.lg),
             if (loading)
@@ -601,15 +779,17 @@ class _ShelfSection extends StatelessWidget {
                 ),
               )
             else if (list.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: AppSpacing.page),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.page,
+                ),
                 child: AppCard(
                   child: AppEmptyState(
                     compact: true,
                     tone: AppTone.neutral,
                     icon: LucideIcons.library,
-                    title: 'No books on the shelf',
-                    message: 'This reader has not shared a book yet.',
+                    title: AccountL10n.of(context).shelfNoBooksTitle,
+                    message: AccountL10n.of(context).shelfNoBooksBody,
                   ),
                 ),
               )
@@ -703,17 +883,16 @@ class _ReviewsSection extends StatelessWidget {
         builder: (context, snapshot) {
           final loading = snapshot.connectionState != ConnectionState.done;
           final list = snapshot.data ?? const <_Review>[];
+          final l = AccountL10n.of(context);
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SectionHeader(
-                title: 'What readers say',
+                title: l.reviewsTitle,
                 subtitle: loading || list.isEmpty
                     ? null
-                    : list.length == 1
-                    ? '1 review after a hand-off'
-                    : '${list.length} reviews after hand-offs',
+                    : l.reviewsCount(list.length),
               ),
               const SizedBox(height: AppSpacing.lg),
               if (loading)
@@ -724,10 +903,10 @@ class _ReviewsSection extends StatelessWidget {
                     compact: true,
                     tone: AppTone.neutral,
                     icon: LucideIcons.messageSquareQuote,
-                    title: 'No reviews yet',
+                    title: l.reviewsEmptyTitle,
                     message: user.totalSwaps > 0
-                        ? 'Readers have not left a note about their hand-offs.'
-                        : 'Reviews appear after a completed hand-off.',
+                        ? l.reviewsEmptyWithHandoffs
+                        : l.reviewsEmptyNoHandoffs,
                   ),
                 )
               else
@@ -774,7 +953,7 @@ class _ReviewCard extends StatelessWidget {
                 ),
               const Spacer(),
               Text(
-                review.date.toRelativeTime(),
+                context.relativeTime(review.date),
                 style: context.text.bodySmall?.copyWith(
                   color: colors.onSurfaceVariant,
                 ),
@@ -796,7 +975,8 @@ class _ReviewCard extends StatelessWidget {
             future: reviewer,
             builder: (context, snapshot) {
               final who = snapshot.data;
-              final name = who?.name ?? 'A reader';
+              final name = who?.name ?? context.core.aReader;
+              final l = AccountL10n.of(context);
               return InkWell(
                 onTap: who == null
                     ? null
@@ -815,8 +995,8 @@ class _ReviewCard extends StatelessWidget {
                       Flexible(
                         child: Text(
                           review.wasOwner
-                              ? '$name · received a book'
-                              : '$name · gave a book',
+                              ? l.reviewReceivedBook(name)
+                              : l.reviewGaveBook(name),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: context.text.bodySmall?.copyWith(

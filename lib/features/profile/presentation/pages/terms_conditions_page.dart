@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../l10n/account/gen/account_l10n.dart';
 import 'privacy_policy_page.dart' show LegalDocumentView, LegalSection;
 
 /// Terms and Conditions Page
@@ -72,10 +73,10 @@ class TermsConditionsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Terms & Conditions')),
-      body: const LegalDocumentView(
+      appBar: AppBar(title: Text(AccountL10n.of(context).legalTermsTitle)),
+      body: LegalDocumentView(
         title: 'Terms and Conditions',
-        lastUpdated: 'Last updated: December 2024',
+        lastUpdated: DateTime(2024, 12),
         sections: _sections,
       ),
     );

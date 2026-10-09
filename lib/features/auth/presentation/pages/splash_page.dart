@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/design/design.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../l10n/account/gen/account_l10n.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -140,7 +141,7 @@ class _SplashPageState extends State<SplashPage>
                           width: logoSize,
                           height: logoSize,
                           filterQuality: FilterQuality.medium,
-                          semanticLabel: 'Boichokro',
+                          semanticLabel: context.core.appName,
                         ),
                       ),
                     ),
@@ -158,7 +159,7 @@ class _SplashPageState extends State<SplashPage>
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  'Boichokro',
+                                  context.core.appName,
                                   textAlign: TextAlign.center,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -166,7 +167,7 @@ class _SplashPageState extends State<SplashPage>
                                 ),
                                 const SizedBox(height: AppSpacing.xs),
                                 Text(
-                                  'Books that keep moving',
+                                  context.core.appTagline,
                                   textAlign: TextAlign.center,
                                   style: context.text.bodyLarge?.copyWith(
                                     color: colors.onSurfaceVariant,
@@ -200,7 +201,8 @@ class _SplashPageState extends State<SplashPage>
                             ),
                             const SizedBox(height: AppSpacing.lg),
                             Text(
-                              'Give  ·  Swap  ·  Read',
+                              AccountL10n.of(context).splashMotto,
+                              textAlign: TextAlign.center,
                               style: context.text.labelSmall?.copyWith(
                                 color: colors.onSurfaceVariant,
                                 letterSpacing: 1.2,

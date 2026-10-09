@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'core/design/design.dart';
 import 'core/utils/constants.dart';
+import 'l10n/browse/gen/browse_l10n.dart';
 import 'features/auth/presentation/pages/splash_page.dart';
 import 'features/auth/presentation/pages/onboarding_page.dart';
 import 'features/auth/presentation/pages/auth_page.dart';
@@ -159,9 +160,9 @@ class AppRouter {
         child: AppEmptyState(
           icon: LucideIcons.compass,
           tone: AppTone.neutral,
-          title: 'This page is not here',
-          message: 'The link may be old or the book may have moved on.',
-          actionLabel: 'Back to Discover',
+          title: BrowseL10n.of(context).notFoundTitle,
+          message: BrowseL10n.of(context).notFoundMessage,
+          actionLabel: BrowseL10n.of(context).notFoundAction,
           onAction: () => context.go(RoutePaths.home),
         ),
       ),

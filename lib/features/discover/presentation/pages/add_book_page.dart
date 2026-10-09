@@ -11,6 +11,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/design/design.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../l10n/listing/gen/listing_l10n.dart';
 import '../../domain/entities/book.dart';
 import '../bloc/book/book_bloc.dart';
 import '../bloc/book/book_event.dart';
@@ -38,8 +39,6 @@ class _AddBookPageContent extends StatefulWidget {
 }
 
 class _AddBookPageContentState extends State<_AddBookPageContent> {
-  static const List<String> _stepLabels = ['Cover', 'Details', 'Sharing'];
-
   int _currentStep = 0;
 
   // Step 1: Cover
@@ -141,7 +140,7 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
     setState(() => _coverError = true);
     showAppSnack(
       context,
-      'Add a photo of the cover to continue',
+      ListingL10n.of(context).snackCoverRequired,
       tone: AppTone.warning,
     );
   }
@@ -164,10 +163,11 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
     }
 
     if (_isDirty) {
+      final l = ListingL10n.of(context);
       final discard = await confirmDiscardBookForm(
         context,
-        title: 'Discard this book?',
-        message: 'The photo and details you added won\'t be saved.',
+        title: l.discardNewTitle,
+        message: l.discardNewMessage,
       );
       if (!discard) return;
     }
@@ -191,10 +191,8 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
         showAppSnack(
           context,
           source == ImageSource.camera
-              ? 'We couldn\'t open the camera. Check the camera permission '
-                    'and try again.'
-              : 'We couldn\'t open your gallery. Check the photos permission '
-                    'and try again.',
+              ? ListingL10n.of(context).errorCameraOpen
+              : ListingL10n.of(context).errorGalleryOpen,
           tone: AppTone.danger,
         );
       }
@@ -289,7 +287,7 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
       setState(() => _locationError = true);
       showAppSnack(
         context,
-        'Choose a pickup location to continue',
+        ListingL10n.of(context).snackPickupRequired,
         tone: AppTone.warning,
       );
       final locationContext = _locationKey.currentContext;
@@ -354,7 +352,7 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
         if (state is BookAdded) {
           showAppSnack(
             context,
-            'Your book is on the shelf for nearby readers',
+            ListingL10n.of(context).snackBookAdded,
             tone: AppTone.success,
           );
           context.pop();
@@ -365,6 +363,8 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
       builder: (context, state) {
         final isLoading = state is BookLoading;
         final isLastStep = _currentStep == 2;
+        final l = ListingL10n.of(context);
+        final core = context.core;
 
         return PopScope(
           canPop: !isLoading && _currentStep == 0 && !_isDirty,
@@ -373,12 +373,12 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
           },
           child: Scaffold(
             appBar: AppBar(
-              title: const Text('Add a book'),
+              title: Text(l.addBookTitle),
               leading: IconButton(
                 icon: Icon(
                   _currentStep == 0 ? LucideIcons.x : LucideIcons.arrowLeft,
                 ),
-                tooltip: _currentStep == 0 ? 'Close' : 'Back',
+                tooltip: _currentStep == 0 ? core.commonClose : core.commonBack,
                 onPressed: isLoading ? null : _handleBack,
               ),
             ),
@@ -392,7 +392,11 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
                     AppSpacing.sm,
                   ),
                   child: _StepIndicator(
-                    labels: _stepLabels,
+                    labels: [
+                      l.stepCoverLabel,
+                      l.stepDetailsLabel,
+                      l.stepSharingLabel,
+                    ],
                     current: _currentStep,
                     onStepTap: isLoading ? null : _goToStep,
                   ),
@@ -423,12 +427,14 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
               ],
             ),
             bottomNavigationBar: BookFormBottomBar(
-              primaryLabel: isLastStep ? 'Share this book' : 'Continue',
+              primaryLabel: isLastStep
+                  ? l.actionShareBook
+                  : core.commonContinue,
               primaryIcon: isLastStep ? LucideIcons.check : null,
-              loadingLabel: 'Sharing your book…',
+              loadingLabel: l.loadingSharingBook,
               isLoading: isLoading,
               onPrimary: _nextStep,
-              secondaryLabel: _currentStep > 0 ? 'Back' : null,
+              secondaryLabel: _currentStep > 0 ? core.commonBack : null,
               onSecondary: _previousStep,
             ),
           ),
@@ -442,6 +448,7 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
   Widget _buildCoverStep() {
     const coverWidth = 184.0;
     final image = _bookCoverImage;
+    final l = ListingL10n.of(context);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(
@@ -453,11 +460,10 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _StepHeader(
+          _StepHeader(
             step: 1,
-            title: 'Start with the cover',
-            subtitle:
-                'A clear photo of the front helps readers recognise the book.',
+            title: l.stepCoverTitle,
+            subtitle: l.stepCoverSubtitle,
           ),
           const SizedBox(height: AppSpacing.xxl),
           Center(
@@ -476,7 +482,7 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
           if (_coverError && image == null) ...[
             const SizedBox(height: AppSpacing.md),
             Text(
-              'A cover photo is required',
+              l.coverRequired,
               textAlign: TextAlign.center,
               style: context.text.bodySmall?.copyWith(
                 color: context.colors.error,
@@ -487,13 +493,15 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
           FilledButton.tonalIcon(
             onPressed: () => _pickImage(ImageSource.camera),
             icon: const Icon(LucideIcons.camera, size: 18),
-            label: Text(image == null ? 'Snap the cover' : 'Retake photo'),
+            label: Text(
+              image == null ? l.actionSnapCover : l.actionRetakePhoto,
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           OutlinedButton.icon(
             onPressed: () => _pickImage(ImageSource.gallery),
             icon: const Icon(LucideIcons.images, size: 18),
-            label: const Text('Choose from gallery'),
+            label: Text(l.actionChooseFromGallery),
           ),
           const SizedBox(height: AppSpacing.xl),
           _buildScanBanner(),
@@ -503,43 +511,41 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
   }
 
   Widget _buildScanBanner() {
+    final l = ListingL10n.of(context);
     final isbn = _detectedIsbn;
     if (isbn != null) {
       return AppBanner(
         tone: AppTone.success,
         icon: LucideIcons.circleCheck,
-        title: 'ISBN filled in for you',
-        message: 'We read $isbn from the photo. You can check it next.',
+        title: l.scanIsbnFoundTitle,
+        message: l.scanIsbnFoundMessage(isbn),
       );
     }
     if (_isScanning) {
-      return const AppBanner(
+      return AppBanner(
         tone: AppTone.primary,
         icon: LucideIcons.scanText,
-        message: 'Reading the photo for an ISBN…',
+        message: l.scanInProgress,
       );
     }
     if (_scanFinished) {
-      return const AppBanner(
+      return AppBanner(
         tone: AppTone.neutral,
         icon: LucideIcons.scanText,
-        message:
-            'No ISBN spotted in this photo. You can type it in on the next '
-            'step, or leave it out.',
+        message: l.scanNotFound,
       );
     }
-    return const AppBanner(
+    return AppBanner(
       tone: AppTone.primary,
       icon: LucideIcons.scanText,
-      message:
-          'When you take the photo with the camera, we look for an ISBN '
-          'in it and fill it in for you.',
+      message: l.scanHint,
     );
   }
 
   // ── Step 2: Details ──────────────────────────────────────────────────────
 
   Widget _buildDetailsStep() {
+    final l = ListingL10n.of(context);
     return SingleChildScrollView(
       controller: _detailsScrollController,
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -554,10 +560,10 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const _StepHeader(
+            _StepHeader(
               step: 2,
-              title: 'Tell readers about it',
-              subtitle: 'The title and author are all you need to continue.',
+              title: l.stepDetailsTitle,
+              subtitle: l.stepDetailsSubtitle,
             ),
             const SizedBox(height: AppSpacing.xxl),
             BookDetailsFields(
@@ -567,10 +573,7 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
               descriptionController: _descriptionController,
             ),
             const SizedBox(height: AppSpacing.xxl),
-            const BookFormHeading(
-              title: 'Condition',
-              hint: 'Be honest, it builds trust.',
-            ),
+            BookFormHeading(title: l.conditionHeading, hint: l.conditionHint),
             const SizedBox(height: AppSpacing.md),
             BookConditionPicker(
               value: _selectedCondition,
@@ -598,6 +601,7 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
   // ── Step 3: Sharing ──────────────────────────────────────────────────────
 
   Widget _buildSharingStep() {
+    final l = ListingL10n.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.page,
@@ -608,11 +612,10 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _StepHeader(
+          _StepHeader(
             step: 3,
-            title: 'How will you share it?',
-            subtitle:
-                'Choose what you would like in return, and where to meet.',
+            title: l.stepSharingTitle,
+            subtitle: l.stepSharingSubtitle,
           ),
           const SizedBox(height: AppSpacing.xxl),
           BookModePicker(
@@ -620,10 +623,7 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
             onChanged: (mode) => setState(() => _selectedMode = mode),
           ),
           const SizedBox(height: AppSpacing.xxl),
-          const BookFormHeading(
-            title: 'Pickup location',
-            hint: 'Where readers can collect the book.',
-          ),
+          BookFormHeading(title: l.pickupHeading, hint: l.pickupHint),
           const SizedBox(height: AppSpacing.md),
           _PickupLocationCard(
             key: _locationKey,
@@ -637,7 +637,7 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
             Padding(
               padding: const EdgeInsets.only(left: AppSpacing.lg),
               child: Text(
-                'A pickup location is required',
+                l.pickupRequired,
                 style: context.text.bodySmall?.copyWith(
                   color: context.colors.error,
                 ),
@@ -645,12 +645,10 @@ class _AddBookPageContentState extends State<_AddBookPageContent> {
             ),
           ],
           const SizedBox(height: AppSpacing.md),
-          const AppBanner(
+          AppBanner(
             tone: AppTone.neutral,
             icon: LucideIcons.info,
-            message:
-                'Nearby readers see this spot on the map, so a public place '
-                'such as a campus gate or a café works well.',
+            message: l.pickupPublicPlaceTip,
           ),
         ],
       ),
@@ -701,8 +699,8 @@ class _StepIndicator extends StatelessWidget {
     // keep the row inside a 360dp screen.
     return MediaQuery.withClampedTextScaling(
       maxScaleFactor: 1.3,
-      child: Builder(
-        builder: (context) => Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) => Row(
           children: [
             for (int i = 0; i < labels.length; i++) ...[
               if (i > 0)
@@ -718,7 +716,7 @@ class _StepIndicator extends StatelessWidget {
                         : colors.outlineVariant,
                   ),
                 ),
-              _buildStep(context, i),
+              _buildStep(context, i, _maxLabelWidth(constraints.maxWidth)),
             ],
           ],
         ),
@@ -726,14 +724,28 @@ class _StepIndicator extends StatelessWidget {
     );
   }
 
-  Widget _buildStep(BuildContext context, int step) {
+  /// Widest a label may grow before it is ellipsised: what is left of the row
+  /// after the three number circles and a short connector on each side.
+  double _maxLabelWidth(double rowWidth) {
+    const circleAndGap = 26 + AppSpacing.sm;
+    const connector = AppSpacing.sm * 2 + 4;
+    final free =
+        rowWidth -
+        labels.length * circleAndGap -
+        (labels.length - 1) * connector;
+    return (free / labels.length).clamp(0.0, double.infinity);
+  }
+
+  Widget _buildStep(BuildContext context, int step, double maxLabelWidth) {
     final colors = context.colors;
     final isActive = step == current;
     final isCompleted = step < current;
     final canTap = isCompleted && onStepTap != null;
 
     return Semantics(
-      label: 'Step ${step + 1} of ${labels.length}, ${labels[step]}',
+      label: ListingL10n.of(
+        context,
+      ).stepSemantics(step + 1, labels.length, labels[step]),
       selected: isActive,
       button: canTap,
       excludeSemantics: true,
@@ -765,7 +777,7 @@ class _StepIndicator extends StatelessWidget {
                 child: isCompleted
                     ? Icon(LucideIcons.check, size: 14, color: colors.onPrimary)
                     : Text(
-                        '${step + 1}',
+                        context.number(step + 1),
                         style: context.text.labelMedium?.copyWith(
                           color: isActive
                               ? colors.onPrimary
@@ -774,13 +786,19 @@ class _StepIndicator extends StatelessWidget {
                       ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              Text(
-                labels[step],
-                style: context.text.labelMedium?.copyWith(
-                  color: isActive || isCompleted
-                      ? colors.onSurface
-                      : colors.onSurfaceVariant,
-                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxLabelWidth),
+                child: Text(
+                  labels[step],
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.text.labelMedium?.copyWith(
+                    color: isActive || isCompleted
+                        ? colors.onSurface
+                        : colors.onSurfaceVariant,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                  ),
                 ),
               ),
             ],
@@ -808,7 +826,10 @@ class _StepHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Eyebrow('Step $step of 3', color: context.colors.primary),
+        Eyebrow(
+          ListingL10n.of(context).stepProgress(step, 3),
+          color: context.colors.primary,
+        ),
         const SizedBox(height: AppSpacing.sm),
         Text(title, style: context.text.headlineSmall),
         const SizedBox(height: AppSpacing.xs),
@@ -855,7 +876,7 @@ class _CoverDropZone extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label: 'Snap the cover',
+      label: ListingL10n.of(context).actionSnapCover,
       excludeSemantics: true,
       child: Material(
         color: colors.surface,
@@ -907,13 +928,13 @@ class _CoverDropZone extends StatelessWidget {
                         ),
                         const SizedBox(height: AppSpacing.lg),
                         Text(
-                          'Snap the cover',
+                          ListingL10n.of(context).actionSnapCover,
                           textAlign: TextAlign.center,
                           style: context.text.titleMedium,
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
-                          'Front of the book, in good light',
+                          ListingL10n.of(context).coverDropHint,
                           textAlign: TextAlign.center,
                           style: context.text.bodySmall?.copyWith(
                             color: colors.onSurfaceVariant,
@@ -1015,7 +1036,7 @@ class _LocalBookCover extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
-                      'Reading the cover…',
+                      ListingL10n.of(context).coverReading,
                       style: context.text.labelLarge?.copyWith(color: sheen),
                     ),
                   ],
@@ -1073,10 +1094,13 @@ class _PickupLocationCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Choose a spot', style: context.text.titleSmall),
+                  Text(
+                    ListingL10n.of(context).pickupEmptyTitle,
+                    style: context.text.titleSmall,
+                  ),
                   const SizedBox(height: 2),
                   Text(
-                    'Search, tap the map or use your current location.',
+                    ListingL10n.of(context).pickupEmptySubtitle,
                     style: context.text.bodySmall?.copyWith(
                       color: colors.onSurfaceVariant,
                     ),
@@ -1127,7 +1151,7 @@ class _PickupLocationCard extends StatelessWidget {
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Text(
-                  'Change',
+                  ListingL10n.of(context).pickupChange,
                   style: context.text.labelLarge?.copyWith(
                     color: colors.primary,
                   ),
@@ -1159,14 +1183,14 @@ Future<bool> confirmDiscardBookForm(
       actions: [
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('Keep editing'),
+          child: Text(ListingL10n.of(dialogContext).discardKeepEditing),
         ),
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(true),
           style: TextButton.styleFrom(
             foregroundColor: dialogContext.colors.error,
           ),
-          child: const Text('Discard'),
+          child: Text(ListingL10n.of(dialogContext).discardConfirm),
         ),
       ],
     ),
@@ -1241,15 +1265,16 @@ class BookDetailsFields extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = ListingL10n.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         TextFormField(
           controller: titleController,
-          decoration: const InputDecoration(
-            labelText: 'Title',
-            hintText: 'As printed on the cover',
-            prefixIcon: Icon(LucideIcons.bookOpen, size: 20),
+          decoration: InputDecoration(
+            labelText: l.fieldTitleLabel,
+            hintText: l.fieldTitleHint,
+            prefixIcon: const Icon(LucideIcons.bookOpen, size: 20),
           ),
           textCapitalization: TextCapitalization.words,
           textInputAction: TextInputAction.next,
@@ -1257,10 +1282,10 @@ class BookDetailsFields extends StatelessWidget {
           scrollPadding: _scrollPadding,
           validator: (value) {
             if (value == null || value.trim().isEmpty) {
-              return 'Please enter a title';
+              return l.validationTitleRequired;
             }
             if (value.trim().length > AppConstants.maxBookTitleLength) {
-              return 'Title is too long';
+              return l.validationTitleTooLong;
             }
             return null;
           },
@@ -1268,10 +1293,10 @@ class BookDetailsFields extends StatelessWidget {
         const SizedBox(height: AppSpacing.lg),
         TextFormField(
           controller: authorController,
-          decoration: const InputDecoration(
-            labelText: 'Author',
-            hintText: 'Who wrote it?',
-            prefixIcon: Icon(LucideIcons.userRound, size: 20),
+          decoration: InputDecoration(
+            labelText: l.fieldAuthorLabel,
+            hintText: l.fieldAuthorHint,
+            prefixIcon: const Icon(LucideIcons.userRound, size: 20),
           ),
           textCapitalization: TextCapitalization.words,
           textInputAction: TextInputAction.next,
@@ -1279,7 +1304,7 @@ class BookDetailsFields extends StatelessWidget {
           scrollPadding: _scrollPadding,
           validator: (value) {
             if (value == null || value.trim().isEmpty) {
-              return 'Please enter the author\'s name';
+              return l.validationAuthorRequired;
             }
             return null;
           },
@@ -1287,10 +1312,10 @@ class BookDetailsFields extends StatelessWidget {
         const SizedBox(height: AppSpacing.lg),
         TextFormField(
           controller: isbnController,
-          decoration: const InputDecoration(
-            labelText: 'ISBN (optional)',
-            hintText: 'The number above the barcode',
-            prefixIcon: Icon(LucideIcons.barcode, size: 20),
+          decoration: InputDecoration(
+            labelText: l.fieldIsbnLabel,
+            hintText: l.fieldIsbnHint,
+            prefixIcon: const Icon(LucideIcons.barcode, size: 20),
           ),
           keyboardType: TextInputType.number,
           textInputAction: TextInputAction.next,
@@ -1299,9 +1324,9 @@ class BookDetailsFields extends StatelessWidget {
         const SizedBox(height: AppSpacing.lg),
         TextFormField(
           controller: descriptionController,
-          decoration: const InputDecoration(
-            labelText: 'Description (optional)',
-            hintText: 'What is it about? Any notes, marks or missing pages?',
+          decoration: InputDecoration(
+            labelText: l.fieldDescriptionLabel,
+            hintText: l.fieldDescriptionHint,
             alignLabelWithHint: true,
           ),
           minLines: 3,
@@ -1329,17 +1354,17 @@ class BookConditionPicker extends StatelessWidget {
   final int value;
   final ValueChanged<int> onChanged;
 
-  static const List<String> _explanations = [
-    'Looks unread, with no marks or creases.',
-    'Read gently. Clean pages, barely any wear.',
-    'A well-kept copy with light wear.',
-    'Clear wear, or some notes and highlights.',
-    'Heavily used, but still readable.',
-  ];
-
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l = ListingL10n.of(context);
+    final explanations = [
+      l.conditionLikeNewExplanation,
+      l.conditionVeryGoodExplanation,
+      l.conditionGoodExplanation,
+      l.conditionFairExplanation,
+      l.conditionWornExplanation,
+    ];
     final count = AppConstants.bookConditions.length;
 
     return AppCard(
@@ -1372,13 +1397,13 @@ class BookConditionPicker extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              AppConstants.bookConditions[i],
+                              context.conditionLabel(i),
                               style: context.text.titleSmall,
                             ),
-                            if (i < _explanations.length) ...[
+                            if (i < explanations.length) ...[
                               const SizedBox(height: 2),
                               Text(
-                                _explanations[i],
+                                explanations[i],
                                 style: context.text.bodySmall?.copyWith(
                                   color: colors.onSurfaceVariant,
                                 ),
@@ -1418,15 +1443,16 @@ class BookGenrePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = ListingL10n.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         BookFormHeading(
-          title: 'Genres',
-          hint: 'Pick any that fit, so readers can find it.',
+          title: l.genresHeading,
+          hint: l.genresHint,
           trailing: selected.isEmpty
-              ? 'Optional'
-              : '${selected.length} selected',
+              ? l.genresOptional
+              : l.genresSelected(selected.length),
         ),
         const SizedBox(height: AppSpacing.md),
         Wrap(
@@ -1435,7 +1461,7 @@ class BookGenrePicker extends StatelessWidget {
           children: [
             for (final genre in AppConstants.bookGenres)
               FilterChip(
-                label: Text(genre),
+                label: Text(context.genreLabel(genre)),
                 selected: selected.contains(genre),
                 onSelected: (value) => onToggle(genre, value),
               ),
@@ -1461,21 +1487,22 @@ class BookModePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = ListingL10n.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _ModeCard(
           mode: BookMode.donate,
-          title: 'Give it away',
-          description: 'Free for any reader who asks for it.',
+          title: l.modeDonateTitle,
+          description: l.modeDonateDescription,
           selected: value == 'donate',
           onTap: () => onChanged('donate'),
         ),
         const SizedBox(height: AppSpacing.md),
         _ModeCard(
           mode: BookMode.exchange,
-          title: 'Swap for another book',
-          description: 'Readers offer one of their books in return.',
+          title: l.modeExchangeTitle,
+          description: l.modeExchangeDescription,
           selected: value == 'exchange',
           onTap: () => onChanged('exchange'),
         ),

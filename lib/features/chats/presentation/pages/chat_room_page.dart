@@ -3,15 +3,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/design/design.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/network/firebase_service.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../l10n/chat/gen/chat_l10n.dart';
 import '../../../discover/domain/entities/user.dart';
 import '../../../discover/domain/usecases/book_usecases.dart';
 import '../../../discover/domain/usecases/user_usecases.dart';
@@ -38,6 +39,7 @@ class ChatRoomPage extends StatefulWidget {
 }
 
 class _ChatRoomPageState extends State<ChatRoomPage> {
+  static const String _safetyTipKey = 'chat_safety_tip_dismissed';
   static const String _mapsPrefix =
       'https://www.google.com/maps/search/?api=1&query=';
 
@@ -72,6 +74,12 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
       ..add(LoadChatRoom(widget.roomId))
       ..add(SubscribeToMessages(widget.roomId));
     _userBloc = getIt<UserBloc>();
+    // The tip is shown until the reader acknowledges it once.
+    SharedPreferences.getInstance().then((prefs) {
+      if (mounted && (prefs.getBool(_safetyTipKey) ?? false)) {
+        setState(() => _safetyTipDismissed = true);
+      }
+    });
   }
 
   @override
@@ -230,45 +238,54 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     FocusScope.of(context).unfocus();
     final confirmed = await showAppSheet<bool>(
       context,
-      builder: (sheetContext) => SheetScaffold(
-        title: 'Share your location',
-        subtitle: 'Sends a map pin of where you are right now.',
-        footer: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => Navigator.pop(sheetContext, false),
-                child: const Text('Cancel'),
+      builder: (sheetContext) {
+        final l10n = ChatL10n.of(sheetContext);
+        return SheetScaffold(
+          title: l10n.shareLocationTitle,
+          subtitle: l10n.shareLocationSubtitle,
+          footer: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(sheetContext, false),
+                  child: Text(
+                    sheetContext.core.commonCancel,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: FilledButton(
-                onPressed: () => Navigator.pop(sheetContext, true),
-                child: const Text('Share pin'),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(sheetContext, true),
+                  child: Text(
+                    l10n.shareLocationConfirm,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               ),
-            ),
-          ],
-        ),
-        child: const AppBanner(
-          tone: AppTone.warning,
-          icon: LucideIcons.shieldCheck,
-          title: 'Share with care',
-          message:
-              'Only share your location when you are ready to meet, and '
-              'pick a busy public place rather than your home.',
-        ),
-      ),
+            ],
+          ),
+          child: AppBanner(
+            tone: AppTone.warning,
+            icon: LucideIcons.shieldCheck,
+            title: l10n.shareCareTitle,
+            message: l10n.shareCareMessage,
+          ),
+        );
+      },
     );
     if (confirmed != true || !mounted) return;
     await _shareLocation();
   }
 
   Future<void> _shareLocation() async {
+    // Read before the awaits below; the messages are shown afterwards.
+    final l10n = ChatL10n.of(context);
     setState(() => _sharingLocation = true);
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
-        _snack('Turn on location services to share a pin.', AppTone.warning);
+        _snack(l10n.locationServicesOff, AppTone.warning);
         return;
       }
 
@@ -278,10 +295,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
       }
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        _snack(
-          'Location permission is needed to share a pin.',
-          AppTone.warning,
-        );
+        _snack(l10n.locationPermissionNeeded, AppTone.warning);
         return;
       }
 
@@ -299,13 +313,14 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
         MessageType.location,
       );
     } catch (_) {
-      _snack('Could not get your location. Please try again.', AppTone.danger);
+      _snack(l10n.locationFailed, AppTone.danger);
     } finally {
       if (mounted) setState(() => _sharingLocation = false);
     }
   }
 
   Future<void> _openLocation(({double lat, double lng}) point) async {
+    final l10n = ChatL10n.of(context);
     final uri = Uri.parse('$_mapsPrefix${point.lat},${point.lng}');
     var opened = false;
     try {
@@ -313,7 +328,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     } catch (_) {
       opened = false;
     }
-    if (!opened) _snack('Could not open a maps app.', AppTone.danger);
+    if (!opened) _snack(l10n.mapsOpenFailed, AppTone.danger);
   }
 
   void _snack(String message, AppTone tone) {
@@ -335,37 +350,42 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   Future<void> _showBlockSheet(String targetUserId, String name) async {
     final confirmed = await showAppSheet<bool>(
       context,
-      builder: (sheetContext) => SheetScaffold(
-        title: 'Block $name?',
-        footer: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => Navigator.pop(sheetContext, false),
-                child: const Text('Cancel'),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: sheetContext.colors.error,
-                  foregroundColor: sheetContext.colors.onError,
+      builder: (sheetContext) {
+        final l10n = ChatL10n.of(sheetContext);
+        return SheetScaffold(
+          title: l10n.blockTitle(name),
+          footer: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(sheetContext, false),
+                  child: Text(
+                    sheetContext.core.commonCancel,
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-                onPressed: () => Navigator.pop(sheetContext, true),
-                child: const Text('Block'),
               ),
-            ),
-          ],
-        ),
-        child: Text(
-          'You will no longer receive messages from them, and they will not '
-          'be able to interact with your books.',
-          style: sheetContext.text.bodyLarge?.copyWith(
-            color: sheetContext.colors.onSurfaceVariant,
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: sheetContext.colors.error,
+                    foregroundColor: sheetContext.colors.onError,
+                  ),
+                  onPressed: () => Navigator.pop(sheetContext, true),
+                  child: Text(l10n.blockAction, textAlign: TextAlign.center),
+                ),
+              ),
+            ],
           ),
-        ),
-      ),
+          child: Text(
+            l10n.blockMessage,
+            style: sheetContext.text.bodyLarge?.copyWith(
+              color: sheetContext.colors.onSurfaceVariant,
+            ),
+          ),
+        );
+      },
     );
     if (confirmed != true || !mounted) return;
     _userBloc.add(BlockUser(targetUserId));
@@ -375,8 +395,8 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
 
   /// The room stores both display names but not which participant is which,
   /// so the other reader is whichever name is not the signed-in user's.
-  String _otherName(ChatRoom? chatRoom) {
-    if (chatRoom == null) return 'Chat';
+  String _otherName(ChatL10n l10n, ChatRoom? chatRoom) {
+    if (chatRoom == null) return l10n.chatFallbackTitle;
     final owner = chatRoom.ownerName?.trim() ?? '';
     final requester = chatRoom.requesterName?.trim() ?? '';
     final me =
@@ -385,12 +405,12 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
             .toLowerCase() ??
         '';
 
-    if (owner.isEmpty && requester.isEmpty) return 'Reader';
+    if (owner.isEmpty && requester.isEmpty) return l10n.readerFallbackName;
     if (owner.isEmpty) return requester;
     if (requester.isEmpty) return owner;
     if (me.isNotEmpty && owner.toLowerCase() == me) return requester;
     if (me.isNotEmpty && requester.toLowerCase() == me) return owner;
-    return '$owner & $requester';
+    return l10n.namePair(owner, requester);
   }
 
   void _openBook() {
@@ -402,6 +422,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = ChatL10n.of(context);
     final currentUserId = getIt<FirebaseService>().currentUser?.uid;
     final chatRoom = _chatRoom;
     final otherUserId = chatRoom?.participantIds.firstWhere(
@@ -409,7 +430,9 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
       orElse: () => '',
     );
     final liveName = _otherUser?.name.trim() ?? '';
-    final otherName = liveName.isNotEmpty ? liveName : _otherName(chatRoom);
+    final otherName = liveName.isNotEmpty
+        ? liveName
+        : _otherName(l10n, chatRoom);
     final otherPhoto = _otherUser?.photoUrl;
 
     return BlocProvider.value(
@@ -448,7 +471,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                   (chatRoom.bookId != null ||
                       (otherUserId != null && otherUserId.isNotEmpty)))
                 PopupMenuButton<String>(
-                  tooltip: 'More options',
+                  tooltip: l10n.moreOptions,
                   icon: const Icon(LucideIcons.ellipsisVertical),
                   onSelected: (value) {
                     if (value == 'book') {
@@ -461,26 +484,26 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                   },
                   itemBuilder: (context) => [
                     if (chatRoom.bookId != null)
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'book',
                         child: _MenuRow(
                           icon: LucideIcons.bookOpen,
-                          label: 'View book details',
+                          label: l10n.menuViewBook,
                         ),
                       ),
                     if (otherUserId != null && otherUserId.isNotEmpty) ...[
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'report',
                         child: _MenuRow(
                           icon: LucideIcons.flag,
-                          label: 'Report user',
+                          label: l10n.menuReportUser,
                         ),
                       ),
                       PopupMenuItem(
                         value: 'block',
                         child: _MenuRow(
                           icon: LucideIcons.ban,
-                          label: 'Block user',
+                          label: l10n.menuBlockUser,
                           color: context.colors.error,
                         ),
                       ),
@@ -501,25 +524,26 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   }
 
   Widget _buildBody(String? currentUserId, String otherName) {
+    final l10n = ChatL10n.of(context);
     final chatRoom = _chatRoom;
     final loadError = _loadError;
 
     if (chatRoom == null) {
       if (loadError != null) {
         return AppErrorState(
-          title: 'Could not open this chat',
+          title: l10n.openChatFailed,
           message: loadError,
           onRetry: _retryLoad,
         );
       }
-      return const AppLoading(message: 'Opening conversation');
+      return AppLoading(message: l10n.openingConversation);
     }
 
     final Widget conversation;
     if (!_messagesLoaded) {
       conversation = loadError != null
           ? AppErrorState(
-              title: 'Could not load messages',
+              title: l10n.loadMessagesFailed,
               message: loadError,
               onRetry: _retryLoad,
             )
@@ -539,8 +563,8 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
           people: _bookOwnerId == null
               ? null
               : _bookOwnerId == currentUserId
-              ? 'Your book · $otherName asked about it'
-              : 'Shared by $otherName',
+              ? l10n.bookYours(otherName)
+              : l10n.bookSharedBy(otherName),
           chatRoom: chatRoom,
           onTap: chatRoom.bookId != null ? _openBook : null,
         ),
@@ -557,26 +581,32 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   }
 
   Widget _buildSafetyTip() {
+    final l10n = ChatL10n.of(context);
     return AppBanner(
       tone: AppTone.exchange,
       icon: LucideIcons.shieldCheck,
-      title: 'Meet safely',
-      message:
-          'Hand books over in a busy public place during the day, and never '
-          'send money or personal details in chat.',
-      actionLabel: 'Got it',
-      onAction: () => setState(() => _safetyTipDismissed = true),
+      title: l10n.safetyTipTitle,
+      message: l10n.safetyTipMessage,
+      actionLabel: l10n.safetyTipAction,
+      onAction: () {
+        setState(() => _safetyTipDismissed = true);
+        SharedPreferences.getInstance().then(
+          (prefs) => prefs.setBool(_safetyTipKey, true),
+        );
+      },
     );
   }
 
   Widget _buildEmptyConversation(ChatRoom chatRoom, String otherName) {
+    final l10n = ChatL10n.of(context);
     final bookName = chatRoom.bookName?.trim() ?? '';
+    // Sent as the reader's own message, so they are in the reader's language.
     final starters = [
       bookName.isEmpty
-          ? 'Hi! Is the book still available?'
-          : 'Hi! Is "$bookName" still available?',
-      'When and where would be good to meet?',
-      'Thank you for sharing this book!',
+          ? l10n.starterAvailable
+          : l10n.starterAvailableBook(bookName),
+      l10n.starterMeet,
+      l10n.starterThanks,
     ];
 
     return Center(
@@ -602,16 +632,15 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
-              'Start the conversation',
+              l10n.emptyConversationTitle,
               style: context.text.titleLarge,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Say hello to $otherName and agree on how to hand the book '
-              'over. Tap a suggestion to use it.',
+              l10n.emptyConversationMessage(otherName),
               textAlign: TextAlign.center,
-              maxLines: 4,
+              maxLines: 5,
               overflow: TextOverflow.ellipsis,
               style: context.text.bodyMedium?.copyWith(
                 color: context.colors.onSurfaceVariant,
@@ -790,7 +819,14 @@ class _MenuRow extends StatelessWidget {
       children: [
         Icon(icon, size: 18, color: resolved),
         const SizedBox(width: AppSpacing.md),
-        Text(label, style: context.text.bodyLarge?.copyWith(color: resolved)),
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: context.text.bodyLarge?.copyWith(color: resolved),
+          ),
+        ),
       ],
     );
   }
@@ -818,6 +854,7 @@ class _BookContextStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = ChatL10n.of(context);
     final bookName = chatRoom.bookName?.trim() ?? '';
     final owner = chatRoom.ownerName?.trim() ?? '';
     final requester = chatRoom.requesterName?.trim() ?? '';
@@ -829,8 +866,8 @@ class _BookContextStrip extends StatelessWidget {
     final people =
         this.people ??
         [
-          if (owner.isNotEmpty) 'Shared by $owner',
-          if (requester.isNotEmpty) 'requested by $requester',
+          if (owner.isNotEmpty) l10n.bookSharedBy(owner),
+          if (requester.isNotEmpty) l10n.bookRequestedBy(requester),
         ].join(' · ');
 
     return Material(
@@ -863,7 +900,7 @@ class _BookContextStrip extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      bookName.isEmpty ? 'Book in this chat' : bookName,
+                      bookName.isEmpty ? l10n.bookFallbackTitle : bookName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: context.text.titleSmall,
@@ -883,7 +920,7 @@ class _BookContextStrip extends StatelessWidget {
               if (onTap != null) ...[
                 const SizedBox(width: AppSpacing.sm),
                 Text(
-                  'View',
+                  context.core.commonView,
                   style: context.text.labelLarge?.copyWith(
                     color: colors.primary,
                   ),
@@ -911,15 +948,16 @@ class _DaySeparator extends StatelessWidget {
     final today = DateTime(now.year, now.month, now.day);
     final messageDate = DateTime(date.year, date.month, date.day);
 
+    final l10n = ChatL10n.of(context);
     final String label;
     if (messageDate == today) {
-      label = 'Today';
+      label = l10n.dayToday;
     } else if (messageDate == today.subtract(const Duration(days: 1))) {
-      label = 'Yesterday';
+      label = l10n.dayYesterday;
     } else if (date.year == now.year) {
-      label = DateFormat('MMMM d').format(date);
+      label = context.date(date, l10n.dayFormat);
     } else {
-      label = DateFormat('MMMM d, y').format(date);
+      label = context.date(date, l10n.dayFormatWithYear);
     }
 
     return Padding(
@@ -1090,7 +1128,7 @@ class _MessageBubble extends StatelessWidget {
                 right: isMe ? AppSpacing.xs : 0,
               ),
               child: Text(
-                DateFormat('h:mm a').format(message.createdAt),
+                context.date(message.createdAt, 'h:mm a'),
                 style: context.text.labelSmall?.copyWith(
                   color: colors.onSurfaceVariant,
                   fontWeight: FontWeight.w500,
@@ -1136,6 +1174,7 @@ class _LocationContent extends StatelessWidget {
             child: LocationPreviewMap(
               location: LatLng(point.lat, point.lng),
               height: 132,
+              pinIcon: LucideIcons.mapPin,
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -1147,6 +1186,7 @@ class _LocationContent extends StatelessWidget {
 
   Widget _buildCaption(BuildContext context, ColorScheme colors, Color muted) {
     final point = location;
+    final l10n = ChatL10n.of(context);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -1173,8 +1213,8 @@ class _LocationContent extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isMe ? 'You shared a location' : 'Shared location',
-                maxLines: 1,
+                isMe ? l10n.locationSharedByYou : l10n.locationShared,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: context.text.titleSmall?.copyWith(color: foreground),
               ),
@@ -1191,7 +1231,7 @@ class _LocationContent extends StatelessWidget {
               if (point != null) ...[
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  'Tap to open in maps',
+                  l10n.locationOpenHint,
                   style: context.text.labelMedium?.copyWith(color: foreground),
                 ),
               ],
@@ -1312,7 +1352,7 @@ class _Composer extends StatelessWidget {
                         ),
                       )
                     : IconButton(
-                        tooltip: 'Share your location',
+                        tooltip: ChatL10n.of(context).shareLocationTitle,
                         icon: const Icon(LucideIcons.mapPin),
                         color: colors.onSurfaceVariant,
                         onPressed: onShareLocation,
@@ -1333,7 +1373,7 @@ class _Composer extends StatelessWidget {
                   ],
                   style: context.text.bodyLarge?.copyWith(fontSize: 15),
                   decoration: InputDecoration(
-                    hintText: 'Write a message',
+                    hintText: ChatL10n.of(context).composerHint,
                     isDense: true,
                     filled: true,
                     fillColor: colors.surfaceContainerHighest.withValues(
@@ -1356,7 +1396,7 @@ class _Composer extends StatelessWidget {
                 builder: (context, value, _) {
                   final canSend = value.text.trim().isNotEmpty;
                   return Tooltip(
-                    message: 'Send',
+                    message: ChatL10n.of(context).sendTooltip,
                     child: Material(
                       color: canSend
                           ? colors.primary
@@ -1405,6 +1445,8 @@ class _ReportSheet extends StatefulWidget {
 }
 
 class _ReportSheetState extends State<_ReportSheet> {
+  /// Stored with the report, so these stay in English; only the label shown
+  /// to the reader is translated.
   static const List<String> _reasons = [
     'Spam',
     'Harassment',
@@ -1414,17 +1456,32 @@ class _ReportSheetState extends State<_ReportSheet> {
 
   String _selected = _reasons.first;
 
+  static String _label(ChatL10n l10n, String reason) {
+    switch (reason) {
+      case 'Spam':
+        return l10n.reasonSpam;
+      case 'Harassment':
+        return l10n.reasonHarassment;
+      case 'Inappropriate Content':
+        return l10n.reasonInappropriate;
+      case 'Other':
+        return l10n.reasonOther;
+    }
+    return reason;
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l10n = ChatL10n.of(context);
 
     return SheetScaffold(
-      title: 'Report user',
-      subtitle: 'Tell us what is wrong with ${widget.name}.',
+      title: l10n.reportTitle,
+      subtitle: l10n.reportSubtitle(widget.name),
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
       footer: FilledButton(
         onPressed: () => Navigator.pop(context, _selected),
-        child: const Text('Submit report'),
+        child: Text(l10n.reportSubmit),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1453,9 +1510,7 @@ class _ReportSheetState extends State<_ReportSheet> {
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Text(
-                          reason == 'Inappropriate Content'
-                              ? 'Inappropriate content'
-                              : reason,
+                          _label(l10n, reason),
                           style: context.text.bodyLarge?.copyWith(
                             fontWeight: reason == _selected
                                 ? FontWeight.w600

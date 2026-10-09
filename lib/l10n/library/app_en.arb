@@ -1,0 +1,395 @@
+{
+  "@@locale": "en",
+  "libraryTitle": "My library",
+  "summarySignedOut": "Sign in to share and request books",
+  "summaryLoading": "Opening your shelf…",
+  "summaryBooksShared": "{count, plural, =0{No books shared yet} =1{1 book shared} other{{count} books shared}}",
+  "@summaryBooksShared": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "summaryRequestsWaiting": "{count, plural, =1{1 request waiting} other{{count} requests waiting}}",
+  "@summaryRequestsWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "summaryHandOffsInProgress": "{count, plural, =1{1 hand-off in progress} other{{count} hand-offs in progress}}",
+  "@summaryHandOffsInProgress": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "tabMyBooks": "My books",
+  "tabMyRequests": "My requests",
+  "tabRequestsToMe": "Requests to me",
+  "tabHistory": "History",
+  "signedOutTitle": "Your library lives here",
+  "signedOutMessage": "Sign in to share your books, ask for others and follow every hand-off.",
+  "signInAction": "Sign in",
+  "booksLoadErrorTitle": "Could not load your books",
+  "requestsLoadErrorTitle": "Could not load your requests",
+  "emptyBooksTitle": "Your shelf is empty",
+  "emptyBooksMessage": "Share a book you have finished. A reader nearby may be looking for exactly that one.",
+  "addBookAction": "Add a book",
+  "emptySentTitle": "No requests on the way",
+  "emptySentMessage": "When you ask for a book, you can follow its journey here, from request to hand-off.",
+  "discoverBooksAction": "Discover books",
+  "emptyReceivedTitle": "No one has asked yet",
+  "emptyReceivedMessage": "When a reader asks for one of your books, their request shows up here for you to accept or decline.",
+  "emptyHistoryTitle": "No history yet",
+  "emptyHistoryMessage": "Completed, declined and cancelled requests are kept here, along with the reviews you exchange.",
+  "snackBookRemoved": "Book removed from your library",
+  "bookOptionsTitle": "Book options",
+  "bookLockedCompleted": "This book has already found its reader, so it can no longer be edited or removed.",
+  "bookLockedInRequest": "This book is part of a request right now. You can edit or remove it once that is settled.",
+  "bookActionView": "View book",
+  "bookActionEdit": "Edit details",
+  "bookActionRemove": "Remove from library",
+  "deleteBookTitle": "Remove this book?",
+  "deleteBookMessage": "\"{title}\" will be taken off Boichokro and readers will no longer be able to ask for it. This cannot be undone.",
+  "@deleteBookMessage": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteBookConfirm": "Remove",
+  "keepItAction": "Keep it",
+  "snackRequestAccepted": "Request accepted. Use the chat to arrange the hand-off.",
+  "declineDialogTitle": "Decline this request?",
+  "declineDialogMessage": "{name} will see that you declined. Your book stays available for other readers.",
+  "@declineDialogMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "declineAction": "Decline",
+  "notNowAction": "Not now",
+  "snackRequestDeclined": "Request declined",
+  "cancelDialogTitle": "Cancel your request?",
+  "cancelDialogMessage": "The owner will see that you no longer need this book. You can ask for it again later if it is still available.",
+  "cancelRequestAction": "Cancel request",
+  "snackRequestCancelled": "Request cancelled",
+  "confirmReceivedTitle": "Did you receive the book?",
+  "confirmHandedOverTitle": "Did you hand it over?",
+  "confirmReceivedMessage": "Confirm only once the book is in your hands.",
+  "confirmHandedOverMessage": "Confirm only once the reader has the book.",
+  "confirmDetailCompletes": "This completes the exchange, and you can then review each other.",
+  "confirmDetailWaitsOther": "The exchange completes when the other person confirms too.",
+  "confirmReceivedYes": "Yes, I have it",
+  "confirmHandedOverYes": "Yes, handed over",
+  "notYetAction": "Not yet",
+  "snackExchangeComplete": "Exchange complete. You can now leave a review.",
+  "snackConfirmedWaiting": "Confirmed. Waiting for the other person to confirm too.",
+  "snackReviewSubmitted": "Review submitted. Thank you!",
+  "missingBookTitle": "A book that is no longer listed",
+  "bookNextPeopleAsked": "{count, plural, =1{1 person asked for this} other{{count} people asked for this}}",
+  "@bookNextPeopleAsked": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "bookNextSomeoneAsked": "Someone asked for this",
+  "bookNextHandOff": "Hand-off in progress",
+  "bookNextFoundReader": "Found a new reader",
+  "fallbackOwner": "The owner",
+  "fallbackOwnerInline": "the owner",
+  "fallbackReader": "The reader",
+  "fallbackReaderInline": "the reader",
+  "captionYouAsked": "You asked",
+  "captionAskedBy": "Asked by",
+  "askedTime": "Asked {time}",
+  "@askedTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "youOfferedInReturn": "You offered in return",
+  "offeredInReturn": "Offered in return",
+  "pillYouConfirmed": "You: confirmed",
+  "pillYouNotYet": "You: not yet",
+  "pillOwnerConfirmed": "Owner: confirmed",
+  "pillOwnerNotYet": "Owner: not yet",
+  "pillReaderConfirmed": "Reader: confirmed",
+  "pillReaderNotYet": "Reader: not yet",
+  "requestBannerWaitingTitle": "Waiting for {name}",
+  "@requestBannerWaitingTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "requestBannerWaitingMessage": "They will accept or decline your request. You can cancel it any time before then.",
+  "requestBannerSwapOfferTitle": "{name} is offering a swap",
+  "@requestBannerSwapOfferTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "requestBannerWantsBookTitle": "{name} would like this book",
+  "@requestBannerWantsBookTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "requestBannerIncomingMessage": "Accepting opens a chat to arrange the hand-off and declines any other requests for this book.",
+  "requestBannerYouConfirmedTitle": "You have confirmed",
+  "requestBannerYouConfirmedMessage": "Waiting for {name} to confirm the hand-off too.",
+  "@requestBannerYouConfirmedMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "requestBannerYourTurnTitle": "Your turn to confirm",
+  "requestBannerYourTurnSeekerMessage": "{name} confirmed handing the book over. Confirm once it is in your hands to complete the exchange.",
+  "@requestBannerYourTurnSeekerMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "requestBannerYourTurnOwnerMessage": "{name} confirmed receiving the book. Confirm on your side to complete the exchange.",
+  "@requestBannerYourTurnOwnerMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "requestBannerSaidYesTitle": "{name} said yes",
+  "@requestBannerSaidYesTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "requestBannerHandOverTitle": "Time to hand it over",
+  "requestBannerArrangeSeekerMessage": "Agree on a time and place in chat. Once the book is in your hands, confirm it here.",
+  "requestBannerArrangeOwnerMessage": "Agree on a time and place in chat. Once you have handed the book over, confirm it here.",
+  "handOffEyebrow": "Hand-off",
+  "trackingId": "Tracking {id}",
+  "@trackingId": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "acceptAction": "Accept",
+  "receivedBookAction": "I received the book",
+  "handedOverAction": "I handed it over",
+  "arrangeInChatAction": "Arrange hand-off in chat",
+  "openChatAction": "Open chat",
+  "historyReceivedFrom": "You received this from {name}",
+  "@historyReceivedFrom": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "historyGaveTo": "You gave this to {name}",
+  "@historyGaveTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "historyTheyDeclined": "{name} declined your request",
+  "@historyTheyDeclined": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "historyYouDeclined": "You declined the request from {name}",
+  "@historyYouDeclined": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "historyYouCancelled": "You cancelled your request to {name}",
+  "@historyYouCancelled": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "historyTheyCancelled": "{name} cancelled their request",
+  "@historyTheyCancelled": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "historyYouAsked": "You asked {name}",
+  "@historyYouAsked": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "historyTheyAsked": "{name} asked for this book",
+  "@historyTheyAsked": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reviewYouRated": "You rated",
+  "reviewTheyRated": "They rated you",
+  "reviewPrompt": "How was your exchange with {name}? Your review helps other readers trust them.",
+  "@reviewPrompt": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveReviewAction": "Leave a review",
+  "reviewNotLeftYet": "{name} has not left a review yet.",
+  "@reviewNotLeftYet": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reviewQuote": "\"{text}\"",
+  "@reviewQuote": {
+    "placeholders": {
+      "text": {
+        "type": "String"
+      }
+    }
+  },
+  "reviewSheetSubtitle": "How did the exchange go?",
+  "reviewSheetSubtitleNamed": "How was your exchange with {name}?",
+  "@reviewSheetSubtitleNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "submitReviewAction": "Submit review",
+  "ratingLabelNotGood": "Not good",
+  "ratingLabelCouldBeBetter": "Could be better",
+  "ratingLabelOkay": "Okay",
+  "ratingLabelGood": "Good",
+  "ratingLabelExcellent": "Excellent",
+  "reviewFieldLabel": "Your review (optional)",
+  "reviewFieldHint": "Was the book as described? Were they easy to meet?",
+  "reviewShareNote": "Your rating is shared with them and counts towards their profile.",
+  "journeyEyebrow": "Journey",
+  "journeyHideSteps": "Hide journey steps",
+  "journeyShowSteps": "Show journey steps",
+  "journeySummaryDeclined": "Ended · request declined",
+  "journeySummaryCancelled": "Ended · request cancelled",
+  "journeySummaryComplete": "Complete · reviewed and done",
+  "journeySummaryProgress": "{done} of {total} done · Next: {next}",
+  "@journeySummaryProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "total": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "next": {
+        "type": "String"
+      }
+    }
+  },
+  "journeyStepRequested": "Requested",
+  "journeyStepDeclined": "Declined",
+  "journeyStepCancelled": "Cancelled",
+  "journeyStepAccepted": "Accepted",
+  "journeyStepHandOffArranged": "Hand-off arranged",
+  "journeyStepBothConfirmed": "Both confirmed",
+  "journeyStepReviewed": "Reviewed",
+  "journeyRequestedSeeker": "You asked for this book · {time}",
+  "@journeyRequestedSeeker": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "journeyRequestedOwner": "A reader asked for your book · {time}",
+  "@journeyRequestedOwner": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "journeyDeclinedSeeker": "The owner could not share this book this time",
+  "journeyDeclinedOwner": "You declined this request",
+  "journeyCancelledSeeker": "You cancelled this request",
+  "journeyCancelledOwner": "The reader cancelled their request",
+  "journeyWaitingOwnerReply": "Waiting for the owner to reply",
+  "journeyWaitingYourReply": "Waiting for your reply",
+  "journeyArrangeHint": "Agree on a time and place in chat",
+  "journeyChangedHands": "The book changed hands",
+  "journeyBothConfirmedFinishing": "Both confirmed · finishing up",
+  "journeyReviewPrompt": "Leave a review to close the loop",
+  "journeyYouRated": "You rated {rating}",
+  "@journeyYouRated": {
+    "placeholders": {
+      "rating": {
+        "type": "String"
+      }
+    }
+  },
+  "journeyBothRated": "You rated {mine} · they rated you {theirs}",
+  "@journeyBothRated": {
+    "placeholders": {
+      "mine": {
+        "type": "String"
+      },
+      "theirs": {
+        "type": "String"
+      }
+    }
+  },
+  "journeyNow": "Now"
+}

@@ -2,13 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/design/design.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/network/firebase_service.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../l10n/chat/gen/chat_l10n.dart';
 import '../../../discover/presentation/pages/home_page.dart';
 import '../../../discover/domain/entities/user.dart';
 import '../../../discover/domain/usecases/user_usecases.dart';
@@ -100,22 +100,23 @@ class _ChatListPageState extends State<ChatListPage>
     final chatBloc = _chatBloc;
 
     if (currentUser == null || chatBloc == null) {
-      return const Scaffold(
+      final l10n = ChatL10n.of(context);
+      return Scaffold(
         body: SafeArea(
           bottom: false,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _ChatsHeader(),
+              const _ChatsHeader(),
               Expanded(
                 child: Padding(
-                  padding: EdgeInsets.only(bottom: AppSpacing.navClearance),
+                  padding: const EdgeInsets.only(
+                    bottom: AppSpacing.navClearance,
+                  ),
                   child: AppEmptyState(
                     icon: LucideIcons.messagesSquare,
-                    title: 'Sign in to view chats',
-                    message:
-                        'Your conversations with other readers will appear '
-                        'here once you are signed in.',
+                    title: l10n.signInTitle,
+                    message: l10n.signInMessage,
                   ),
                 ),
               ),
@@ -188,18 +189,17 @@ class _ChatListPageState extends State<ChatListPage>
       final chatRooms = loaded;
 
       if (chatRooms.isEmpty) {
+        final l10n = ChatL10n.of(context);
         return Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.navClearance),
           child: AppEmptyState(
             icon: LucideIcons.messagesSquare,
-            title: 'No conversations yet',
-            message:
-                'A chat opens when you request a book, or when someone '
-                'requests one of yours. Find a book you like to get started.',
-            actionLabel: 'Discover books',
+            title: l10n.emptyTitle,
+            message: l10n.emptyMessage,
+            actionLabel: l10n.emptyAction,
             actionIcon: LucideIcons.compass,
             onAction: () => HomePage.goToTab(context, 0),
-            secondaryLabel: 'Refresh',
+            secondaryLabel: context.core.commonRefresh,
             onSecondary: reload,
           ),
         );
@@ -252,11 +252,10 @@ class _ChatsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = ChatL10n.of(context);
     final subtitle = unreadRooms == 0
-        ? 'Arrange hand-overs with other readers'
-        : unreadRooms == 1
-        ? '1 conversation has new messages'
-        : '$unreadRooms conversations have new messages';
+        ? l10n.chatsSubtitle
+        : l10n.unreadSummary(unreadRooms);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -271,11 +270,11 @@ class _ChatsHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Chats', style: context.text.headlineLarge),
+                Text(l10n.chatsTitle, style: context.text.headlineLarge),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   subtitle,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: context.text.bodyMedium?.copyWith(
                     color: unreadRooms > 0
@@ -291,7 +290,7 @@ class _ChatsHeader extends StatelessWidget {
             const SizedBox(width: AppSpacing.md),
             CircleIconButton(
               icon: LucideIcons.refreshCw,
-              tooltip: 'Refresh',
+              tooltip: context.core.commonRefresh,
               onPressed: onRefresh,
             ),
           ],
@@ -320,44 +319,40 @@ class _ChatRoomTile extends StatelessWidget {
 
   /// The room stores both display names but not which participant is which,
   /// so the other reader is whichever name is not the signed-in user's.
-  String get _otherName {
+  String _otherName(ChatL10n l10n) {
     final owner = chatRoom.ownerName?.trim() ?? '';
     final requester = chatRoom.requesterName?.trim() ?? '';
     final me = myName?.trim().toLowerCase() ?? '';
 
-    if (owner.isEmpty && requester.isEmpty) return 'Reader';
+    if (owner.isEmpty && requester.isEmpty) return l10n.readerFallbackName;
     if (owner.isEmpty) return requester;
     if (requester.isEmpty) return owner;
     if (me.isNotEmpty && owner.toLowerCase() == me) return requester;
     if (me.isNotEmpty && requester.toLowerCase() == me) return owner;
-    return '$owner & $requester';
+    return l10n.namePair(owner, requester);
   }
 
-  String get _preview {
+  String _preview(ChatL10n l10n) {
     final last = chatRoom.lastMessage?.trim() ?? '';
-    if (last.isEmpty) return 'Say hello to get things started';
+    if (last.isEmpty) return l10n.previewEmpty;
     if (last.startsWith('https://www.google.com/maps/')) {
-      return 'Shared a location';
+      return l10n.previewLocation;
     }
     return last.replaceAll(RegExp(r'\s+'), ' ');
   }
 
-  static String _formatTime(DateTime dateTime) {
+  static String _formatTime(BuildContext context, DateTime dateTime) {
     final now = DateTime.now();
-    final difference = now.difference(dateTime);
+    final days = now.difference(dateTime).inDays;
 
-    if (difference.inDays > 0) {
-      if (difference.inDays == 1) return 'Yesterday';
-      if (difference.inDays < 7) return '${difference.inDays}d ago';
-      return DateFormat(
+    if (days == 1) return ChatL10n.of(context).dayYesterday;
+    if (days >= 7) {
+      return context.date(
+        dateTime,
         dateTime.year == now.year ? 'd MMM' : 'd MMM y',
-      ).format(dateTime);
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
+      );
     }
-    return 'Just now';
+    return context.relativeTime(dateTime);
   }
 
   @override
@@ -371,9 +366,10 @@ class _ChatRoomTile extends StatelessWidget {
   Widget _buildTile(BuildContext context, User? user) {
     final colors = context.colors;
     final text = context.text;
+    final l10n = ChatL10n.of(context);
     final hasUnread = unread > 0;
     final liveName = user?.name.trim() ?? '';
-    final name = liveName.isNotEmpty ? liveName : _otherName;
+    final name = liveName.isNotEmpty ? liveName : _otherName(l10n);
     final bookName = chatRoom.bookName?.trim() ?? '';
     final time = chatRoom.lastMessageTime;
 
@@ -417,7 +413,7 @@ class _ChatRoomTile extends StatelessWidget {
                       if (time != null) ...[
                         const SizedBox(width: AppSpacing.sm),
                         Text(
-                          _formatTime(time),
+                          _formatTime(context, time),
                           style: text.labelSmall?.copyWith(
                             color: hasUnread
                                 ? colors.primary
@@ -455,7 +451,7 @@ class _ChatRoomTile extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          _preview,
+                          _preview(l10n),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: text.bodyMedium?.copyWith(
@@ -490,7 +486,7 @@ class _UnreadBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: '$count unread',
+      label: ChatL10n.of(context).unreadBadgeLabel(count),
       excludeSemantics: true,
       child: Container(
         constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
@@ -501,7 +497,7 @@ class _UnreadBadge extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadius.pill),
         ),
         child: Text(
-          count > 99 ? '99+' : '$count',
+          count > 99 ? '${context.number(99)}+' : context.number(count),
           style: context.text.labelSmall?.copyWith(
             color: context.colors.onPrimary,
             fontWeight: FontWeight.w700,

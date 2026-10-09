@@ -1,0 +1,138 @@
+{
+  "@@locale": "en",
+  "appName": "Boichokro",
+  "appTagline": "Books that keep moving",
+  "languageBangla": "বাংলা",
+  "languageEnglish": "English",
+  "languageTitle": "Language",
+  "languageSubtitle": "Choose the language you read best",
+  "commonCancel": "Cancel",
+  "commonSave": "Save",
+  "commonDelete": "Delete",
+  "commonClose": "Close",
+  "commonDone": "Done",
+  "commonOk": "OK",
+  "commonRetry": "Try again",
+  "commonRefresh": "Refresh",
+  "commonBack": "Back",
+  "commonContinue": "Continue",
+  "commonYes": "Yes",
+  "commonNo": "No",
+  "commonLoading": "Loading…",
+  "commonView": "View",
+  "commonEdit": "Edit",
+  "commonShare": "Share",
+  "errorGenericTitle": "Something went wrong",
+  "aReader": "A reader",
+  "newMember": "New member",
+  "swapCount": "{count, plural, =1{1 swap} other{{count} swaps}}",
+  "@swapCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "modeDonate": "Donate",
+  "modeExchange": "Exchange",
+  "offerFree": "Free",
+  "offerSwap": "Swap",
+  "bookStatusAvailable": "Available",
+  "bookStatusRequested": "Requested",
+  "bookStatusPending": "Exchange pending",
+  "bookStatusCompleted": "Completed",
+  "requestStatusPending": "Pending",
+  "requestStatusAccepted": "Accepted",
+  "requestStatusDeclined": "Declined",
+  "requestStatusCancelled": "Cancelled",
+  "requestStatusCompleted": "Completed",
+  "exchangeMeetup": "Meet in person",
+  "exchangeCourier": "Courier service",
+  "conditionLikeNew": "Like New",
+  "conditionVeryGood": "Very Good",
+  "conditionGood": "Good",
+  "conditionFair": "Fair",
+  "conditionWorn": "Worn",
+  "genreFiction": "Fiction",
+  "genreNonFiction": "Non-Fiction",
+  "genreScienceFiction": "Science Fiction",
+  "genreFantasy": "Fantasy",
+  "genreMystery": "Mystery",
+  "genreThriller": "Thriller",
+  "genreRomance": "Romance",
+  "genreBiography": "Biography",
+  "genreHistory": "History",
+  "genreSelfHelp": "Self-Help",
+  "genreBusiness": "Business",
+  "genreScience": "Science",
+  "genrePhilosophy": "Philosophy",
+  "genrePoetry": "Poetry",
+  "genreComics": "Comics",
+  "genreChildren": "Children",
+  "genreYoungAdult": "Young Adult",
+  "genreOther": "Other",
+  "timeJustNow": "Just now",
+  "timeMinutesAgo": "{count}m ago",
+  "@timeMinutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "timeHoursAgo": "{count}h ago",
+  "@timeHoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "timeDaysAgo": "{count}d ago",
+  "@timeDaysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "timeMonthsAgo": "{count}mo ago",
+  "@timeMonthsAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "timeYearsAgo": "{count}y ago",
+  "@timeYearsAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "distanceMeters": "{value} m",
+  "@distanceMeters": {
+    "placeholders": {
+      "value": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "distanceKm": "{value} km",
+  "@distanceKm": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  }
+}

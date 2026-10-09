@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/design/design.dart';
+import '../../../../l10n/account/gen/account_l10n.dart';
 
 /// One titled section of a legal document.
 class LegalSection {
@@ -20,12 +21,22 @@ class LegalDocumentView extends StatelessWidget {
     required this.sections,
   });
 
+  /// Heading of the document itself, kept in its approved English wording.
   final String title;
-  final String lastUpdated;
+
+  /// Month the document was last revised; shown in the reader's language.
+  final DateTime lastUpdated;
+
+  /// The approved English clauses. These are never translated.
   final List<LegalSection> sections;
 
   @override
   Widget build(BuildContext context) {
+    final l = AccountL10n.of(context);
+    final showEnglishOnlyNotice =
+        Localizations.localeOf(context).languageCode !=
+        LocaleController.english.languageCode;
+
     return SafeArea(
       top: false,
       child: SelectionArea(
@@ -42,11 +53,24 @@ class LegalDocumentView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Eyebrow('Legal'),
+                  if (showEnglishOnlyNotice) ...[
+                    AppBanner(
+                      tone: AppTone.neutral,
+                      icon: LucideIcons.languages,
+                      message: l.legalEnglishOnlyNotice,
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                  ],
+                  Eyebrow(l.legalLabel),
                   const SizedBox(height: AppSpacing.sm),
                   Text(title, style: context.text.headlineMedium),
                   const SizedBox(height: AppSpacing.md),
-                  MetaItem(icon: LucideIcons.calendarDays, label: lastUpdated),
+                  MetaItem(
+                    icon: LucideIcons.calendarDays,
+                    label: l.legalLastUpdated(
+                      context.date(lastUpdated, 'MMMM yyyy'),
+                    ),
+                  ),
                   const SizedBox(height: AppSpacing.xxl),
                   for (int i = 0; i < sections.length; i++) ...[
                     if (i > 0) ...[
@@ -176,10 +200,10 @@ class PrivacyPolicyPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Privacy Policy')),
-      body: const LegalDocumentView(
+      appBar: AppBar(title: Text(AccountL10n.of(context).legalPrivacyTitle)),
+      body: LegalDocumentView(
         title: 'Privacy Policy for Boichokro',
-        lastUpdated: 'Last updated: December 2024',
+        lastUpdated: DateTime(2024, 12),
         sections: _sections,
       ),
     );

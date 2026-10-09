@@ -1,0 +1,148 @@
+{
+  "@@locale": "en",
+  "addBookTitle": "Add a book",
+  "editBookTitle": "Edit book",
+  "stepCoverLabel": "Cover",
+  "stepDetailsLabel": "Details",
+  "stepSharingLabel": "Sharing",
+  "stepProgress": "Step {step} of {total}",
+  "@stepProgress": {
+    "placeholders": {
+      "step": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "total": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "stepSemantics": "Step {step} of {total}, {label}",
+  "@stepSemantics": {
+    "placeholders": {
+      "step": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "total": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "stepCoverTitle": "Start with the cover",
+  "stepCoverSubtitle": "A clear photo of the front helps readers recognise the book.",
+  "stepDetailsTitle": "Tell readers about it",
+  "stepDetailsSubtitle": "The title and author are all you need to continue.",
+  "stepSharingTitle": "How will you share it?",
+  "stepSharingSubtitle": "Choose what you would like in return, and where to meet.",
+  "actionSnapCover": "Snap the cover",
+  "actionRetakePhoto": "Retake photo",
+  "actionChooseFromGallery": "Choose from gallery",
+  "actionShareBook": "Share this book",
+  "actionSaveChanges": "Save changes",
+  "loadingSharingBook": "Sharing your book…",
+  "loadingSaving": "Saving…",
+  "coverDropHint": "Front of the book, in good light",
+  "coverReading": "Reading the cover…",
+  "coverRequired": "A cover photo is required",
+  "snackCoverRequired": "Add a photo of the cover to continue",
+  "errorCameraOpen": "We couldn't open the camera. Check the camera permission and try again.",
+  "errorGalleryOpen": "We couldn't open your gallery. Check the photos permission and try again.",
+  "scanIsbnFoundTitle": "ISBN filled in for you",
+  "scanIsbnFoundMessage": "We read {isbn} from the photo. You can check it next.",
+  "@scanIsbnFoundMessage": {
+    "placeholders": {
+      "isbn": {
+        "type": "String"
+      }
+    }
+  },
+  "scanInProgress": "Reading the photo for an ISBN…",
+  "scanNotFound": "No ISBN spotted in this photo. You can type it in on the next step, or leave it out.",
+  "scanHint": "When you take the photo with the camera, we look for an ISBN in it and fill it in for you.",
+  "detailsHeading": "Details",
+  "fieldTitleLabel": "Title",
+  "fieldTitleHint": "As printed on the cover",
+  "validationTitleRequired": "Please enter a title",
+  "validationTitleTooLong": "Title is too long",
+  "fieldAuthorLabel": "Author",
+  "fieldAuthorHint": "Who wrote it?",
+  "validationAuthorRequired": "Please enter the author's name",
+  "fieldIsbnLabel": "ISBN (optional)",
+  "fieldIsbnHint": "The number above the barcode",
+  "fieldDescriptionLabel": "Description (optional)",
+  "fieldDescriptionHint": "What is it about? Any notes, marks or missing pages?",
+  "conditionHeading": "Condition",
+  "conditionHint": "Be honest, it builds trust.",
+  "conditionLikeNewExplanation": "Looks unread, with no marks or creases.",
+  "conditionVeryGoodExplanation": "Read gently. Clean pages, barely any wear.",
+  "conditionGoodExplanation": "A well-kept copy with light wear.",
+  "conditionFairExplanation": "Clear wear, or some notes and highlights.",
+  "conditionWornExplanation": "Heavily used, but still readable.",
+  "genresHeading": "Genres",
+  "genresHint": "Pick any that fit, so readers can find it.",
+  "genresOptional": "Optional",
+  "genresSelected": "{count} selected",
+  "@genresSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "modeDonateTitle": "Give it away",
+  "modeDonateDescription": "Free for any reader who asks for it.",
+  "modeExchangeTitle": "Swap for another book",
+  "modeExchangeDescription": "Readers offer one of their books in return.",
+  "sharingHeading": "How you share it",
+  "sharingHint": "Choose what you would like in return.",
+  "pickupHeading": "Pickup location",
+  "pickupHint": "Where readers can collect the book.",
+  "pickupEmptyTitle": "Choose a spot",
+  "pickupEmptySubtitle": "Search, tap the map or use your current location.",
+  "pickupChange": "Change",
+  "pickupRequired": "A pickup location is required",
+  "snackPickupRequired": "Choose a pickup location to continue",
+  "pickupPublicPlaceTip": "Nearby readers see this spot on the map, so a public place such as a campus gate or a café works well.",
+  "snackBookAdded": "Your book is on the shelf for nearby readers",
+  "snackChangesSaved": "Your changes are saved",
+  "discardNewTitle": "Discard this book?",
+  "discardNewMessage": "The photo and details you added won't be saved.",
+  "discardEditTitle": "Discard your changes?",
+  "discardEditMessage": "The edits you made to this book won't be saved.",
+  "discardKeepEditing": "Keep editing",
+  "discardConfirm": "Discard",
+  "editingEyebrow": "Editing",
+  "editSummaryNote": "The cover photo and pickup location stay as they are.",
+  "locationDisclosureTitle": "Location access required",
+  "locationDisclosureMessage": "Boichokro needs your location to help you pinpoint your current address for assigning a pickup location to a book you upload, or finding a nearby book.",
+  "locationDisclosureDeny": "Deny",
+  "locationDisclosureAccept": "Accept",
+  "errorLocationUnavailable": "We couldn't get your location. Please try again, or pick the spot on the map.",
+  "snackAddressNotFound": "Address not found",
+  "errorAddressSearch": "Could not find that address. Try a different search or tap the spot on the map.",
+  "actionUseThisLocation": "Use this location",
+  "searchHint": "Search an area, road or landmark",
+  "searchTooltip": "Search",
+  "mapTapHint": "Tap the map to place the pin",
+  "tooltipUseCurrentLocation": "Use my current location",
+  "issueDeniedTitle": "Location access is off",
+  "issueDeniedMessage": "No problem. Search for an address or tap the map to place the pin yourself.",
+  "issueBlockedTitle": "Location access is blocked",
+  "issueBlockedMessage": "Allow location for Boichokro in your phone settings, or search and tap the map instead.",
+  "actionOpenSettings": "Open settings",
+  "issueServiceOffTitle": "Location is turned off",
+  "issueServiceOffMessage": "Turn on location on your phone and try again, or search and tap the map instead.",
+  "actionOpenLocationSettings": "Open location settings",
+  "noSpotTitle": "No spot chosen yet",
+  "noSpotSubtitle": "Pick where readers can collect the book.",
+  "actionLocateMe": "Locate me",
+  "selectedSpotEyebrow": "Selected spot",
+  "pinnedSpotNoAddress": "Pinned spot (no street address found)"
+}

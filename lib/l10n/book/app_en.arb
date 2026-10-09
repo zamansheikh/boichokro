@@ -1,0 +1,289 @@
+{
+  "@@locale": "en",
+  "listingRemovedSnack": "Your listing was removed.",
+  "shareTooltip": "Share this book",
+  "moreOptions": "More options",
+  "openErrorTitle": "We couldn't open this book",
+  "removedTitle": "This listing was removed",
+  "removedMessage": "The book is no longer on Boichokro.",
+  "goBack": "Go back",
+  "notFoundTitle": "Book not found",
+  "notFoundMessage": "It may have been removed by its owner.",
+  "yourListingPill": "Your listing",
+  "authorByline": "by {author}",
+  "@authorByline": {
+    "placeholders": {
+      "author": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutCopyTitle": "About this copy",
+  "yourNoteTitle": "Your note",
+  "fromOwnerTitle": "From the owner",
+  "listedByYouTitle": "Listed by you",
+  "ownerTitle": "Owner",
+  "howItWorksTitle": "How it works",
+  "factCondition": "Condition",
+  "factDistance": "Distance",
+  "distanceAway": "{distance} away",
+  "@distanceAway": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "factArea": "Area",
+  "factListed": "Listed",
+  "factIsbn": "ISBN",
+  "factGenres": "Genres",
+  "ownerUnavailable": "Owner details are unavailable right now.",
+  "requestsTitle": "Requests",
+  "requestsRefreshing": "Refreshing…",
+  "requestsWaiting": "{count, plural, =1{1 reader is waiting for your answer} other{{count} readers are waiting for your answer}}",
+  "@requestsWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "requestsLoadErrorTitle": "Couldn't load requests",
+  "requestsEmptyTitle": "No requests yet",
+  "requestsEmptyMessage": "Readers nearby can find this book in Discover.",
+  "requestsNoneOpen": "No open requests right now. Past requests are kept in My Library.",
+  "requestedTime": "Requested {time}",
+  "@requestedTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "acceptedTime": "Accepted {time}",
+  "@acceptedTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "decline": "Decline",
+  "accept": "Accept",
+  "confirmHandover": "Confirm handover",
+  "handoverConfirmedBanner": "You confirmed the handover. Waiting for the reader to confirm too.",
+  "openChat": "Open chat",
+  "offersInExchange": "Offers in exchange",
+  "offeredLoading": "Loading the offered book…",
+  "offeredUnavailable": "This book is no longer available",
+  "acceptDialogTitle": "Accept this request?",
+  "acceptDialogMessageDonate": "A chat will open so the two of you can arrange the handover.",
+  "acceptDialogMessageExchange": "A chat will open so the two of you can arrange the swap.",
+  "acceptDialogConfirm": "Accept request",
+  "acceptProgress": "Accepting request…",
+  "acceptSuccess": "Request accepted. A chat has been opened for coordination.",
+  "declineDialogTitle": "Decline this request?",
+  "declineDialogMessage": "The reader will be notified and your book stays available for others.",
+  "declineDialogConfirm": "Decline request",
+  "declineProgress": "Declining request…",
+  "declineSuccess": "Request declined.",
+  "handoverDialogTitle": "Confirm the handover?",
+  "handoverDialogMessage": "Only confirm once the book has changed hands. It is marked complete when both of you confirm.",
+  "handoverDialogConfirm": "Yes, confirm",
+  "requestUpdateFailed": "Failed to update request: {error}",
+  "@requestUpdateFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "signInToConfirm": "Please sign in to confirm the exchange.",
+  "exchangeConfirmRecorded": "Exchange confirmation recorded.",
+  "exchangeConfirmFailed": "Failed to confirm exchange: {error}",
+  "@exchangeConfirmFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "exchangeConfirmProgress": "Confirming exchange…",
+  "seekerBarAccepted": "The owner accepted your request. Arrange the handover in chat.",
+  "seekerBarRequestSent": "Request sent {time}. Waiting for the owner to answer.",
+  "@seekerBarRequestSent": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "messageOwner": "Message owner",
+  "seekerBarCompleted": "This book has already found a new reader.",
+  "seekerBarBusy": "Another reader is arranging this book right now, so it can't be requested.",
+  "notAvailable": "Not available",
+  "requestThisBook": "Request this book",
+  "offerSwap": "Offer a swap",
+  "ownerBarWaitingReader": "You confirmed the handover. Waiting for the reader to confirm.",
+  "ownerBarAccepted": "Request accepted. Confirm once the book has changed hands.",
+  "ownerBarReviewRequests": "{count, plural, =1{Review 1 request} other{Review {count} requests}}",
+  "@ownerBarReviewRequests": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "ownerBarLive": "Your listing is live. We'll show requests here.",
+  "editListing": "Edit listing",
+  "ownerBarCompleted": "This book has found a new reader. Thank you for sharing it.",
+  "ownerBarInProgress": "This book is {status}. Manage progress in the requests above.",
+  "@ownerBarInProgress": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "shareText": "📚 {title} by {author}\nMode: {mode}\nCondition: {condition}\n\nFind it on Boichokro!",
+  "@shareText": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "author": {
+        "type": "String"
+      },
+      "mode": {
+        "type": "String"
+      },
+      "condition": {
+        "type": "String"
+      }
+    }
+  },
+  "manageListingTitle": "Manage listing",
+  "actionBlockedSubtitle": "Not possible while an exchange is in progress",
+  "deleteListing": "Delete listing",
+  "saveToWishlist": "Save to wishlist",
+  "reportBook": "Report this book",
+  "reportBookSubtitle": "Tell us if something looks wrong",
+  "blockOwner": "Block owner",
+  "blockOwnerSubtitle": "Hide this person's books",
+  "deleteDialogTitle": "Delete this listing?",
+  "deleteDialogMessage": "\"{title}\" will be removed from Boichokro. This can't be undone.",
+  "@deleteDialogMessage": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "signInToReport": "Please sign in to report a book.",
+  "reportDialogTitle": "Report this book?",
+  "reportDialogMessage": "Our team will review this listing. The owner won't know who reported it.",
+  "reportDialogConfirm": "Send report",
+  "reportSuccess": "Book reported. Thank you!",
+  "reportFailed": "Failed to report: {error}",
+  "@reportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "signInToBlock": "Please sign in to block someone.",
+  "blockDialogTitle": "Block this owner?",
+  "blockDialogMessage": "You will stop seeing their books and you'll leave this page.",
+  "blockSuccess": "User blocked.",
+  "blockFailed": "Failed to block: {error}",
+  "@blockFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "signInToSave": "Please sign in to save books.",
+  "wishlistSaved": "Saved to your wishlist.",
+  "wishlistFailed": "Failed to save: {error}",
+  "@wishlistFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "signInToRequest": "Please sign in to request books",
+  "cannotRequestOwn": "You cannot request your own book",
+  "alreadyRequested": "You have already requested this book.",
+  "requestSheetTitle": "Request this book",
+  "requestSheetSubtitle": "The owner will be asked to approve your request.",
+  "sendRequest": "Send request",
+  "giftBannerTitle": "This book is a gift",
+  "giftBannerMessage": "You don't need to give anything in return. If the owner accepts, a chat opens to arrange the handover.",
+  "swapRequestProgress": "Sending swap request…",
+  "swapRequestSuccess": "Swap request sent. You offered \"{offered}\" for \"{requested}\".",
+  "@swapRequestSuccess": {
+    "placeholders": {
+      "offered": {
+        "type": "String"
+      },
+      "requested": {
+        "type": "String"
+      }
+    }
+  },
+  "requestProgress": "Sending request…",
+  "requestSuccess": "Request sent for \"{title}\".",
+  "@requestSuccess": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "requestFailed": "Failed to send request: {error}",
+  "@requestFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "signInToMessage": "Please sign in to message the owner",
+  "ownBook": "This is your own book",
+  "chatCreateFailed": "Failed to create chat: {error}",
+  "@chatCreateFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "chatOpening": "Opening chat…",
+  "howDonateAskTitle": "Ask for the book",
+  "howDonateAskBody": "Send a request. This book is free, nothing to give in return.",
+  "howOwnerAcceptsTitle": "The owner accepts",
+  "howOwnerAcceptsBody": "A chat opens so you can agree on a time and a safe public place.",
+  "howDonateCollectTitle": "Collect and confirm",
+  "howDonateCollectBody": "Pick up the book, then both of you confirm the handover.",
+  "howSwapOfferTitle": "Offer one of your books",
+  "howSwapOfferBody": "Choose a book from your library to give in return.",
+  "howSwapTradeTitle": "Swap and confirm",
+  "howSwapTradeBody": "Trade books in person, then both of you confirm the exchange.",
+  "offerEmptyTitle": "No books to offer yet",
+  "offerEmptyMessage": "Add a book to your library first, then come back to offer it for this one.",
+  "offerAddBook": "Add a book",
+  "offerAskingFor": "You are asking for",
+  "offerYourBooks": "Your available books",
+  "offerPickPrompt": "Pick a book to offer",
+  "offerSendSwap": "Send swap request",
+  "offerLoadErrorTitle": "Couldn't load your books",
+  "offerLoading": "Loading your books…",
+  "offerSheetTitle": "Offer a book in return",
+  "offerSheetSubtitle": "The owner sees your offer and decides whether to swap."
+}

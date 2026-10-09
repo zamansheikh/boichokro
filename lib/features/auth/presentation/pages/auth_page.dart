@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/design/design.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../l10n/account/gen/account_l10n.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -27,7 +28,7 @@ class AuthPage extends StatelessWidget {
               if (state is AuthAuthenticated) {
                 showAppSnack(
                   context,
-                  'Welcome ${state.user.name}!',
+                  AccountL10n.of(context).authWelcome(state.user.name),
                   tone: AppTone.success,
                 );
                 context.go('/home');
@@ -88,7 +89,9 @@ class _SignInView extends StatelessWidget {
                                   AppBanner(
                                     tone: AppTone.danger,
                                     icon: LucideIcons.circleAlert,
-                                    title: 'We couldn\'t sign you in',
+                                    title: AccountL10n.of(
+                                      context,
+                                    ).authErrorTitle,
                                     message: errorMessage!,
                                   ),
                                   const SizedBox(height: AppSpacing.lg),
@@ -122,6 +125,7 @@ class _BrandHeader extends StatelessWidget {
     final palette = context.palette;
     final onHero = palette.onHero;
     final compact = MediaQuery.sizeOf(context).height < 700;
+    final l = AccountL10n.of(context);
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -139,23 +143,44 @@ class _BrandHeader extends StatelessWidget {
         child: Padding(
           padding: EdgeInsets.fromLTRB(
             AppSpacing.xxl,
-            compact ? AppSpacing.xxl : AppSpacing.xxxl + AppSpacing.lg,
+            // The language switch sits in what used to be empty top padding.
+            compact ? AppSpacing.sm : AppSpacing.md,
             AppSpacing.xxl,
             compact ? AppSpacing.xxl : AppSpacing.xxxl + AppSpacing.sm,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: LanguageSwitch(onDark: true),
+              ),
+              SizedBox(height: compact ? AppSpacing.md : AppSpacing.lg),
               Row(
                 children: [
-                  ChokroMark(size: compact ? 56 : 72, onDark: true),
+                  Container(
+                    width: compact ? 60 : 76,
+                    height: compact ? 60 : 76,
+                    decoration: BoxDecoration(
+                      color: context.colors.surface,
+                      shape: BoxShape.circle,
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Transform.scale(
+                      scale: 1.5,
+                      child: Image.asset(
+                        'assets/icon/logo_splash.png',
+                        semanticLabel: context.core.appName,
+                      ),
+                    ),
+                  ),
                   const SizedBox(width: AppSpacing.lg),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Boichokro',
+                          context.core.appName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: context.text.headlineSmall?.copyWith(
@@ -163,7 +188,9 @@ class _BrandHeader extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'বইচক্র',
+                          l.brandAltName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: context.text.titleMedium?.copyWith(
                             color: onHero.withValues(alpha: 0.75),
                             fontWeight: FontWeight.w500,
@@ -176,7 +203,7 @@ class _BrandHeader extends StatelessWidget {
               ),
               SizedBox(height: compact ? AppSpacing.xxl : AppSpacing.xxxl),
               Text(
-                'Pass a book on.\nPick one up.',
+                l.authHeadline,
                 style:
                     (compact
                             ? context.text.headlineLarge
@@ -185,7 +212,7 @@ class _BrandHeader extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.md),
               Text(
-                'Exchange and donate books with readers in your neighbourhood.',
+                l.authSubhead,
                 style: context.text.bodyLarge?.copyWith(
                   color: onHero.withValues(alpha: 0.78),
                 ),
@@ -204,27 +231,29 @@ class _TrustPoints extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    final l = AccountL10n.of(context);
+
+    return Column(
       children: [
         _TrustPoint(
           icon: LucideIcons.gift,
           tone: AppTone.donate,
-          title: 'Always free',
-          message: 'No fees and no selling, only swaps and gifts.',
+          title: l.authTrustFreeTitle,
+          message: l.authTrustFreeBody,
         ),
-        SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.lg),
         _TrustPoint(
           icon: LucideIcons.mapPin,
           tone: AppTone.exchange,
-          title: 'Close to you',
-          message: 'See books from readers in your own area.',
+          title: l.authTrustNearbyTitle,
+          message: l.authTrustNearbyBody,
         ),
-        SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.lg),
         _TrustPoint(
           icon: LucideIcons.badgeCheck,
           tone: AppTone.primary,
-          title: 'Verified readers',
-          message: 'Ratings and badges show who you can rely on.',
+          title: l.authTrustVerifiedTitle,
+          message: l.authTrustVerifiedBody,
         ),
       ],
     );
@@ -321,7 +350,9 @@ class _GoogleButton extends StatelessWidget {
           const SizedBox(width: AppSpacing.md),
           Flexible(
             child: Text(
-              isBusy ? 'Signing you in…' : 'Continue with Google',
+              isBusy
+                  ? AccountL10n.of(context).authSigningIn
+                  : AccountL10n.of(context).authContinueWithGoogle,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -349,13 +380,11 @@ class _LegalNote extends StatelessWidget {
       ),
     );
 
+    final l = AccountL10n.of(context);
+
     return Column(
       children: [
-        Text(
-          'By continuing, you agree to our',
-          textAlign: TextAlign.center,
-          style: style,
-        ),
+        Text(l.authLegalPrefix, textAlign: TextAlign.center, style: style),
         Wrap(
           alignment: WrapAlignment.center,
           crossAxisAlignment: WrapCrossAlignment.center,
@@ -363,13 +392,13 @@ class _LegalNote extends StatelessWidget {
             TextButton(
               style: linkStyle,
               onPressed: () => context.push('/terms-conditions'),
-              child: const Text('Terms of Service'),
+              child: Text(l.authLegalTerms),
             ),
-            Text('and', style: style),
+            Text(l.authLegalAnd, style: style),
             TextButton(
               style: linkStyle,
               onPressed: () => context.push('/privacy-policy'),
-              child: const Text('Privacy Policy'),
+              child: Text(l.authLegalPrivacy),
             ),
           ],
         ),

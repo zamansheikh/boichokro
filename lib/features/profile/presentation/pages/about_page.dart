@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/design/design.dart';
+import '../../../../l10n/account/gen/account_l10n.dart';
 import 'settings_page.dart'
     show ProfileMenuGroup, ProfileMenuRow, appVersionLabel;
 
@@ -12,9 +13,11 @@ class AboutPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final muted = context.colors.onSurfaceVariant;
+    final l = AccountL10n.of(context);
+    final appName = context.core.appName;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('About')),
+      appBar: AppBar(title: Text(l.aboutTitle)),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -44,26 +47,26 @@ class AboutPage extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   Text(
-                    'Boichokro',
+                    appName,
                     textAlign: TextAlign.center,
                     style: context.text.headlineLarge,
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    'বইচক্র',
+                    l.brandAltName,
                     textAlign: TextAlign.center,
                     style: context.text.titleMedium?.copyWith(color: muted),
                   ),
                   const SizedBox(height: AppSpacing.md),
                   Text(
-                    'Books that keep moving',
+                    context.core.appTagline,
                     textAlign: TextAlign.center,
                     style: context.text.bodyLarge?.copyWith(color: muted),
                   ),
                   const SizedBox(height: AppSpacing.lg),
-                  const Center(
+                  Center(
                     child: StatusPill(
-                      label: 'Version $appVersionLabel',
+                      label: l.aboutVersion(appVersionLabel),
                       tone: AppTone.primary,
                     ),
                   ),
@@ -75,10 +78,10 @@ class AboutPage extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Eyebrow('Our mission'),
+                        Eyebrow(l.aboutMissionLabel),
                         const SizedBox(height: AppSpacing.md),
                         Text(
-                          'Boichokro is a community-driven platform that connects book lovers to exchange and donate books. We believe in making knowledge accessible to everyone and reducing waste by giving books a second life.',
+                          l.aboutMissionBody(appName),
                           style: context.text.titleMedium?.copyWith(
                             height: 1.6,
                             fontWeight: FontWeight.w500,
@@ -90,28 +93,25 @@ class AboutPage extends StatelessWidget {
                   const SizedBox(height: AppSpacing.xxl),
 
                   // Features
-                  const ProfileMenuGroup(
-                    label: 'What you can do',
+                  ProfileMenuGroup(
+                    label: l.aboutFeaturesLabel,
                     children: [
                       ProfileMenuRow(
                         icon: LucideIcons.mapPin,
-                        title: 'Discover nearby',
-                        subtitle:
-                            'Find books available for exchange or donation in your area',
+                        title: l.aboutFeatureDiscoverTitle,
+                        subtitle: l.aboutFeatureDiscoverBody,
                       ),
                       ProfileMenuRow(
                         icon: LucideIcons.repeat,
                         tone: AppTone.exchange,
-                        title: 'Exchange & donate',
-                        subtitle:
-                            'Share your books with others through exchange or donation',
+                        title: l.aboutFeatureExchangeTitle,
+                        subtitle: l.aboutFeatureExchangeBody,
                       ),
                       ProfileMenuRow(
                         icon: LucideIcons.messageCircle,
                         tone: AppTone.donate,
-                        title: 'Connect',
-                        subtitle:
-                            'Chat with book owners and build a reading community',
+                        title: l.aboutFeatureConnectTitle,
+                        subtitle: l.aboutFeatureConnectBody,
                       ),
                     ],
                   ),
@@ -119,11 +119,11 @@ class AboutPage extends StatelessWidget {
 
                   // Contact
                   ProfileMenuGroup(
-                    label: 'Get in touch',
+                    label: l.aboutContactLabel,
                     children: [
                       ProfileMenuRow(
                         icon: LucideIcons.mail,
-                        title: 'Email us',
+                        title: l.aboutEmailUs,
                         subtitle: 'support@boichokro.com',
                         trailing: Icon(
                           LucideIcons.externalLink,
@@ -135,7 +135,7 @@ class AboutPage extends StatelessWidget {
                       ),
                       ProfileMenuRow(
                         icon: LucideIcons.globe,
-                        title: 'Visit our website',
+                        title: l.aboutVisitWebsite,
                         subtitle: 'www.boichokro.com',
                         trailing: Icon(
                           LucideIcons.externalLink,
@@ -151,13 +151,13 @@ class AboutPage extends StatelessWidget {
 
                   // Footer
                   Text(
-                    'Made with ❤️ for book lovers',
+                    l.aboutMadeWith,
                     textAlign: TextAlign.center,
                     style: context.text.bodySmall?.copyWith(color: muted),
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    '© 2024 Boichokro. All rights reserved.',
+                    l.aboutCopyright(appName),
                     textAlign: TextAlign.center,
                     style: context.text.bodySmall?.copyWith(color: muted),
                   ),
@@ -175,7 +175,7 @@ class AboutPage extends StatelessWidget {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     } else if (context.mounted) {
-      showAppSnack(context, 'No email app found. Write to us at $email');
+      showAppSnack(context, AccountL10n.of(context).aboutNoEmailApp(email));
     }
   }
 
@@ -184,7 +184,7 @@ class AboutPage extends StatelessWidget {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else if (context.mounted) {
-      showAppSnack(context, 'Could not open $url');
+      showAppSnack(context, AccountL10n.of(context).aboutCouldNotOpen(url));
     }
   }
 }

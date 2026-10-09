@@ -1,0 +1,120 @@
+[
+ {
+  "slug": "discover",
+  "theme": "paper",
+  "bn": {
+   "eyebrow": "কাছের বই",
+   "title": "পড়া শেষ? বই ঘুরুক<br>হাতে হাতে",
+   "body": "আপনার আশপাশের পাঠকদের বই খুঁজুন — বিনামূল্যে নিন বা বিনিময় করুন।"
+  },
+  "en": {
+   "eyebrow": "Books near you",
+   "title": "Find your next read,<br>for free",
+   "body": "Browse books shared by readers around you. Take one as a gift or swap one of yours."
+  }
+ },
+ {
+  "slug": "book",
+  "theme": "green",
+  "bn": {
+   "eyebrow": "বইয়ের বিস্তারিত",
+   "title": "নেওয়ার আগে<br>সব জেনে নিন",
+   "body": "বইয়ের অবস্থা, দূরত্ব আর মালিকের রেটিং — সব এক জায়গায়।"
+  },
+  "en": {
+   "eyebrow": "Every detail",
+   "title": "Know the book<br>before you ask",
+   "body": "Condition, distance and the owner's rating, all on one page."
+  }
+ },
+ {
+  "slug": "swap",
+  "theme": "paper",
+  "bn": {
+   "eyebrow": "বিনিময়",
+   "title": "নিজের একটি বই দিন,<br>পছন্দেরটি নিন",
+   "body": "নিজের শেলফ থেকে একটি বই প্রস্তাব করুন। রাজি হলেই হাতবদল।"
+  },
+  "en": {
+   "eyebrow": "Swap",
+   "title": "Offer one of yours,<br>get one you want",
+   "body": "Pick a book from your shelf to offer. If the owner agrees, you swap."
+  },
+  "bar": "#A9A6A0",
+  "barFg": "#1D2A26"
+ },
+ {
+  "slug": "map",
+  "theme": "green",
+  "bn": {
+   "eyebrow": "ম্যাপে দেখুন",
+   "title": "কোন বই<br>কত কাছে",
+   "body": "ম্যাপে দেখে নিন আপনার এলাকায় কোন কোন বই আছে।"
+  },
+  "en": {
+   "eyebrow": "On the map",
+   "title": "See which books<br>are close by",
+   "body": "Open the map to spot the books waiting in your neighbourhood."
+  }
+ },
+ {
+  "slug": "requests",
+  "theme": "paper",
+  "bn": {
+   "eyebrow": "অনুরোধ",
+   "title": "প্রতিটি ধাপ<br>চোখের সামনে",
+   "body": "অনুরোধ থেকে হাতবদল পর্যন্ত — এরপর কী করতে হবে, সবসময় জানা।"
+  },
+  "en": {
+   "eyebrow": "Requests",
+   "title": "Follow every step<br>of the hand-off",
+   "body": "From request to hand-off, you always know what happens next."
+  },
+  "barH": 54
+ },
+ {
+  "slug": "chat",
+  "theme": "green",
+  "bn": {
+   "eyebrow": "চ্যাট",
+   "title": "কথা বলে<br>ঠিক করে নিন",
+   "body": "কখন, কোথায় দেখা হবে — অ্যাপের ভেতরেই চ্যাটে ঠিক করুন।"
+  },
+  "en": {
+   "eyebrow": "Chat",
+   "title": "Agree on a time<br>and a place",
+   "body": "Message the other reader in the app to arrange the hand-off."
+  }
+ },
+ {
+  "slug": "profile",
+  "theme": "paper",
+  "bar": "#1F5C4A",
+  "barFg": "#FFFDF8",
+  "bn": {
+   "eyebrow": "আস্থা",
+   "title": "কার সঙ্গে বিনিময়,<br>আগে দেখে নিন",
+   "body": "রেটিং, রিভিউ আর শেলফ দেখে পাঠককে চিনুন।"
+  },
+  "en": {
+   "eyebrow": "Trust",
+   "title": "See who you are<br>swapping with",
+   "body": "Ratings, reviews and their shelf help you know each reader."
+  }
+ },
+ {
+  "slug": "shelf",
+  "theme": "green",
+  "bn": {
+   "eyebrow": "আপনার শেলফ",
+   "title": "পড়া বইগুলো<br>অন্যের হাতে দিন",
+   "body": "কভারের ছবি তুলুন, দান না বিনিময় বেছে নিন — হয়ে গেল।"
+  },
+  "en": {
+   "eyebrow": "Your shelf",
+   "title": "Share the books<br>you have finished",
+   "body": "Snap the cover, choose give or swap, and you are done."
+  },
+  "barH": 54
+ }
+]

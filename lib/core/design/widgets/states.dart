@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../l10n/l10n.dart';
 import '../tokens.dart';
 
 /// Centered illustration + message used for empty lists and no-result views.
@@ -99,11 +100,12 @@ class AppErrorState extends StatelessWidget {
   const AppErrorState({
     super.key,
     required this.message,
-    this.title = 'Something went wrong',
+    this.title,
     this.onRetry,
   });
 
-  final String title;
+  /// Defaults to a generic "Something went wrong".
+  final String? title;
   final String message;
   final VoidCallback? onRetry;
 
@@ -112,9 +114,9 @@ class AppErrorState extends StatelessWidget {
     return AppEmptyState(
       icon: LucideIcons.cloudOff,
       tone: AppTone.danger,
-      title: title,
+      title: title ?? context.core.errorGenericTitle,
       message: message,
-      actionLabel: onRetry != null ? 'Try again' : null,
+      actionLabel: onRetry != null ? context.core.commonRetry : null,
       actionIcon: LucideIcons.refreshCcw,
       onAction: onRetry,
     );

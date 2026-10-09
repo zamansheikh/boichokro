@@ -1,0 +1,423 @@
+{
+  "@@locale": "en",
+  "splashMotto": "Give  ·  Swap  ·  Read",
+  "brandAltName": "বইচক্র",
+  "verifiedReader": "Verified reader",
+  "readerFallback": "Reader",
+  "onboardingSkip": "Skip",
+  "onboardingNext": "Next",
+  "onboardingGetStarted": "Get started",
+  "onboardingPageIndicator": "Page {current} of {total}",
+  "@onboardingPageIndicator": {
+    "placeholders": {
+      "current": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "total": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "onboardingSlide1Title": "Discover books nearby",
+  "onboardingSlide1Body": "Browse the shelves of readers around you and find your next read a short walk away.",
+  "onboardingSlide2Title": "Exchange or donate",
+  "onboardingSlide2Body": "Swap a book you have finished for one you want, or simply give it away for free.",
+  "onboardingSlide3Title": "Connect with readers",
+  "onboardingSlide3Body": "Chat with the owner, agree on a place to meet, and pass the book on.",
+  "onboardingChipDistanceAway": "{distance} away",
+  "@onboardingChipDistanceAway": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingChipBooksNearYou": "{count, plural, =1{1 book near you} other{{count} books near you}}",
+  "@onboardingChipBooksNearYou": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "onboardingSampleBookFeluda": "Feluda Samagra",
+  "onboardingSampleBookSapiens": "Sapiens",
+  "onboardingSampleSeekerName": "Nusrat Jahan",
+  "onboardingSampleOwnerName": "Arif Rahman",
+  "onboardingSampleQuestion": "Is the book still available?",
+  "onboardingSampleReply": "Yes! Meet at the library gate?",
+  "authWelcome": "Welcome {name}!",
+  "@authWelcome": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "authErrorTitle": "We couldn't sign you in",
+  "authHeadline": "Pass a book on.\nPick one up.",
+  "authSubhead": "Exchange and donate books with readers in your neighbourhood.",
+  "authTrustFreeTitle": "Always free",
+  "authTrustFreeBody": "No fees and no selling, only swaps and gifts.",
+  "authTrustNearbyTitle": "Close to you",
+  "authTrustNearbyBody": "See books from readers in your own area.",
+  "authTrustVerifiedTitle": "Verified readers",
+  "authTrustVerifiedBody": "Ratings and badges show who you can rely on.",
+  "authSigningIn": "Signing you in…",
+  "authContinueWithGoogle": "Continue with Google",
+  "authLegalPrefix": "By continuing, you agree to our",
+  "authLegalTerms": "Terms of Service",
+  "authLegalAnd": "and",
+  "authLegalPrivacy": "Privacy Policy",
+  "profileTitle": "Profile",
+  "profileLoadErrorTitle": "We couldn't load your profile",
+  "profileSignedOutTitle": "Not signed in",
+  "profileSignedOutBody": "Sign in to see your profile and manage your books.",
+  "profileSignIn": "Sign in",
+  "profileHistoryTitle": "History & reviews",
+  "profileHistorySubtitle": "Past hand-offs and the ratings you got",
+  "profileSettingsSubtitle": "Account, privacy, terms and about",
+  "profileMemberSince": "Member since {date}",
+  "@profileMemberSince": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "profileToExchange": "{count} to exchange",
+  "@profileToExchange": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "profileToDonate": "{count} to donate",
+  "@profileToDonate": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "profileEdit": "Edit profile",
+  "statRating": "Rating",
+  "statSwaps": "{count, plural, =1{Swap} other{Swaps}}",
+  "@statSwaps": {
+    "description": "Label under a number that is shown separately, so the count only picks the plural form.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statBooks": "{count, plural, =1{Book} other{Books}}",
+  "@statBooks": {
+    "description": "Label under a number that is shown separately, so the count only picks the plural form.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statHandoffs": "{count, plural, =1{Hand-off} other{Hand-offs}}",
+  "@statHandoffs": {
+    "description": "Label under a number that is shown separately, so the count only picks the plural form.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "journeyTitle": "Join the circle",
+  "journeyProgress": "{done} of {total} steps done",
+  "@journeyProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "total": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "journeyStep1Title": "Share your first book",
+  "journeyStep1Hint": "Put a book you have finished into the circle",
+  "journeyStep2Title": "Complete a hand-off",
+  "journeyStep2Hint": "Give a book away or swap one with a reader",
+  "journeyStep3Title": "Earn your first rating",
+  "journeyStep3Hint": "Readers rate each other after a hand-off",
+  "journeyShareBook": "Share a book",
+  "shelfYours": "Your shelf",
+  "shelfEmptySubtitle": "Books you share show up here",
+  "shelfCount": "{count, plural, =1{1 book in the circle} other{{count} books in the circle}}",
+  "@shelfCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "shelfOpenLibrary": "Open library",
+  "shelfEmptyTitle": "Your shelf is empty",
+  "shelfEmptyBody": "Tap to add a book you have finished reading.",
+  "inviteTitle": "Bring a friend into the circle",
+  "inviteBody": "More readers nearby means more books to choose from.",
+  "inviteButton": "Invite",
+  "inviteShareText": "I am sharing and finding books for free on {appName}. Join me: {url}",
+  "@inviteShareText": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      },
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "userThisReader": "this reader",
+  "userMore": "More",
+  "userReport": "Report",
+  "userReportSubtitle": "Tell us about a problem with this reader",
+  "userBlock": "Block",
+  "userBlockSubtitle": "Stop them contacting you",
+  "userReportTitle": "Report {name}",
+  "@userReportTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "userReportQuestion": "What is the problem?",
+  "userReportReasonSpam": "Spam",
+  "userReportReasonHarassment": "Harassment",
+  "userReportReasonInappropriate": "Inappropriate Content",
+  "userReportReasonOther": "Other",
+  "userBlockConfirmTitle": "Block {name}?",
+  "@userBlockConfirmTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "userBlockConfirmBody": "You will no longer receive messages from them, and they will not be able to interact with your books.",
+  "userBlockedSnack": "User blocked successfully",
+  "userReportedSnack": "User reported successfully",
+  "userNotFoundTitle": "Reader not found",
+  "userNotFoundBody": "This profile could not be loaded right now.",
+  "userOwnPreviewBanner": "This is how other readers see your profile.",
+  "userReaderSince": "Reader since {date}",
+  "@userReaderSince": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "shelfTheirs": "On their shelf",
+  "shelfOfName": "On {name}'s shelf",
+  "@shelfOfName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "shelfNothingAvailable": "Nothing available right now",
+  "shelfAvailableCount": "{count, plural, =1{1 book you can ask for} other{{count} books you can ask for}}",
+  "@shelfAvailableCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "shelfNoBooksTitle": "No books on the shelf",
+  "shelfNoBooksBody": "This reader has not shared a book yet.",
+  "trustVerifiedBody": "This reader carries the verified badge.",
+  "trustNotVerifiedTitle": "Not verified yet",
+  "trustNotVerifiedBody": "Meet in a busy public place, as with any new reader.",
+  "trustHandoffsTitle": "{count, plural, =1{1 completed hand-off} other{{count} completed hand-offs}}",
+  "@trustHandoffsTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "trustHandoffsBody": "Books given, received or swapped through the app.",
+  "trustNewTitle": "New to the circle",
+  "trustNewBody": "No completed hand-offs yet. Everyone starts here.",
+  "reviewsTitle": "What readers say",
+  "reviewsCount": "{count, plural, =1{1 review after a hand-off} other{{count} reviews after hand-offs}}",
+  "@reviewsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "reviewsEmptyTitle": "No reviews yet",
+  "reviewsEmptyWithHandoffs": "Readers have not left a note about their hand-offs.",
+  "reviewsEmptyNoHandoffs": "Reviews appear after a completed hand-off.",
+  "reviewReceivedBook": "{name} · received a book",
+  "@reviewReceivedBook": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reviewGaveBook": "{name} · gave a book",
+  "@reviewGaveBook": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "editCameraError": "We couldn't open the camera. Check the app's permissions.",
+  "editGalleryError": "We couldn't open your photos. Check the app's permissions.",
+  "editPhotoSheetTitle": "Profile photo",
+  "editPhotoSheetSubtitle": "Other readers see this when you exchange books.",
+  "editTakePhoto": "Take a photo",
+  "editChooseGallery": "Choose from gallery",
+  "editKeepCurrentPhoto": "Keep my current photo",
+  "editKeepCurrentPhotoSubtitle": "Discard the photo you just picked",
+  "editStillLoading": "Your profile is still loading. Try again in a moment.",
+  "editDiscardTitle": "Discard changes?",
+  "editDiscardBody": "You have changes that are not saved yet. If you leave now they will be lost.",
+  "editKeepEditing": "Keep editing",
+  "editDiscard": "Discard",
+  "editProfileUpdated": "Profile updated",
+  "editPhotoUpdated": "Photo updated",
+  "editUploadingPhoto": "Uploading photo…",
+  "editChangePhoto": "Change photo",
+  "editChangePhotoSemantics": "Change profile photo",
+  "editNameLabel": "Display name",
+  "editNameHint": "Enter your name",
+  "editNameHelper": "This is how other readers will see you.",
+  "editNameRequired": "Please enter your name",
+  "editNameTooShort": "Name must be at least 2 characters",
+  "editNameTooLong": "Name must be less than 50 characters",
+  "editPhotoNotice": "Your profile picture will be visible to other users when you share or exchange books.",
+  "editSaving": "Saving…",
+  "editSaveChanges": "Save changes",
+  "settingsTitle": "Settings",
+  "settingsGroupPreferences": "Preferences",
+  "settingsGroupAbout": "About",
+  "settingsGroupAccount": "Account",
+  "settingsPrivacyTitle": "Privacy policy",
+  "settingsPrivacySubtitle": "What we collect and how we use it",
+  "settingsTermsTitle": "Terms & conditions",
+  "settingsTermsSubtitle": "The rules for using {appName}",
+  "@settingsTermsSubtitle": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsAboutTitle": "About {appName}",
+  "@settingsAboutTitle": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsAboutSubtitle": "What it is for and how to reach us",
+  "settingsAppVersion": "App version",
+  "settingsSignOut": "Sign out",
+  "settingsSignOutSubtitle": "Your books and chats stay safe",
+  "settingsDeleteAccount": "Delete account",
+  "settingsDeleteAccountSubtitle": "Permanently delete your account and data",
+  "settingsSignOutTitle": "Sign out?",
+  "settingsSignOutBody": "You will need to sign in again to see your books and messages.",
+  "settingsSignedOutSnack": "You have been signed out",
+  "settingsDeleteAccountTitle": "Delete your account?",
+  "settingsDeleteAccountBody": "This action cannot be undone. All your data including books, exchanges, and messages will be permanently deleted.",
+  "settingsDeletingAccount": "Deleting your account…",
+  "settingsAccountDeleted": "Your account has been deleted",
+  "settingsDeleteNeedsLogin": "For your security, sign out, sign in again and then delete your account.",
+  "settingsDeleteFailed": "We could not delete your account. Please try again.",
+  "aboutTitle": "About",
+  "aboutVersion": "Version {version}",
+  "@aboutVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutMissionLabel": "Our mission",
+  "aboutMissionBody": "{appName} is a community-driven platform that connects book lovers to exchange and donate books. We believe in making knowledge accessible to everyone and reducing waste by giving books a second life.",
+  "@aboutMissionBody": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutFeaturesLabel": "What you can do",
+  "aboutFeatureDiscoverTitle": "Discover nearby",
+  "aboutFeatureDiscoverBody": "Find books available for exchange or donation in your area",
+  "aboutFeatureExchangeTitle": "Exchange & donate",
+  "aboutFeatureExchangeBody": "Share your books with others through exchange or donation",
+  "aboutFeatureConnectTitle": "Connect",
+  "aboutFeatureConnectBody": "Chat with book owners and build a reading community",
+  "aboutContactLabel": "Get in touch",
+  "aboutEmailUs": "Email us",
+  "aboutVisitWebsite": "Visit our website",
+  "aboutMadeWith": "Made with ❤️ for book lovers",
+  "aboutCopyright": "© 2024 {appName}. All rights reserved.",
+  "@aboutCopyright": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutNoEmailApp": "No email app found. Write to us at {email}",
+  "@aboutNoEmailApp": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutCouldNotOpen": "Could not open {url}",
+  "@aboutCouldNotOpen": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "legalLabel": "Legal",
+  "legalPrivacyTitle": "Privacy Policy",
+  "legalTermsTitle": "Terms & Conditions",
+  "legalLastUpdated": "Last updated: {date}",
+  "@legalLastUpdated": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "legalEnglishOnlyNotice": "This document is currently available in English only."
+}

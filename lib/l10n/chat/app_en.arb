@@ -1,0 +1,146 @@
+{
+  "@@locale": "en",
+  "chatsTitle": "Chats",
+  "chatsSubtitle": "Arrange hand-overs with other readers",
+  "unreadSummary": "{count, plural, =1{1 conversation has new messages} other{{count} conversations have new messages}}",
+  "@unreadSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "signInTitle": "Sign in to view chats",
+  "signInMessage": "Your conversations with other readers will appear here once you are signed in.",
+  "emptyTitle": "No conversations yet",
+  "emptyMessage": "A chat opens when you request a book, or when someone requests one of yours. Find a book you like to get started.",
+  "emptyAction": "Discover books",
+  "previewEmpty": "Say hello to get things started",
+  "previewLocation": "Shared a location",
+  "readerFallbackName": "Reader",
+  "namePair": "{first} & {second}",
+  "@namePair": {
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "second": {
+        "type": "String"
+      }
+    }
+  },
+  "dayToday": "Today",
+  "dayYesterday": "Yesterday",
+  "dayFormat": "MMMM d",
+  "@dayFormat": {
+    "description": "DateFormat pattern for a day separator in the current year."
+  },
+  "dayFormatWithYear": "MMMM d, y",
+  "@dayFormatWithYear": {
+    "description": "DateFormat pattern for a day separator in an earlier year."
+  },
+  "unreadBadgeLabel": "{count} unread",
+  "@unreadBadgeLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "chatFallbackTitle": "Chat",
+  "moreOptions": "More options",
+  "menuViewBook": "View book details",
+  "menuReportUser": "Report user",
+  "menuBlockUser": "Block user",
+  "openChatFailed": "Could not open this chat",
+  "openingConversation": "Opening conversation",
+  "loadMessagesFailed": "Could not load messages",
+  "bookFallbackTitle": "Book in this chat",
+  "bookYours": "Your book · {name} asked about it",
+  "@bookYours": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "bookSharedBy": "Shared by {name}",
+  "@bookSharedBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "bookRequestedBy": "requested by {name}",
+  "@bookRequestedBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "emptyConversationTitle": "Start the conversation",
+  "emptyConversationMessage": "Say hello to {name} and agree on how to hand the book over. Tap a suggestion to use it.",
+  "@emptyConversationMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "starterAvailable": "Hi! Is the book still available?",
+  "starterAvailableBook": "Hi! Is \"{book}\" still available?",
+  "@starterAvailableBook": {
+    "placeholders": {
+      "book": {
+        "type": "String"
+      }
+    }
+  },
+  "starterMeet": "When and where would be good to meet?",
+  "starterThanks": "Thank you for sharing this book!",
+  "safetyTipTitle": "Meet safely",
+  "safetyTipMessage": "Hand books over in a busy public place during the day, and never send money or personal details in chat.",
+  "safetyTipAction": "Got it",
+  "composerHint": "Write a message",
+  "sendTooltip": "Send",
+  "shareLocationTitle": "Share your location",
+  "shareLocationSubtitle": "Sends a map pin of where you are right now.",
+  "shareLocationConfirm": "Share pin",
+  "shareCareTitle": "Share with care",
+  "shareCareMessage": "Only share your location when you are ready to meet, and pick a busy public place rather than your home.",
+  "locationServicesOff": "Turn on location services to share a pin.",
+  "locationPermissionNeeded": "Location permission is needed to share a pin.",
+  "locationFailed": "Could not get your location. Please try again.",
+  "mapsOpenFailed": "Could not open a maps app.",
+  "locationSharedByYou": "You shared a location",
+  "locationShared": "Shared location",
+  "locationOpenHint": "Tap to open in maps",
+  "reportTitle": "Report user",
+  "reportSubtitle": "Tell us what is wrong with {name}.",
+  "@reportSubtitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportSubmit": "Submit report",
+  "reasonSpam": "Spam",
+  "reasonHarassment": "Harassment",
+  "reasonInappropriate": "Inappropriate content",
+  "reasonOther": "Other",
+  "blockTitle": "Block {name}?",
+  "@blockTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "blockMessage": "You will no longer receive messages from them, and they will not be able to interact with your books.",
+  "blockAction": "Block"
+}

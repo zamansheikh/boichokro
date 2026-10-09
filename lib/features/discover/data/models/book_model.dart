@@ -1,3 +1,7 @@
+// The overrides exist only to attach @JsonKey converters to inherited fields,
+// which json_serializable cannot read from super parameters.
+// ignore_for_file: overridden_fields
+
 import 'package:json_annotation/json_annotation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/entities/book.dart';

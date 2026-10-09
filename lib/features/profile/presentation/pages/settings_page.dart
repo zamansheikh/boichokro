@@ -5,6 +5,7 @@ import '../../../../core/design/design.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/network/firebase_service.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../l10n/account/gen/account_l10n.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 
@@ -152,8 +153,11 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AccountL10n.of(context);
+    final appName = context.core.appName;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(l.settingsTitle)),
       body: SafeArea(
         top: false,
         child: ListView(
@@ -165,36 +169,41 @@ class SettingsPage extends StatelessWidget {
           ),
           children: [
             ProfileMenuGroup(
-              label: 'Legal',
+              label: l.settingsGroupPreferences,
+              children: const [_LanguageRow()],
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+            ProfileMenuGroup(
+              label: l.legalLabel,
               children: [
                 ProfileMenuRow(
                   icon: LucideIcons.shieldCheck,
-                  title: 'Privacy policy',
-                  subtitle: 'What we collect and how we use it',
+                  title: l.settingsPrivacyTitle,
+                  subtitle: l.settingsPrivacySubtitle,
                   onTap: () => context.push(RoutePaths.privacyPolicy),
                 ),
                 ProfileMenuRow(
                   icon: LucideIcons.fileText,
-                  title: 'Terms & conditions',
-                  subtitle: 'The rules for using Boichokro',
+                  title: l.settingsTermsTitle,
+                  subtitle: l.settingsTermsSubtitle(appName),
                   onTap: () => context.push(RoutePaths.termsConditions),
                 ),
               ],
             ),
             const SizedBox(height: AppSpacing.xxl),
             ProfileMenuGroup(
-              label: 'About',
+              label: l.settingsGroupAbout,
               children: [
                 ProfileMenuRow(
                   icon: LucideIcons.info,
-                  title: 'About Boichokro',
-                  subtitle: 'What it is for and how to reach us',
+                  title: l.settingsAboutTitle(appName),
+                  subtitle: l.settingsAboutSubtitle,
                   onTap: () => context.push(RoutePaths.about),
                 ),
                 ProfileMenuRow(
                   icon: LucideIcons.smartphone,
                   tone: AppTone.neutral,
-                  title: 'App version',
+                  title: l.settingsAppVersion,
                   trailing: Text(
                     appVersionLabel,
                     style: context.text.labelLarge?.copyWith(
@@ -206,20 +215,20 @@ class SettingsPage extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.xxl),
             ProfileMenuGroup(
-              label: 'Account',
+              label: l.settingsGroupAccount,
               children: [
                 ProfileMenuRow(
                   icon: LucideIcons.logOut,
                   tone: AppTone.neutral,
-                  title: 'Sign out',
-                  subtitle: 'Your books and chats stay safe',
+                  title: l.settingsSignOut,
+                  subtitle: l.settingsSignOutSubtitle,
                   onTap: () => _showSignOutDialog(context),
                 ),
                 ProfileMenuRow(
                   icon: LucideIcons.trash2,
                   tone: AppTone.danger,
-                  title: 'Delete account',
-                  subtitle: 'Permanently delete your account and data',
+                  title: l.settingsDeleteAccount,
+                  subtitle: l.settingsDeleteAccountSubtitle,
                   onTap: () => _showDeleteAccountDialog(context),
                 ),
               ],
@@ -231,18 +240,19 @@ class SettingsPage extends StatelessWidget {
   }
 
   void _showSignOutDialog(BuildContext context) {
+    final l = AccountL10n.of(context);
+    final cancelLabel = context.core.commonCancel;
+
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         icon: Icon(LucideIcons.logOut, color: context.colors.primary, size: 32),
-        title: const Text('Sign out?'),
-        content: const Text(
-          'You will need to sign in again to see your books and messages.',
-        ),
+        title: Text(l.settingsSignOutTitle),
+        content: Text(l.settingsSignOutBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
+            child: Text(cancelLabel),
           ),
           FilledButton(
             onPressed: () {
@@ -253,13 +263,13 @@ class SettingsPage extends StatelessWidget {
               authBloc.add(const SignOut());
 
               // Show confirmation and navigate
-              showAppSnack(context, 'You have been signed out');
+              showAppSnack(context, l.settingsSignedOutSnack);
 
               // Navigate to auth
               context.go(RoutePaths.auth);
             },
             style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
-            child: const Text('Sign out'),
+            child: Text(l.settingsSignOut),
           ),
         ],
       ),
@@ -268,19 +278,19 @@ class SettingsPage extends StatelessWidget {
 
   void _showDeleteAccountDialog(BuildContext context) {
     final danger = context.tone(AppTone.danger);
+    final l = AccountL10n.of(context);
+    final cancelLabel = context.core.commonCancel;
 
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         icon: Icon(LucideIcons.triangleAlert, color: danger.solid, size: 36),
-        title: const Text('Delete your account?'),
-        content: const Text(
-          'This action cannot be undone. All your data including books, exchanges, and messages will be permanently deleted.',
-        ),
+        title: Text(l.settingsDeleteAccountTitle),
+        content: Text(l.settingsDeleteAccountBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
+            child: Text(cancelLabel),
           ),
           FilledButton(
             onPressed: () async {
@@ -291,7 +301,7 @@ class SettingsPage extends StatelessWidget {
               backgroundColor: context.colors.error,
               foregroundColor: context.colors.onError,
             ),
-            child: const Text('Delete account'),
+            child: Text(l.settingsDeleteAccount),
           ),
         ],
       ),
@@ -304,31 +314,39 @@ class SettingsPage extends StatelessWidget {
 
     if (currentUser == null) return;
 
+    // Read before the awaits below; the messages are shown afterwards.
+    final l = AccountL10n.of(context);
+
     // Show loading
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const PopScope(
+      builder: (context) => PopScope(
         canPop: false,
         child: Center(
           child: AppCard(
-            padding: EdgeInsets.all(AppSpacing.xxl),
+            padding: const EdgeInsets.all(AppSpacing.xxl),
             child: SizedBox(
               width: 220,
               height: 96,
-              child: AppLoading(message: 'Deleting your account…'),
+              child: AppLoading(message: l.settingsDeletingAccount),
             ),
           ),
         ),
       ),
     );
 
+    final userDoc = getIt<FirebaseService>().firestore
+        .collection('users')
+        .doc(currentUser.uid);
+    Map<String, dynamic>? backup;
+
     try {
-      // Delete user data from Firestore
-      await getIt<FirebaseService>().firestore
-          .collection('users')
-          .doc(currentUser.uid)
-          .delete();
+      // The profile has to go first: once the auth account is deleted the
+      // user can no longer touch their own document. Keep a copy so it can be
+      // put back if the auth deletion is refused.
+      backup = (await userDoc.get()).data();
+      await userDoc.delete();
 
       // Sign out and delete auth account
       await currentUser.delete();
@@ -336,22 +354,57 @@ class SettingsPage extends StatelessWidget {
 
       if (context.mounted) {
         Navigator.of(context).pop(); // Close loading
-        showAppSnack(
-          context,
-          'Your account has been deleted',
-          tone: AppTone.success,
-        );
+        showAppSnack(context, l.settingsAccountDeleted, tone: AppTone.success);
         context.go(RoutePaths.auth);
       }
     } catch (e) {
+      // Firebase refuses to delete an account that signed in long ago; restore
+      // the profile so nothing is half-deleted.
+      final restore = backup;
+      if (restore != null) {
+        try {
+          await userDoc.set(restore);
+        } catch (_) {}
+      }
       if (context.mounted) {
         Navigator.of(context).pop(); // Close loading
+        final needsLogin = e.toString().contains('requires-recent-login');
         showAppSnack(
           context,
-          'Failed to delete account: $e',
+          needsLogin ? l.settingsDeleteNeedsLogin : l.settingsDeleteFailed,
           tone: AppTone.danger,
         );
       }
     }
+  }
+}
+
+/// Language choice: the usual icon, title and subtitle, with the switch
+/// beneath them so the text keeps its full width on narrow phones.
+class _LanguageRow extends StatelessWidget {
+  const _LanguageRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ProfileMenuRow(
+          icon: LucideIcons.languages,
+          title: context.core.languageTitle,
+          subtitle: context.core.languageSubtitle,
+        ),
+        const Padding(
+          // Lines the switch up with the row's text.
+          padding: EdgeInsets.only(
+            left: AppSpacing.lg + 36 + AppSpacing.lg,
+            right: AppSpacing.lg,
+            bottom: AppSpacing.lg,
+          ),
+          child: LanguageSwitch(),
+        ),
+      ],
+    );
   }
 }

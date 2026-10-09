@@ -11,7 +11,7 @@ import '../../../../core/design/design.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/network/firebase_service.dart';
 import '../../../../core/utils/constants.dart';
-import '../../../../core/utils/extensions.dart';
+import '../../../../l10n/book/gen/book_l10n.dart';
 import '../../../chats/presentation/bloc/chat_bloc.dart';
 import '../../../chats/presentation/bloc/chat_event.dart';
 import '../../../chats/presentation/bloc/chat_state.dart';
@@ -81,6 +81,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
   String? get _currentUserId => getIt<FirebaseService>().auth.currentUser?.uid;
 
+  BookL10n get _l => BookL10n.of(context);
+
   bool _isOwnerOf(Book book) {
     final currentUserId = _currentUserId;
     return currentUserId != null && currentUserId == book.ownerId;
@@ -103,9 +105,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
       book.location.latitude,
       book.location.longitude,
     );
-    final km = distanceMeters / 1000;
-    if (km < 1) return '${distanceMeters.round()} m away';
-    return '${km.toStringAsFixed(1)} km away';
+    return _l.distanceAway(context.distance(distanceMeters));
   }
 
   Future<void> _fetchLocation() async {
@@ -229,7 +229,11 @@ class _BookDetailPageState extends State<BookDetailPage> {
     } else if (state is BookAdded) {
       _onBookLoaded(state.book);
     } else if (state is BookDeleted) {
-      showAppSnack(context, 'Your listing was removed.', tone: AppTone.success);
+      showAppSnack(
+        context,
+        BookL10n.of(context).listingRemovedSnack,
+        tone: AppTone.success,
+      );
       if (context.canPop()) context.pop();
     } else if (state is BookError && _currentBook != null) {
       // The book is already on screen; keep it and report the failure.
@@ -333,7 +337,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
             return Scaffold(
               appBar: AppBar(
                 leading: IconButton(
-                  tooltip: 'Back',
+                  tooltip: context.core.commonBack,
                   icon: const Icon(LucideIcons.arrowLeft),
                   onPressed: () => context.pop(),
                 ),
@@ -341,12 +345,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     ? null
                     : [
                         IconButton(
-                          tooltip: 'Share this book',
+                          tooltip: _l.shareTooltip,
                           icon: const Icon(LucideIcons.share2),
                           onPressed: () => _shareBook(book),
                         ),
                         IconButton(
-                          tooltip: 'More options',
+                          tooltip: _l.moreOptions,
                           icon: const Icon(LucideIcons.ellipsisVertical),
                           onPressed: () => _showMoreOptions(book),
                         ),
@@ -369,7 +373,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
   Widget _buildPlaceholder(BuildContext context, BookState state) {
     if (state is BookError) {
       return AppErrorState(
-        title: 'We couldn\'t open this book',
+        title: _l.openErrorTitle,
         message: state.message,
         onRetry: () => _bookBloc.add(LoadBookById(widget.bookId)),
       );
@@ -378,9 +382,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
       return AppEmptyState(
         icon: LucideIcons.trash2,
         tone: AppTone.neutral,
-        title: 'This listing was removed',
-        message: 'The book is no longer on Boichokro.',
-        actionLabel: 'Go back',
+        title: _l.removedTitle,
+        message: _l.removedMessage,
+        actionLabel: _l.goBack,
         actionIcon: LucideIcons.arrowLeft,
         onAction: () => context.pop(),
       );
@@ -389,9 +393,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
       return AppEmptyState(
         icon: LucideIcons.searchX,
         tone: AppTone.neutral,
-        title: 'Book not found',
-        message: 'It may have been removed by its owner.',
-        actionLabel: 'Go back',
+        title: _l.notFoundTitle,
+        message: _l.notFoundMessage,
+        actionLabel: _l.goBack,
         actionIcon: LucideIcons.arrowLeft,
         onAction: () => context.pop(),
       );
@@ -422,8 +426,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
               StatusPill.mode(book.mode),
               StatusPill.book(book.status),
               if (isOwner)
-                const StatusPill(
-                  label: 'Your listing',
+                StatusPill(
+                  label: _l.yourListingPill,
                   icon: LucideIcons.userCheck,
                   tone: AppTone.primary,
                 ),
@@ -438,7 +442,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'by ${book.author}',
+            _l.authorByline(book.author),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: context.text.bodyLarge?.copyWith(
@@ -455,13 +459,15 @@ class _BookDetailPageState extends State<BookDetailPage> {
           ],
 
           const SizedBox(height: AppSpacing.xxxl),
-          const SectionHeader(title: 'About this copy'),
+          SectionHeader(title: _l.aboutCopyTitle),
           const SizedBox(height: AppSpacing.md),
           _buildFactsCard(context, book, isOwner: isOwner),
 
           if (description.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.xxxl),
-            SectionHeader(title: isOwner ? 'Your note' : 'From the owner'),
+            SectionHeader(
+              title: isOwner ? _l.yourNoteTitle : _l.fromOwnerTitle,
+            ),
             const SizedBox(height: AppSpacing.md),
             Text(
               description,
@@ -470,13 +476,13 @@ class _BookDetailPageState extends State<BookDetailPage> {
           ],
 
           const SizedBox(height: AppSpacing.xxxl),
-          SectionHeader(title: isOwner ? 'Listed by you' : 'Owner'),
+          SectionHeader(title: isOwner ? _l.listedByYouTitle : _l.ownerTitle),
           const SizedBox(height: AppSpacing.md),
           _buildOwnerCard(context, book),
 
           if (!isOwner && book.status != BookStatus.completed) ...[
             const SizedBox(height: AppSpacing.xxxl),
-            const SectionHeader(title: 'How it works'),
+            SectionHeader(title: _l.howItWorksTitle),
             const SizedBox(height: AppSpacing.md),
             _HowItWorks(mode: book.mode),
           ],
@@ -516,35 +522,35 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final rows = <Widget>[
       _FactRow(
         icon: LucideIcons.bookOpen,
-        label: 'Condition',
+        label: _l.factCondition,
         child: ConditionMeter(condition: book.condition),
       ),
       if (distance != null)
         _FactRow(
           icon: LucideIcons.navigation,
-          label: 'Distance',
+          label: _l.factDistance,
           value: distance,
         ),
       if (address.isNotEmpty)
-        _FactRow(icon: LucideIcons.mapPin, label: 'Area', value: address),
+        _FactRow(icon: LucideIcons.mapPin, label: _l.factArea, value: address),
       _FactRow(
         icon: LucideIcons.calendarDays,
-        label: 'Listed',
+        label: _l.factListed,
         value:
-            '${book.createdAt.toRelativeTime()} · ${book.createdAt.toFormattedDate()}',
+            '${context.relativeTime(book.createdAt)} · ${context.date(book.createdAt, 'MMM d, yyyy')}',
       ),
       if (isbn.isNotEmpty)
-        _FactRow(icon: LucideIcons.hash, label: 'ISBN', value: isbn),
+        _FactRow(icon: LucideIcons.hash, label: _l.factIsbn, value: isbn),
       if (book.genres.isNotEmpty)
         _FactRow(
           icon: LucideIcons.tags,
-          label: 'Genres',
+          label: _l.factGenres,
           child: Wrap(
             spacing: AppSpacing.xs,
             runSpacing: AppSpacing.xs,
             children: [
               for (final genre in book.genres)
-                StatusPill(label: genre, dense: true),
+                StatusPill(label: context.genreLabel(genre), dense: true),
             ],
           ),
         ),
@@ -602,7 +608,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 const SizedBox(width: AppSpacing.lg),
                 Expanded(
                   child: Text(
-                    'Owner details are unavailable right now.',
+                    _l.ownerUnavailable,
                     style: context.text.bodyMedium?.copyWith(
                       color: context.colors.onSurfaceVariant,
                     ),
@@ -670,11 +676,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
     final String? subtitle;
     if (isLoading && requests.isNotEmpty) {
-      subtitle = 'Refreshing…';
+      subtitle = _l.requestsRefreshing;
     } else if (pendingCount > 0) {
-      subtitle = pendingCount == 1
-          ? '1 reader is waiting for your answer'
-          : '$pendingCount readers are waiting for your answer';
+      subtitle = _l.requestsWaiting(pendingCount);
     } else {
       subtitle = null;
     }
@@ -705,20 +709,20 @@ class _BookDetailPageState extends State<BookDetailPage> {
         AppBanner(
           tone: AppTone.danger,
           icon: LucideIcons.circleAlert,
-          title: 'Couldn\'t load requests',
+          title: _l.requestsLoadErrorTitle,
           message: errorMessage,
-          actionLabel: 'Try again',
+          actionLabel: context.core.commonRetry,
           onAction: retry,
         ),
       );
     } else if (requests.isEmpty) {
       content.add(
-        const AppCard(
+        AppCard(
           child: AppEmptyState(
             compact: true,
             icon: LucideIcons.inbox,
-            title: 'No requests yet',
-            message: 'Readers nearby can find this book in Discover.',
+            title: _l.requestsEmptyTitle,
+            message: _l.requestsEmptyMessage,
           ),
         ),
       );
@@ -729,18 +733,14 @@ class _BookDetailPageState extends State<BookDetailPage> {
             tone: AppTone.danger,
             icon: LucideIcons.circleAlert,
             message: errorMessage,
-            actionLabel: 'Try again',
+            actionLabel: context.core.commonRetry,
             onAction: retry,
           ),
         );
       }
       if (openRequests.isEmpty) {
         content.add(
-          const AppBanner(
-            tone: AppTone.neutral,
-            message:
-                'No open requests right now. Past requests are kept in My Library.',
-          ),
+          AppBanner(tone: AppTone.neutral, message: _l.requestsNoneOpen),
         );
       }
       for (final request in openRequests) {
@@ -751,7 +751,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionHeader(title: 'Requests', subtitle: subtitle),
+        SectionHeader(title: _l.requestsTitle, subtitle: subtitle),
         const SizedBox(height: AppSpacing.md),
         for (int i = 0; i < content.length; i++) ...[
           if (i > 0) const SizedBox(height: AppSpacing.md),
@@ -802,7 +802,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
                       children: [
                         Text(
                           seeker?.name ??
-                              (seekerLoading ? 'Loading…' : 'A reader'),
+                              (seekerLoading
+                                  ? context.core.commonLoading
+                                  : context.core.aReader),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: context.text.titleMedium,
@@ -827,12 +829,14 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 children: [
                   MetaItem(
                     icon: LucideIcons.clock,
-                    label: 'Requested ${request.createdAt.toRelativeTime()}',
+                    label: _l.requestedTime(
+                      context.relativeTime(request.createdAt),
+                    ),
                   ),
                   if (acceptedAt != null)
                     MetaItem(
                       icon: LucideIcons.check,
-                      label: 'Accepted ${acceptedAt.toRelativeTime()}',
+                      label: _l.acceptedTime(context.relativeTime(acceptedAt)),
                       color: context.palette.success,
                     ),
                 ],
@@ -851,7 +855,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                       child: OutlinedButton.icon(
                         onPressed: () => _declineRequest(request),
                         icon: const Icon(LucideIcons.x, size: 18),
-                        label: const Text('Decline'),
+                        label: _oneLine(_l.decline),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: context.colors.error,
                           side: BorderSide(color: context.colors.error),
@@ -866,7 +870,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                       child: FilledButton.icon(
                         onPressed: () => _acceptRequest(request, book),
                         icon: const Icon(LucideIcons.check, size: 18),
-                        label: const Text('Accept'),
+                        label: _oneLine(_l.accept),
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.md,
@@ -880,14 +884,13 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 FilledButton.icon(
                   onPressed: () => _confirmHandover(request),
                   icon: const Icon(LucideIcons.packageCheck, size: 18),
-                  label: const Text('Confirm handover'),
+                  label: _oneLine(_l.confirmHandover),
                 ),
               if (isAccepted && request.ownerConfirmed)
-                const AppBanner(
+                AppBanner(
                   tone: AppTone.success,
                   icon: LucideIcons.circleCheck,
-                  message:
-                      'You confirmed the handover. Waiting for the reader to confirm too.',
+                  message: _l.handoverConfirmedBanner,
                 ),
               if (!isPending && chatRoomId != null) ...[
                 const SizedBox(height: AppSpacing.sm),
@@ -895,7 +898,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   onPressed: () =>
                       context.push('${RoutePaths.chat}/$chatRoomId'),
                   icon: const Icon(LucideIcons.messageCircle, size: 18),
-                  label: const Text('Open chat'),
+                  label: _oneLine(_l.openChat),
                 ),
               ],
             ],
@@ -940,13 +943,13 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Eyebrow('Offers in exchange', color: tone.foreground),
+                        Eyebrow(_l.offersInExchange, color: tone.foreground),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
                           offered?.title ??
                               (isLoading
-                                  ? 'Loading the offered book…'
-                                  : 'This book is no longer available'),
+                                  ? _l.offeredLoading
+                                  : _l.offeredUnavailable),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: context.text.titleSmall?.copyWith(
@@ -984,47 +987,44 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
   Future<void> _acceptRequest(BookRequest request, Book book) async {
     final confirmed = await _showConfirmationDialog(
-      title: 'Accept this request?',
+      title: _l.acceptDialogTitle,
       message: book.mode == BookMode.donate
-          ? 'A chat will open so the two of you can arrange the handover.'
-          : 'A chat will open so the two of you can arrange the swap.',
-      confirmLabel: 'Accept request',
+          ? _l.acceptDialogMessageDonate
+          : _l.acceptDialogMessageExchange,
+      confirmLabel: _l.acceptDialogConfirm,
     );
     if (!confirmed || !mounted) return;
     _handleOwnerRequestAction(
       request,
       RequestStatus.accepted,
-      progressLabel: 'Accepting request…',
-      successMessage:
-          'Request accepted. A chat has been opened for coordination.',
+      progressLabel: _l.acceptProgress,
+      successMessage: _l.acceptSuccess,
       successTone: AppTone.success,
     );
   }
 
   Future<void> _declineRequest(BookRequest request) async {
     final confirmed = await _showConfirmationDialog(
-      title: 'Decline this request?',
-      message:
-          'The reader will be notified and your book stays available for others.',
-      confirmLabel: 'Decline request',
+      title: _l.declineDialogTitle,
+      message: _l.declineDialogMessage,
+      confirmLabel: _l.declineDialogConfirm,
       destructive: true,
     );
     if (!confirmed || !mounted) return;
     _handleOwnerRequestAction(
       request,
       RequestStatus.declined,
-      progressLabel: 'Declining request…',
-      successMessage: 'Request declined.',
+      progressLabel: _l.declineProgress,
+      successMessage: _l.declineSuccess,
       successTone: AppTone.warning,
     );
   }
 
   Future<void> _confirmHandover(BookRequest request) async {
     final confirmed = await _showConfirmationDialog(
-      title: 'Confirm the handover?',
-      message:
-          'Only confirm once the book has changed hands. It is marked complete when both of you confirm.',
-      confirmLabel: 'Yes, confirm',
+      title: _l.handoverDialogTitle,
+      message: _l.handoverDialogMessage,
+      confirmLabel: _l.handoverDialogConfirm,
     );
     if (!confirmed || !mounted) return;
     _handleConfirmExchange(request);
@@ -1044,7 +1044,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: Text(context.core.commonCancel),
           ),
           FilledButton(
             style: destructive
@@ -1069,6 +1069,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     required String successMessage,
     required AppTone successTone,
   }) {
+    final l = _l;
     _requestBloc.add(
       UpdateRequestStatus(requestId: request.id, status: status),
     );
@@ -1090,7 +1091,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               Navigator.pop(dialogContext);
               showAppSnack(
                 listenerContext,
-                'Failed to update request: $message',
+                l.requestUpdateFailed(message),
                 tone: AppTone.danger,
               );
             }
@@ -1103,9 +1104,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
   void _handleConfirmExchange(BookRequest request) {
     final currentUser = getIt<FirebaseService>().auth.currentUser;
+    final l = _l;
 
     if (currentUser == null) {
-      showAppSnack(context, 'Please sign in to confirm the exchange.');
+      showAppSnack(context, l.signInToConfirm);
       return;
     }
 
@@ -1126,7 +1128,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               _bookBloc.add(LoadBookById(widget.bookId));
               showAppSnack(
                 listenerContext,
-                'Exchange confirmation recorded.',
+                l.exchangeConfirmRecorded,
                 tone: AppTone.success,
               );
             } else if (state is RequestError) {
@@ -1134,12 +1136,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
               Navigator.pop(dialogContext);
               showAppSnack(
                 listenerContext,
-                'Failed to confirm exchange: $message',
+                l.exchangeConfirmFailed(message),
                 tone: AppTone.danger,
               );
             }
           },
-          child: const _ProgressDialog(label: 'Confirming exchange…'),
+          child: _ProgressDialog(label: l.exchangeConfirmProgress),
         ),
       ),
     );
@@ -1163,8 +1165,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
       return _ActionBar(
         statusIcon: LucideIcons.handshake,
         statusTone: AppTone.success,
-        status:
-            'The owner accepted your request. Arrange the handover in chat.',
+        status: _l.seekerBarAccepted,
         children: [
           Expanded(
             child: FilledButton.icon(
@@ -1172,7 +1173,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   ? () => context.push('${RoutePaths.chat}/$chatRoomId')
                   : () => _handleMessageOwner(book),
               icon: const Icon(LucideIcons.messageCircle, size: 18),
-              label: const Text('Open chat'),
+              label: _oneLine(_l.openChat),
             ),
           ),
         ],
@@ -1183,15 +1184,15 @@ class _BookDetailPageState extends State<BookDetailPage> {
       return _ActionBar(
         statusIcon: LucideIcons.clock,
         statusTone: AppTone.warning,
-        status:
-            'Request sent ${myRequest.createdAt.toRelativeTime().toLowerCase()}. '
-            'Waiting for the owner to answer.',
+        status: _l.seekerBarRequestSent(
+          context.relativeTime(myRequest.createdAt).toLowerCase(),
+        ),
         children: [
           Expanded(
             child: OutlinedButton.icon(
               onPressed: () => _handleMessageOwner(book),
               icon: const Icon(LucideIcons.messageCircle, size: 18),
-              label: const Text('Message owner'),
+              label: _oneLine(_l.messageOwner),
             ),
           ),
         ],
@@ -1203,11 +1204,14 @@ class _BookDetailPageState extends State<BookDetailPage> {
         statusIcon: book.status.icon,
         statusTone: book.status.tone,
         status: book.status == BookStatus.completed
-            ? 'This book has already found a new reader.'
-            : 'Another reader is arranging this book right now, so it can\'t be requested.',
-        children: const [
+            ? _l.seekerBarCompleted
+            : _l.seekerBarBusy,
+        children: [
           Expanded(
-            child: FilledButton(onPressed: null, child: Text('Not available')),
+            child: FilledButton(
+              onPressed: null,
+              child: _oneLine(_l.notAvailable),
+            ),
           ),
         ],
       );
@@ -1217,7 +1221,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     return _ActionBar(
       children: [
         Tooltip(
-          message: 'Message owner',
+          message: _l.messageOwner,
           child: OutlinedButton(
             onPressed: () => _handleMessageOwner(book),
             style: OutlinedButton.styleFrom(
@@ -1233,7 +1237,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           child: FilledButton.icon(
             onPressed: () => _handleRequestBook(book),
             icon: Icon(book.mode.icon, size: 18),
-            label: Text(isDonate ? 'Request this book' : 'Offer a swap'),
+            label: _oneLine(isDonate ? _l.requestThisBook : _l.offerSwap),
           ),
         ),
       ],
@@ -1257,26 +1261,25 @@ class _BookDetailPageState extends State<BookDetailPage> {
           : OutlinedButton.icon(
               onPressed: () => context.push('${RoutePaths.chat}/$chatRoomId'),
               icon: const Icon(LucideIcons.messageCircle, size: 18),
-              label: const Text('Open chat'),
+              label: _oneLine(_l.openChat),
             );
 
       if (request.ownerConfirmed) {
         return _ActionBar(
           statusIcon: LucideIcons.hourglass,
           statusTone: AppTone.exchange,
-          status:
-              'You confirmed the handover. Waiting for the reader to confirm.',
+          status: _l.ownerBarWaitingReader,
           children: [if (chatButton != null) Expanded(child: chatButton)],
         );
       }
       return _ActionBar(
         statusIcon: LucideIcons.handshake,
         statusTone: AppTone.primary,
-        status: 'Request accepted. Confirm once the book has changed hands.',
+        status: _l.ownerBarAccepted,
         children: [
           if (chatRoomId != null) ...[
             Tooltip(
-              message: 'Open chat',
+              message: _l.openChat,
               child: OutlinedButton(
                 onPressed: () => context.push('${RoutePaths.chat}/$chatRoomId'),
                 style: OutlinedButton.styleFrom(
@@ -1293,7 +1296,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
             child: FilledButton.icon(
               onPressed: () => _confirmHandover(request),
               icon: const Icon(LucideIcons.packageCheck, size: 18),
-              label: const Text('Confirm handover'),
+              label: _oneLine(_l.confirmHandover),
             ),
           ),
         ],
@@ -1307,11 +1310,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
             child: FilledButton.icon(
               onPressed: _scrollToRequests,
               icon: const Icon(LucideIcons.inbox, size: 18),
-              label: Text(
-                pending.length == 1
-                    ? 'Review 1 request'
-                    : 'Review ${pending.length} requests',
-              ),
+              label: _oneLine(_l.ownerBarReviewRequests(pending.length)),
             ),
           ),
         ],
@@ -1322,13 +1321,13 @@ class _BookDetailPageState extends State<BookDetailPage> {
       return _ActionBar(
         statusIcon: LucideIcons.circleCheck,
         statusTone: AppTone.success,
-        status: 'Your listing is live. We\'ll show requests here.',
+        status: _l.ownerBarLive,
         children: [
           Expanded(
             child: OutlinedButton.icon(
               onPressed: () => _editBook(book),
               icon: const Icon(LucideIcons.pencil, size: 18),
-              label: const Text('Edit listing'),
+              label: _oneLine(_l.editListing),
             ),
           ),
         ],
@@ -1339,8 +1338,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
       statusIcon: book.status.icon,
       statusTone: book.status.tone,
       status: book.status == BookStatus.completed
-          ? 'This book has found a new reader. Thank you for sharing it.'
-          : 'This book is ${book.status.displayName.toLowerCase()}. Manage progress in the requests above.',
+          ? _l.ownerBarCompleted
+          : _l.ownerBarInProgress(book.status.label(context).toLowerCase()),
       children: const [],
     );
   }
@@ -1360,11 +1359,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
   // ---------------------------------------------------------------------------
 
   void _shareBook(Book book) {
-    final shareText =
-        '📚 ${book.title} by ${book.author}\n'
-        'Mode: ${book.mode.displayName}\n'
-        'Condition: ${AppConstants.bookConditions[book.condition]}\n'
-        '\nFind it on Boichokro!';
+    final shareText = _l.shareText(
+      book.title,
+      book.author,
+      book.mode.label(context),
+      context.conditionLabel(book.condition),
+    );
     SharePlus.instance.share(ShareParams(text: shareText));
   }
 
@@ -1375,9 +1375,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
     showAppSheet<void>(
       context,
       builder: (sheetContext) {
+        final l = BookL10n.of(sheetContext);
         final danger = sheetContext.colors.error;
         return SheetScaffold(
-          title: isOwner ? 'Manage listing' : 'More options',
+          title: isOwner ? l.manageListingTitle : l.moreOptions,
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1386,12 +1387,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     ListTile(
                       enabled: canChange,
                       leading: const Icon(LucideIcons.pencil),
-                      title: const Text('Edit listing'),
+                      title: Text(l.editListing),
                       subtitle: canChange
                           ? null
-                          : const Text(
-                              'Not possible while an exchange is in progress',
-                            ),
+                          : Text(l.actionBlockedSubtitle),
                       onTap: () {
                         Navigator.pop(sheetContext);
                         _editBook(book);
@@ -1404,14 +1403,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         color: canChange ? danger : null,
                       ),
                       title: Text(
-                        'Delete listing',
+                        l.deleteListing,
                         style: canChange ? TextStyle(color: danger) : null,
                       ),
                       subtitle: canChange
                           ? null
-                          : const Text(
-                              'Not possible while an exchange is in progress',
-                            ),
+                          : Text(l.actionBlockedSubtitle),
                       onTap: () {
                         Navigator.pop(sheetContext);
                         _deleteBook(book);
@@ -1421,7 +1418,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 : [
                     ListTile(
                       leading: const Icon(LucideIcons.bookmarkPlus),
-                      title: const Text('Save to wishlist'),
+                      title: Text(l.saveToWishlist),
                       onTap: () {
                         Navigator.pop(sheetContext);
                         _saveToWishlist(book);
@@ -1429,8 +1426,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     ),
                     ListTile(
                       leading: const Icon(LucideIcons.flag),
-                      title: const Text('Report this book'),
-                      subtitle: const Text('Tell us if something looks wrong'),
+                      title: Text(l.reportBook),
+                      subtitle: Text(l.reportBookSubtitle),
                       onTap: () {
                         Navigator.pop(sheetContext);
                         _reportBook(book);
@@ -1439,10 +1436,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     ListTile(
                       leading: Icon(LucideIcons.ban, color: danger),
                       title: Text(
-                        'Block owner',
+                        l.blockOwner,
                         style: TextStyle(color: danger),
                       ),
-                      subtitle: const Text('Hide this person\'s books'),
+                      subtitle: Text(l.blockOwnerSubtitle),
                       onTap: () {
                         Navigator.pop(sheetContext);
                         _blockOwner(book);
@@ -1463,10 +1460,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
   Future<void> _deleteBook(Book book) async {
     final confirmed = await _showConfirmationDialog(
-      title: 'Delete this listing?',
-      message:
-          '"${book.title}" will be removed from Boichokro. This can\'t be undone.',
-      confirmLabel: 'Delete listing',
+      title: _l.deleteDialogTitle,
+      message: _l.deleteDialogMessage(book.title),
+      confirmLabel: _l.deleteListing,
       destructive: true,
     );
     if (!confirmed || !mounted) return;
@@ -1476,14 +1472,13 @@ class _BookDetailPageState extends State<BookDetailPage> {
   Future<void> _reportBook(Book book) async {
     final userId = _currentUserId;
     if (userId == null) {
-      showAppSnack(context, 'Please sign in to report a book.');
+      showAppSnack(context, _l.signInToReport);
       return;
     }
     final confirmed = await _showConfirmationDialog(
-      title: 'Report this book?',
-      message:
-          'Our team will review this listing. The owner won\'t know who reported it.',
-      confirmLabel: 'Send report',
+      title: _l.reportDialogTitle,
+      message: _l.reportDialogMessage,
+      confirmLabel: _l.reportDialogConfirm,
     );
     if (!confirmed) return;
     try {
@@ -1495,23 +1490,23 @@ class _BookDetailPageState extends State<BookDetailPage> {
         'type': 'book',
       });
       if (!mounted) return;
-      showAppSnack(context, 'Book reported. Thank you!', tone: AppTone.success);
+      showAppSnack(context, _l.reportSuccess, tone: AppTone.success);
     } catch (e) {
       if (!mounted) return;
-      showAppSnack(context, 'Failed to report: $e', tone: AppTone.danger);
+      showAppSnack(context, _l.reportFailed('$e'), tone: AppTone.danger);
     }
   }
 
   Future<void> _blockOwner(Book book) async {
     final userId = _currentUserId;
     if (userId == null) {
-      showAppSnack(context, 'Please sign in to block someone.');
+      showAppSnack(context, _l.signInToBlock);
       return;
     }
     final confirmed = await _showConfirmationDialog(
-      title: 'Block this owner?',
-      message: 'You will stop seeing their books and you\'ll leave this page.',
-      confirmLabel: 'Block owner',
+      title: _l.blockDialogTitle,
+      message: _l.blockDialogMessage,
+      confirmLabel: _l.blockOwner,
       destructive: true,
     );
     if (!confirmed) return;
@@ -1523,18 +1518,18 @@ class _BookDetailPageState extends State<BookDetailPage> {
             'blockedUsers': FieldValue.arrayUnion([book.ownerId]),
           });
       if (!mounted) return;
-      showAppSnack(context, 'User blocked.', tone: AppTone.warning);
+      showAppSnack(context, _l.blockSuccess, tone: AppTone.warning);
       context.pop();
     } catch (e) {
       if (!mounted) return;
-      showAppSnack(context, 'Failed to block: $e', tone: AppTone.danger);
+      showAppSnack(context, _l.blockFailed('$e'), tone: AppTone.danger);
     }
   }
 
   Future<void> _saveToWishlist(Book book) async {
     final userId = _currentUserId;
     if (userId == null) {
-      showAppSnack(context, 'Please sign in to save books.');
+      showAppSnack(context, _l.signInToSave);
       return;
     }
     try {
@@ -1545,10 +1540,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
             'wishlist': FieldValue.arrayUnion([book.id]),
           });
       if (!mounted) return;
-      showAppSnack(context, 'Saved to your wishlist.', tone: AppTone.success);
+      showAppSnack(context, _l.wishlistSaved, tone: AppTone.success);
     } catch (e) {
       if (!mounted) return;
-      showAppSnack(context, 'Failed to save: $e', tone: AppTone.danger);
+      showAppSnack(context, _l.wishlistFailed('$e'), tone: AppTone.danger);
     }
   }
 
@@ -1560,18 +1555,18 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final currentUser = getIt<FirebaseService>().auth.currentUser;
 
     if (currentUser == null) {
-      showAppSnack(context, 'Please sign in to request books');
+      showAppSnack(context, _l.signInToRequest);
       return;
     }
 
     // Check if user is trying to request their own book
     if (currentUser.uid == book.ownerId) {
-      showAppSnack(context, 'You cannot request your own book');
+      showAppSnack(context, _l.cannotRequestOwn);
       return;
     }
 
     if (_myRequest != null) {
-      showAppSnack(context, 'You have already requested this book.');
+      showAppSnack(context, _l.alreadyRequested);
       return;
     }
 
@@ -1606,21 +1601,21 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final confirmed = await showAppSheet<bool>(
       context,
       builder: (sheetContext) => SheetScaffold(
-        title: 'Request this book',
-        subtitle: 'The owner will be asked to approve your request.',
+        title: BookL10n.of(sheetContext).requestSheetTitle,
+        subtitle: BookL10n.of(sheetContext).requestSheetSubtitle,
         footer: Row(
           children: [
             Expanded(
               child: OutlinedButton(
                 onPressed: () => Navigator.pop(sheetContext, false),
-                child: const Text('Cancel'),
+                child: _oneLine(sheetContext.core.commonCancel),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: FilledButton(
                 onPressed: () => Navigator.pop(sheetContext, true),
-                child: const Text('Send request'),
+                child: _oneLine(BookL10n.of(sheetContext).sendRequest),
               ),
             ),
           ],
@@ -1630,12 +1625,11 @@ class _BookDetailPageState extends State<BookDetailPage> {
           children: [
             _BookSummary(book: book),
             const SizedBox(height: AppSpacing.lg),
-            const AppBanner(
+            AppBanner(
               tone: AppTone.donate,
               icon: LucideIcons.gift,
-              title: 'This book is a gift',
-              message:
-                  'You don\'t need to give anything in return. If the owner accepts, a chat opens to arrange the handover.',
+              title: BookL10n.of(sheetContext).giftBannerTitle,
+              message: BookL10n.of(sheetContext).giftBannerMessage,
             ),
           ],
         ),
@@ -1667,9 +1661,11 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
     _sendRequest(
       request,
-      progressLabel: 'Sending swap request…',
-      successMessage:
-          'Swap request sent. You offered "${offeredBook.title}" for "${requestedBook.title}".',
+      progressLabel: _l.swapRequestProgress,
+      successMessage: _l.swapRequestSuccess(
+        offeredBook.title,
+        requestedBook.title,
+      ),
     );
   }
 
@@ -1691,8 +1687,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
     _sendRequest(
       request,
-      progressLabel: 'Sending request…',
-      successMessage: 'Request sent for "${requestedBook.title}".',
+      progressLabel: _l.requestProgress,
+      successMessage: _l.requestSuccess(requestedBook.title),
     );
   }
 
@@ -1702,6 +1698,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
     required String successMessage,
   }) {
     final requestBloc = _requestBloc;
+    final l = _l;
+    final viewLabel = context.core.commonView;
     requestBloc.add(CreateRequest(request));
 
     showDialog<void>(
@@ -1718,7 +1716,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 successMessage,
                 tone: AppTone.success,
                 action: SnackBarAction(
-                  label: 'View',
+                  label: viewLabel,
                   onPressed: () {
                     // "My Requests" is the second tab of My Library.
                     if (mounted) context.push(RoutePaths.myLibrary, extra: 1);
@@ -1730,7 +1728,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               Navigator.pop(dialogContext);
               showAppSnack(
                 listenerContext,
-                'Failed to send request: $message',
+                l.requestFailed(message),
                 tone: AppTone.danger,
               );
             }
@@ -1744,14 +1742,16 @@ class _BookDetailPageState extends State<BookDetailPage> {
   Future<void> _handleMessageOwner(Book book) async {
     final currentUser = getIt<FirebaseService>().auth.currentUser;
 
+    final l = _l;
+
     if (currentUser == null) {
-      showAppSnack(context, 'Please sign in to message the owner');
+      showAppSnack(context, l.signInToMessage);
       return;
     }
 
     // Check if user is trying to message themselves
     if (currentUser.uid == book.ownerId) {
-      showAppSnack(context, 'This is your own book');
+      showAppSnack(context, l.ownBook);
       return;
     }
 
@@ -1800,12 +1800,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
               Navigator.pop(dialogContext);
               showAppSnack(
                 listenerContext,
-                'Failed to create chat: $message',
+                l.chatCreateFailed(message),
                 tone: AppTone.danger,
               );
             }
           },
-          child: const _ProgressDialog(label: 'Opening chat…'),
+          child: _ProgressDialog(label: l.chatOpening),
         ),
       ),
     );
@@ -1815,6 +1815,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
 // =============================================================================
 // Private widgets
 // =============================================================================
+
+/// Button label that stays on one line; Bangla labels can run wider than the
+/// English ones they replace.
+Text _oneLine(String text) {
+  return Text(text, maxLines: 1, overflow: TextOverflow.ellipsis);
+}
 
 /// One labelled line inside the "About this copy" card.
 class _FactRow extends StatelessWidget {
@@ -1880,35 +1886,18 @@ class _HowItWorks extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = BookL10n.of(context);
     final isDonate = mode == BookMode.donate;
     final steps = isDonate
-        ? const [
-            (
-              'Ask for the book',
-              'Send a request. This book is free, nothing to give in return.',
-            ),
-            (
-              'The owner accepts',
-              'A chat opens so you can agree on a time and a safe public place.',
-            ),
-            (
-              'Collect and confirm',
-              'Pick up the book, then both of you confirm the handover.',
-            ),
+        ? [
+            (l.howDonateAskTitle, l.howDonateAskBody),
+            (l.howOwnerAcceptsTitle, l.howOwnerAcceptsBody),
+            (l.howDonateCollectTitle, l.howDonateCollectBody),
           ]
-        : const [
-            (
-              'Offer one of your books',
-              'Choose a book from your library to give in return.',
-            ),
-            (
-              'The owner accepts',
-              'A chat opens so you can agree on a time and a safe public place.',
-            ),
-            (
-              'Swap and confirm',
-              'Trade books in person, then both of you confirm the exchange.',
-            ),
+        : [
+            (l.howSwapOfferTitle, l.howSwapOfferBody),
+            (l.howOwnerAcceptsTitle, l.howOwnerAcceptsBody),
+            (l.howSwapTradeTitle, l.howSwapTradeBody),
           ];
     final tone = context.tone(mode.tone);
 
@@ -1929,7 +1918,7 @@ class _HowItWorks extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                   child: Text(
-                    '${i + 1}',
+                    context.number(i + 1),
                     style: context.text.labelLarge?.copyWith(
                       color: tone.foreground,
                     ),
@@ -2121,6 +2110,7 @@ class _OfferPickerSheetState extends State<_OfferPickerSheet> {
       create: (_) => getIt<BookBloc>()..add(LoadMyBooks(widget.userId)),
       child: BlocBuilder<BookBloc, BookState>(
         builder: (context, state) {
+          final l = BookL10n.of(context);
           Widget body;
           Widget? footer;
 
@@ -2135,10 +2125,9 @@ class _OfferPickerSheetState extends State<_OfferPickerSheet> {
                 compact: true,
                 tone: AppTone.exchange,
                 icon: LucideIcons.library,
-                title: 'No books to offer yet',
-                message:
-                    'Add a book to your library first, then come back to offer it for this one.',
-                actionLabel: 'Add a book',
+                title: l.offerEmptyTitle,
+                message: l.offerEmptyMessage,
+                actionLabel: l.offerAddBook,
                 actionIcon: LucideIcons.plus,
                 onAction: () =>
                     Navigator.pop(context, _OfferPickerAction.addBook),
@@ -2148,11 +2137,11 @@ class _OfferPickerSheetState extends State<_OfferPickerSheet> {
               body = Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Eyebrow('You are asking for'),
+                  Eyebrow(l.offerAskingFor),
                   const SizedBox(height: AppSpacing.sm),
                   _BookSummary(book: widget.requestedBook),
                   const SizedBox(height: AppSpacing.xl),
-                  Eyebrow('Your available books'),
+                  Eyebrow(l.offerYourBooks),
                   const SizedBox(height: AppSpacing.sm),
                   for (final book in availableBooks)
                     Padding(
@@ -2170,32 +2159,30 @@ class _OfferPickerSheetState extends State<_OfferPickerSheet> {
                     ? null
                     : () => Navigator.pop(context, selected),
                 icon: const Icon(LucideIcons.repeat, size: 18),
-                label: Text(
-                  selected == null
-                      ? 'Pick a book to offer'
-                      : 'Send swap request',
+                label: _oneLine(
+                  selected == null ? l.offerPickPrompt : l.offerSendSwap,
                 ),
               );
             }
           } else if (state is BookError) {
             body = AppErrorState(
-              title: 'Couldn\'t load your books',
+              title: l.offerLoadErrorTitle,
               message: state.message,
               onRetry: () =>
                   context.read<BookBloc>().add(LoadMyBooks(widget.userId)),
             );
           } else {
-            body = const Padding(
-              padding: EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
-              child: AppLoading(message: 'Loading your books…'),
+            body = Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
+              child: AppLoading(message: l.offerLoading),
             );
           }
 
           return SheetScaffold(
-            title: 'Offer a book in return',
-            subtitle: 'The owner sees your offer and decides whether to swap.',
+            title: l.offerSheetTitle,
+            subtitle: l.offerSheetSubtitle,
             trailing: IconButton(
-              tooltip: 'Close',
+              tooltip: context.core.commonClose,
               icon: const Icon(LucideIcons.x),
               onPressed: () => Navigator.pop(context),
             ),

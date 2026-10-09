@@ -3,6 +3,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../features/discover/domain/entities/book.dart';
 import '../../../features/library/domain/entities/request.dart';
+import '../../l10n/l10n.dart';
 import '../../utils/constants.dart';
 import '../tokens.dart';
 
@@ -13,9 +14,6 @@ extension BookModeStyle on BookMode {
 
   IconData get icon =>
       this == BookMode.donate ? LucideIcons.gift : LucideIcons.repeat;
-
-  /// Short label written from the reader's point of view.
-  String get offerLabel => this == BookMode.donate ? 'Free' : 'Swap';
 }
 
 /// Tone and icon used everywhere a [BookStatus] is shown.
@@ -84,16 +82,25 @@ extension RequestStatusStyle on RequestStatus {
 class StatusPill extends StatelessWidget {
   const StatusPill({
     super.key,
-    required this.label,
+    required String this.label,
     this.icon,
     this.tone = AppTone.neutral,
     this.dense = false,
-  });
+  }) : _labelOf = null;
+
+  const StatusPill._resolved({
+    super.key,
+    required String Function(BuildContext context) labelOf,
+    this.icon,
+    this.tone = AppTone.neutral,
+    this.dense = false,
+  }) : label = null,
+       _labelOf = labelOf;
 
   factory StatusPill.mode(BookMode mode, {Key? key, bool dense = false}) {
-    return StatusPill(
+    return StatusPill._resolved(
       key: key,
-      label: mode.displayName,
+      labelOf: mode.label,
       icon: mode.icon,
       tone: mode.tone,
       dense: dense,
@@ -101,9 +108,9 @@ class StatusPill extends StatelessWidget {
   }
 
   factory StatusPill.book(BookStatus status, {Key? key, bool dense = false}) {
-    return StatusPill(
+    return StatusPill._resolved(
       key: key,
-      label: status.displayName,
+      labelOf: status.label,
       icon: status.icon,
       tone: status.tone,
       dense: dense,
@@ -115,16 +122,19 @@ class StatusPill extends StatelessWidget {
     Key? key,
     bool dense = false,
   }) {
-    return StatusPill(
+    return StatusPill._resolved(
       key: key,
-      label: status.displayName,
+      labelOf: status.label,
       icon: status.icon,
       tone: status.tone,
       dense: dense,
     );
   }
 
-  final String label;
+  final String? label;
+
+  /// Localized label for the enum factories, resolved at build time.
+  final String Function(BuildContext context)? _labelOf;
   final IconData? icon;
   final AppTone tone;
   final bool dense;
@@ -132,6 +142,7 @@ class StatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.tone(tone);
+    final label = _labelOf?.call(context) ?? this.label ?? '';
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: dense ? 8 : 10,
@@ -242,7 +253,7 @@ class ConditionMeter extends StatelessWidget {
           const SizedBox(width: 6),
           Flexible(
             child: Text(
-              AppConstants.bookConditions[index],
+              context.conditionLabel(index),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: context.text.bodySmall?.copyWith(
@@ -274,7 +285,7 @@ class RatingBadge extends StatelessWidget {
     final hasSwaps = swaps != null && swaps! > 0;
 
     if (!hasRating && !hasSwaps) {
-      return Text('New member', style: style);
+      return Text(context.core.newMember, style: style);
     }
 
     return Row(
@@ -284,7 +295,7 @@ class RatingBadge extends StatelessWidget {
           Icon(Icons.star_rounded, size: 15, color: context.palette.star),
           const SizedBox(width: 2),
           Text(
-            rating.toStringAsFixed(1),
+            context.number(double.parse(rating.toStringAsFixed(1))),
             style: style?.copyWith(
               color: context.colors.onSurface,
               fontWeight: FontWeight.w700,
@@ -292,8 +303,7 @@ class RatingBadge extends StatelessWidget {
           ),
         ],
         if (hasRating && hasSwaps) Text('  ·  ', style: style),
-        if (hasSwaps)
-          Text('$swaps ${swaps == 1 ? 'swap' : 'swaps'}', style: style),
+        if (hasSwaps) Text(context.core.swapCount(swaps!), style: style),
       ],
     );
   }

@@ -94,6 +94,9 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # Required by `flutter gen-l10n` (see tool/gen_l10n.sh).
+  generate: true
+
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/icon/

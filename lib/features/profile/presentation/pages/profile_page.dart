@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../../core/design/design.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/network/firebase_service.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../l10n/account/gen/account_l10n.dart';
 import '../../../discover/domain/entities/book.dart';
 import '../../../discover/domain/entities/user.dart';
 import '../../../discover/presentation/bloc/book/book_bloc.dart';
@@ -58,8 +60,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AccountL10n.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: Text(l.profileTitle)),
       body: BlocConsumer<ProfileBloc, ProfileState>(
         listener: (context, state) {
           // After profile update, reload to show latest data
@@ -70,7 +74,7 @@ class _ProfilePageState extends State<ProfilePage> {
         builder: (context, profileState) {
           if (profileState is ProfileError) {
             return AppErrorState(
-              title: 'We couldn\'t load your profile',
+              title: l.profileLoadErrorTitle,
               message: profileState.message,
               onRetry: () =>
                   context.read<ProfileBloc>().add(const LoadProfile()),
@@ -87,9 +91,9 @@ class _ProfilePageState extends State<ProfilePage> {
             }
             return AppEmptyState(
               icon: LucideIcons.userX,
-              title: 'Not signed in',
-              message: 'Sign in to see your profile and manage your books.',
-              actionLabel: 'Sign in',
+              title: l.profileSignedOutTitle,
+              message: l.profileSignedOutBody,
+              actionLabel: l.profileSignIn,
               actionIcon: LucideIcons.logIn,
               onAction: () => context.go(RoutePaths.auth),
             );
@@ -146,8 +150,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         ProfileMenuRow(
                           icon: LucideIcons.history,
                           tone: AppTone.exchange,
-                          title: 'History & reviews',
-                          subtitle: 'Past hand-offs and the ratings you got',
+                          title: l.profileHistoryTitle,
+                          subtitle: l.profileHistorySubtitle,
                           onTap: () => context.push(
                             RoutePaths.myLibrary,
                             extra: 3, // index 3 = History tab
@@ -155,8 +159,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         ProfileMenuRow(
                           icon: LucideIcons.settings,
-                          title: 'Settings',
-                          subtitle: 'Account, privacy, terms and about',
+                          title: l.settingsTitle,
+                          subtitle: l.profileSettingsSubtitle,
                           onTap: () => context.push(RoutePaths.settings),
                         ),
                       ],
@@ -188,21 +192,22 @@ class _JourneyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AccountL10n.of(context);
     final steps = [
       (
         done: _shared(user, books),
-        title: 'Share your first book',
-        hint: 'Put a book you have finished into the circle',
+        title: l.journeyStep1Title,
+        hint: l.journeyStep1Hint,
       ),
       (
         done: user.totalSwaps > 0,
-        title: 'Complete a hand-off',
-        hint: 'Give a book away or swap one with a reader',
+        title: l.journeyStep2Title,
+        hint: l.journeyStep2Hint,
       ),
       (
         done: user.ratingAvg > 0,
-        title: 'Earn your first rating',
-        hint: 'Readers rate each other after a hand-off',
+        title: l.journeyStep3Title,
+        hint: l.journeyStep3Hint,
       ),
     ];
     final doneCount = steps.where((s) => s.done).length;
@@ -225,10 +230,10 @@ class _JourneyCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Join the circle', style: context.text.titleLarge),
+                    Text(l.journeyTitle, style: context.text.titleLarge),
                     const SizedBox(height: 2),
                     Text(
-                      '$doneCount of ${steps.length} steps done',
+                      l.journeyProgress(doneCount, steps.length),
                       style: context.text.bodySmall?.copyWith(
                         color: context.colors.onSurfaceVariant,
                         fontSize: 13,
@@ -296,7 +301,7 @@ class _JourneyCard extends StatelessWidget {
                 minimumSize: const Size.fromHeight(48),
               ),
               icon: const Icon(LucideIcons.plus, size: 18),
-              label: const Text('Share a book'),
+              label: Text(l.journeyShareBook),
             ),
           ],
         ],
@@ -317,19 +322,18 @@ class _ShelfSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final listed = books;
+    final l = AccountL10n.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionHeader(
-          title: 'Your shelf',
+          title: l.shelfYours,
           subtitle: listed == null || listed.isEmpty
-              ? 'Books you share show up here'
-              : listed.length == 1
-              ? '1 book in the circle'
-              : '${listed.length} books in the circle',
+              ? l.shelfEmptySubtitle
+              : l.shelfCount(listed.length),
           actionLabel: listed != null && listed.isNotEmpty
-              ? 'Open library'
+              ? l.shelfOpenLibrary
               : null,
           onAction: () => HomePage.goToTab(context, 1),
         ),
@@ -449,10 +453,13 @@ class _EmptyShelf extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Your shelf is empty', style: context.text.titleMedium),
+                Text(
+                  AccountL10n.of(context).shelfEmptyTitle,
+                  style: context.text.titleMedium,
+                ),
                 const SizedBox(height: 2),
                 Text(
-                  'Tap to add a book you have finished reading.',
+                  AccountL10n.of(context).shelfEmptyBody,
                   style: context.text.bodySmall?.copyWith(
                     color: colors.onSurfaceVariant,
                     fontSize: 13,
@@ -477,6 +484,8 @@ class _InviteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l = AccountL10n.of(context);
+    final shareText = l.inviteShareText(context.core.appName, _storeUrl);
 
     return AppCard(
       color: colors.primaryContainer,
@@ -494,14 +503,14 @@ class _InviteCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Bring a friend into the circle',
+                  l.inviteTitle,
                   style: context.text.titleMedium?.copyWith(
                     color: colors.onPrimaryContainer,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'More readers nearby means more books to choose from.',
+                  l.inviteBody,
                   style: context.text.bodySmall?.copyWith(
                     color: colors.onPrimaryContainer.withValues(alpha: 0.8),
                     fontSize: 13,
@@ -512,19 +521,14 @@ class _InviteCard extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.md),
           FilledButton.icon(
-            onPressed: () => SharePlus.instance.share(
-              ShareParams(
-                text:
-                    'I am sharing and finding books for free on Boichokro. '
-                    'Join me: $_storeUrl',
-              ),
-            ),
+            onPressed: () =>
+                SharePlus.instance.share(ShareParams(text: shareText)),
             style: FilledButton.styleFrom(
               minimumSize: const Size(0, 44),
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             ),
             icon: const Icon(LucideIcons.share2, size: 16),
-            label: const Text('Invite'),
+            label: Text(l.inviteButton),
           ),
         ],
       ),
@@ -546,21 +550,6 @@ class _ProfileHeader extends StatelessWidget {
   final List<Book>? books;
   final VoidCallback onEdit;
 
-  static const List<String> _months = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-
   @override
   Widget build(BuildContext context) {
     final muted = context.colors.onSurfaceVariant;
@@ -569,6 +558,7 @@ class _ProfileHeader extends StatelessWidget {
     final toSwap =
         listed?.where((b) => b.mode == BookMode.exchange).length ?? 0;
     final toGive = listed?.where((b) => b.mode == BookMode.donate).length ?? 0;
+    final l = AccountL10n.of(context);
 
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.xl),
@@ -582,7 +572,7 @@ class _ProfileHeader extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(
-            user.name.trim().isEmpty ? 'Reader' : user.name,
+            user.name.trim().isEmpty ? l.readerFallback : user.name,
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -590,7 +580,7 @@ class _ProfileHeader extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Member since ${_months[joined.month - 1]} ${joined.year}',
+            l.profileMemberSince(context.date(joined, 'MMMM yyyy')),
             textAlign: TextAlign.center,
             style: context.text.bodyMedium?.copyWith(color: muted),
           ),
@@ -606,20 +596,20 @@ class _ProfileHeader extends StatelessWidget {
               runSpacing: AppSpacing.sm,
               children: [
                 if (user.verifiedBadge)
-                  const StatusPill(
-                    label: 'Verified reader',
+                  StatusPill(
+                    label: l.verifiedReader,
                     icon: LucideIcons.badgeCheck,
                     tone: AppTone.success,
                   ),
                 if (toSwap > 0)
                   StatusPill(
-                    label: '$toSwap to exchange',
+                    label: l.profileToExchange(toSwap),
                     icon: BookMode.exchange.icon,
                     tone: BookMode.exchange.tone,
                   ),
                 if (toGive > 0)
                   StatusPill(
-                    label: '$toGive to donate',
+                    label: l.profileToDonate(toGive),
                     icon: BookMode.donate.icon,
                     tone: BookMode.donate.tone,
                   ),
@@ -635,9 +625,12 @@ class _ProfileHeader extends StatelessWidget {
                 Expanded(
                   child: _Stat(
                     value: user.ratingAvg > 0
-                        ? user.ratingAvg.toStringAsFixed(1)
+                        ? NumberFormat(
+                            '0.0',
+                            context.core.localeName,
+                          ).format(user.ratingAvg)
                         : '–',
-                    label: 'Rating',
+                    label: l.statRating,
                     icon: Icons.star_rounded,
                     iconColor: context.palette.star,
                   ),
@@ -645,16 +638,16 @@ class _ProfileHeader extends StatelessWidget {
                 const VerticalDivider(width: 1),
                 Expanded(
                   child: _Stat(
-                    value: '${user.totalSwaps}',
-                    label: user.totalSwaps == 1 ? 'Swap' : 'Swaps',
+                    value: context.number(user.totalSwaps),
+                    label: l.statSwaps(user.totalSwaps),
                   ),
                 ),
                 if (listed != null) ...[
                   const VerticalDivider(width: 1),
                   Expanded(
                     child: _Stat(
-                      value: '${listed.length}',
-                      label: listed.length == 1 ? 'Book' : 'Books',
+                      value: context.number(listed.length),
+                      label: l.statBooks(listed.length),
                     ),
                   ),
                 ],
@@ -667,7 +660,7 @@ class _ProfileHeader extends StatelessWidget {
             child: OutlinedButton.icon(
               onPressed: onEdit,
               icon: const Icon(LucideIcons.pencil, size: 18),
-              label: const Text('Edit profile'),
+              label: Text(l.profileEdit),
             ),
           ),
         ],

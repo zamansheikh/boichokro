@@ -1,0 +1,133 @@
+{
+  "@@locale": "en",
+  "navDiscover": "Discover",
+  "navLibrary": "Library",
+  "navChats": "Chats",
+  "navProfile": "Profile",
+  "shareABook": "Share a book",
+  "notFoundTitle": "This page is not here",
+  "notFoundMessage": "The link may be old or the book may have moved on.",
+  "notFoundAction": "Back to Discover",
+  "discoverEyebrowNearby": "Books near you",
+  "discoverEyebrowCircle": "Books in the circle",
+  "discoverTitle": "Find your next read",
+  "searchHint": "Title, author or genre",
+  "searchClear": "Clear search",
+  "filtersTitle": "Filters",
+  "filterAll": "All",
+  "filterWithinKm": "Within {km} km",
+  "@filterWithinKm": {
+    "placeholders": {
+      "km": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "filterAvailableNow": "Available now",
+  "conditionOrBetter": "{condition} or better",
+  "@conditionOrBetter": {
+    "placeholders": {
+      "condition": {
+        "type": "String"
+      }
+    }
+  },
+  "loadErrorTitle": "Could not load books",
+  "resultCount": "{count, plural, =1{1 book} other{{count} books}}",
+  "@resultCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "resultSortNearest": "nearest first",
+  "resultSortAround": "from readers around you",
+  "clearFilters": "Clear filters",
+  "emptyTitle": "No books here yet",
+  "emptyMessage": "Be the first to put a book into the circle. Someone nearby is probably looking for it.",
+  "noResultsTitle": "No books match",
+  "noResultsNearby": "Nothing within {km} km right now. Try a wider search or fewer filters.",
+  "@noResultsNearby": {
+    "placeholders": {
+      "km": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "noResultsGeneric": "Try a different title or author, or loosen the filters.",
+  "statusShortReserved": "Reserved",
+  "statusShortGone": "Gone",
+  "mapLoading": "Finding books around you",
+  "mapBookCount": "{count, plural, =0{No books match here} =1{1 book on the map} other{{count} books on the map}}",
+  "@mapBookCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "mapMyLocation": "My location",
+  "mapNothingMatches": "Nothing matches your search and filters.",
+  "mapClear": "Clear",
+  "previewTitle": "On the map",
+  "previewViewBook": "View this book",
+  "distanceAway": "{distance} away",
+  "@distanceAway": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "locationServicesOff": "Turn on location services to see nearby books.",
+  "locationDialogTitle": "Location Access Required",
+  "locationDialogBody": "{appName} needs your location to find and display nearby books available for exchange. Your location is only used locally to calculate distance and is not continuously tracked.",
+  "@locationDialogBody": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
+  "locationDeny": "Deny",
+  "locationAccept": "Accept",
+  "locationPermissionNeeded": "Location permission is needed to show books near you.",
+  "locationOpenSettings": "Settings",
+  "locationFailed": "Could not determine your location. Please try again.",
+  "viewList": "List view",
+  "viewMap": "Map view",
+  "filterSheetSubtitle": "Narrow down the books you see",
+  "filterSheetReset": "Reset",
+  "filterSheetApply": "{count, plural, =0{No books match} =1{Show 1 book} other{Show {count} books}}",
+  "@filterSheetApply": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "filterSectionMode": "How it is shared",
+  "filterFreeToTake": "Free to take",
+  "filterSectionGenre": "Genre",
+  "filterAnyGenre": "Any genre",
+  "filterSectionCondition": "Condition",
+  "filterAnyCondition": "Any condition",
+  "filterNearMe": "Within {km} km of me",
+  "@filterNearMe": {
+    "placeholders": {
+      "km": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "filterLocating": "Finding your location…",
+  "filterNearMeHint": "Uses your location only to measure distance",
+  "filterAvailableHint": "Hide books that are already requested"
+}

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/design/design.dart';
+import '../../../../l10n/account/gen/account_l10n.dart';
 import '../../../discover/domain/entities/user.dart';
 import '../bloc/profile_bloc.dart';
 import '../bloc/profile_event.dart';
@@ -96,6 +97,7 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
+    final l = AccountL10n.of(context);
     try {
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(
@@ -114,9 +116,7 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
       if (mounted) {
         showAppSnack(
           context,
-          source == ImageSource.camera
-              ? 'We couldn\'t open the camera. Check the app\'s permissions.'
-              : 'We couldn\'t open your photos. Check the app\'s permissions.',
+          source == ImageSource.camera ? l.editCameraError : l.editGalleryError,
           tone: AppTone.danger,
         );
       }
@@ -124,18 +124,19 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
   }
 
   void _showImagePickerOptions() {
+    final l = AccountL10n.of(context);
     showAppSheet<void>(
       context,
       builder: (sheetContext) => SheetScaffold(
-        title: 'Profile photo',
-        subtitle: 'Other readers see this when you exchange books.',
+        title: l.editPhotoSheetTitle,
+        subtitle: l.editPhotoSheetSubtitle,
         padding: EdgeInsets.zero,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ProfileMenuRow(
               icon: LucideIcons.camera,
-              title: 'Take a photo',
+              title: l.editTakePhoto,
               onTap: () {
                 Navigator.pop(sheetContext);
                 _pickImage(ImageSource.camera);
@@ -143,7 +144,7 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
             ),
             ProfileMenuRow(
               icon: LucideIcons.image,
-              title: 'Choose from gallery',
+              title: l.editChooseGallery,
               onTap: () {
                 Navigator.pop(sheetContext);
                 _pickImage(ImageSource.gallery);
@@ -153,8 +154,8 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
               ProfileMenuRow(
                 icon: LucideIcons.undo2,
                 tone: AppTone.neutral,
-                title: 'Keep my current photo',
-                subtitle: 'Discard the photo you just picked',
+                title: l.editKeepCurrentPhoto,
+                subtitle: l.editKeepCurrentPhotoSubtitle,
                 onTap: () {
                   Navigator.pop(sheetContext);
                   setState(() {
@@ -175,7 +176,7 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
     if (user == null) {
       showAppSnack(
         context,
-        'Your profile is still loading. Try again in a moment.',
+        AccountL10n.of(context).editStillLoading,
         tone: AppTone.warning,
       );
       return;
@@ -202,17 +203,16 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
   }
 
   Future<void> _confirmDiscard() async {
+    final l = AccountL10n.of(context);
     final discard = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Discard changes?'),
-        content: const Text(
-          'You have changes that are not saved yet. If you leave now they will be lost.',
-        ),
+        title: Text(l.editDiscardTitle),
+        content: Text(l.editDiscardBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Keep editing'),
+            child: Text(l.editKeepEditing),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
@@ -220,7 +220,7 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
               backgroundColor: context.colors.error,
               foregroundColor: context.colors.onError,
             ),
-            child: const Text('Discard'),
+            child: Text(l.editDiscard),
           ),
         ],
       ),
@@ -235,6 +235,8 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AccountL10n.of(context);
+
     return BlocConsumer<ProfileBloc, ProfileState>(
       listener: (context, state) {
         if (state is ProfileLoaded) {
@@ -252,7 +254,7 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
             _isUpdatingProfile = false;
             _allowPop = true;
           });
-          showAppSnack(context, 'Profile updated', tone: AppTone.success);
+          showAppSnack(context, l.editProfileUpdated, tone: AppTone.success);
           // Reload user data after update
           context.read<ProfileBloc>().add(const LoadProfile());
           context.pop();
@@ -275,7 +277,7 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
               _isUpdatingProfile = false;
               _allowPop = true;
             });
-            showAppSnack(context, 'Photo updated', tone: AppTone.success);
+            showAppSnack(context, l.editPhotoUpdated, tone: AppTone.success);
             // Reload user data after photo update only
             context.read<ProfileBloc>().add(const LoadProfile());
             context.pop();
@@ -299,7 +301,7 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
             if (!didPop) _confirmDiscard();
           },
           child: Scaffold(
-            appBar: AppBar(title: const Text('Edit profile')),
+            appBar: AppBar(title: Text(l.profileEdit)),
             body: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.page,
@@ -327,48 +329,49 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
                         ),
                         child: Text(
                           _isUploadingPhoto
-                              ? 'Uploading photo…'
-                              : 'Change photo',
+                              ? l.editUploadingPhoto
+                              : l.editChangePhoto,
                         ),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xxl),
-                    const Padding(
-                      padding: EdgeInsets.only(
+                    Padding(
+                      padding: const EdgeInsets.only(
                         left: AppSpacing.xs,
                         bottom: AppSpacing.sm,
                       ),
-                      child: Eyebrow('Display name'),
+                      child: Eyebrow(l.editNameLabel),
                     ),
                     TextFormField(
                       controller: _nameController,
                       enabled: !isSaving,
-                      decoration: const InputDecoration(
-                        hintText: 'Enter your name',
-                        helperText: 'This is how other readers will see you.',
-                        prefixIcon: Icon(LucideIcons.user, size: 20),
+                      decoration: InputDecoration(
+                        hintText: l.editNameHint,
+                        helperText: l.editNameHelper,
+                        helperMaxLines: 2,
+                        errorMaxLines: 2,
+                        prefixIcon: const Icon(LucideIcons.user, size: 20),
                       ),
                       textCapitalization: TextCapitalization.words,
                       textInputAction: TextInputAction.done,
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your name';
+                          return l.editNameRequired;
                         }
                         if (value.trim().length < 2) {
-                          return 'Name must be at least 2 characters';
+                          return l.editNameTooShort;
                         }
                         if (value.trim().length > 50) {
-                          return 'Name must be less than 50 characters';
+                          return l.editNameTooLong;
                         }
                         return null;
                       },
                     ),
                     const SizedBox(height: AppSpacing.xxl),
-                    const AppBanner(
+                    AppBanner(
                       tone: AppTone.neutral,
-                      message:
-                          'Your profile picture will be visible to other users when you share or exchange books.',
+                      message: l.editPhotoNotice,
                     ),
                   ],
                 ),
@@ -404,14 +407,18 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
                                 ),
                               ),
                               const SizedBox(width: AppSpacing.md),
-                              Text(
-                                _isUploadingPhoto
-                                    ? 'Uploading photo…'
-                                    : 'Saving…',
+                              Flexible(
+                                child: Text(
+                                  _isUploadingPhoto
+                                      ? l.editUploadingPhoto
+                                      : l.editSaving,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ],
                           )
-                        : const Text('Save changes'),
+                        : Text(l.editSaveChanges),
                   ),
                 ),
               ),
@@ -429,7 +436,7 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
 
     return Semantics(
       button: true,
-      label: 'Change profile photo',
+      label: AccountL10n.of(context).editChangePhotoSemantics,
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,

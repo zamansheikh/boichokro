@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/design/design.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../l10n/account/gen/account_l10n.dart';
 import '../../../discover/domain/entities/book.dart';
 
 /// Onboarding Page - Introduction slides
@@ -18,28 +19,27 @@ class _OnboardingPageState extends State<OnboardingPage> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  static const List<OnboardingSlide> _slides = [
+  static const int _slideCount = 3;
+
+  List<OnboardingSlide> _slidesFor(AccountL10n l) => [
     OnboardingSlide(
-      title: 'Discover books nearby',
-      description:
-          'Browse the shelves of readers around you and find your next read a short walk away.',
-      illustration: _NearbyIllustration(),
+      title: l.onboardingSlide1Title,
+      description: l.onboardingSlide1Body,
+      illustration: const _NearbyIllustration(),
     ),
     OnboardingSlide(
-      title: 'Exchange or donate',
-      description:
-          'Swap a book you have finished for one you want, or simply give it away for free.',
-      illustration: _ExchangeIllustration(),
+      title: l.onboardingSlide2Title,
+      description: l.onboardingSlide2Body,
+      illustration: const _ExchangeIllustration(),
     ),
     OnboardingSlide(
-      title: 'Connect with readers',
-      description:
-          'Chat with the owner, agree on a place to meet, and pass the book on.',
-      illustration: _ConnectIllustration(),
+      title: l.onboardingSlide3Title,
+      description: l.onboardingSlide3Body,
+      illustration: const _ConnectIllustration(),
     ),
   ];
 
-  bool get _isLastPage => _currentPage == _slides.length - 1;
+  bool get _isLastPage => _currentPage == _slideCount - 1;
 
   @override
   void dispose() {
@@ -78,6 +78,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AccountL10n.of(context);
+    final slides = _slidesFor(l);
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -92,16 +95,28 @@ class _OnboardingPageState extends State<OnboardingPage> {
               ),
               child: Row(
                 children: [
-                  const ChokroMark(size: 32),
+                  SizedBox.square(
+                    dimension: 36,
+                    child: Transform.scale(
+                      scale: 1.6,
+                      child: Image.asset(
+                        'assets/icon/logo_splash.png',
+                        semanticLabel: context.core.appName,
+                      ),
+                    ),
+                  ),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
-                      'Boichokro',
+                      context.core.appName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: context.text.titleMedium,
                     ),
                   ),
+                  const SizedBox(width: AppSpacing.sm),
+                  // Language first: a new reader can switch before reading on.
+                  const LanguageSwitch(),
                   AnimatedOpacity(
                     opacity: _isLastPage ? 0 : 1,
                     duration: AppMotion.fast,
@@ -110,9 +125,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       child: TextButton(
                         onPressed: _skip,
                         style: TextButton.styleFrom(
-                          minimumSize: const Size(64, 48),
+                          minimumSize: const Size(48, 48),
                         ),
-                        child: const Text('Skip'),
+                        child: Text(l.onboardingSkip, maxLines: 1),
                       ),
                     ),
                   ),
@@ -124,19 +139,19 @@ class _OnboardingPageState extends State<OnboardingPage> {
               child: PageView.builder(
                 controller: _pageController,
                 onPageChanged: _onPageChanged,
-                itemCount: _slides.length,
+                itemCount: slides.length,
                 itemBuilder: (context, index) {
-                  return _SlideView(slide: _slides[index]);
+                  return _SlideView(slide: slides[index]);
                 },
               ),
             ),
             // Page indicator
             Semantics(
-              label: 'Page ${_currentPage + 1} of ${_slides.length}',
+              label: l.onboardingPageIndicator(_currentPage + 1, slides.length),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  for (int i = 0; i < _slides.length; i++)
+                  for (int i = 0; i < slides.length; i++)
                     AnimatedContainer(
                       duration: AppMotion.medium,
                       curve: AppMotion.curve,
@@ -171,7 +186,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(_isLastPage ? 'Get started' : 'Next'),
+                      Flexible(
+                        child: Text(
+                          _isLastPage
+                              ? l.onboardingGetStarted
+                              : l.onboardingNext,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                       const SizedBox(width: AppSpacing.sm),
                       const Icon(LucideIcons.arrowRight, size: 18),
                     ],
@@ -308,6 +331,8 @@ class _NearbyIllustration extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AccountL10n.of(context);
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -329,10 +354,10 @@ class _NearbyIllustration extends StatelessWidget {
           top: 58,
           child: Transform.rotate(
             angle: 0.2,
-            child: const BookCover(
+            child: BookCover(
               imageUrl: null,
               width: 88,
-              title: 'Feluda Samagra',
+              title: l.onboardingSampleBookFeluda,
             ),
           ),
         ),
@@ -341,20 +366,23 @@ class _NearbyIllustration extends StatelessWidget {
           top: 40,
           child: BookCover(imageUrl: null, width: 96, title: 'হাজার বছর ধরে'),
         ),
-        const Positioned(
+        Positioned(
           right: 14,
           top: 22,
           child: _FloatingChip(
-            child: MetaItem(icon: LucideIcons.mapPin, label: '650 m away'),
+            child: MetaItem(
+              icon: LucideIcons.mapPin,
+              label: l.onboardingChipDistanceAway(context.distance(650)),
+            ),
           ),
         ),
-        const Positioned(
+        Positioned(
           left: 10,
           bottom: 14,
           child: _FloatingChip(
             child: MetaItem(
               icon: LucideIcons.library,
-              label: '12 books near you',
+              label: l.onboardingChipBooksNearYou(12),
             ),
           ),
         ),
@@ -378,7 +406,11 @@ class _ExchangeIllustration extends StatelessWidget {
           top: 28,
           child: Transform.rotate(
             angle: -0.1,
-            child: const BookCover(imageUrl: null, width: 84, title: 'Sapiens'),
+            child: BookCover(
+              imageUrl: null,
+              width: 84,
+              title: AccountL10n.of(context).onboardingSampleBookSapiens,
+            ),
           ),
         ),
         Positioned(
@@ -411,31 +443,33 @@ class _ConnectIllustration extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AccountL10n.of(context);
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
         const _Backdrop(tone: AppTone.donate),
-        const Positioned(
+        Positioned(
           left: 8,
           top: 30,
           right: 56,
           child: _Bubble(
-            name: 'Nusrat Jahan',
-            text: 'Is the book still available?',
+            name: l.onboardingSampleSeekerName,
+            text: l.onboardingSampleQuestion,
             mine: false,
           ),
         ),
-        const Positioned(
+        Positioned(
           left: 56,
           top: 104,
           right: 8,
           child: _Bubble(
-            name: 'Arif Rahman',
-            text: 'Yes! Meet at the library gate?',
+            name: l.onboardingSampleOwnerName,
+            text: l.onboardingSampleReply,
             mine: true,
           ),
         ),
-        const Positioned(
+        Positioned(
           left: 0,
           right: 0,
           bottom: 14,
@@ -445,13 +479,13 @@ class _ConnectIllustration extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   StatusPill(
-                    label: 'Verified reader',
+                    label: l.verifiedReader,
                     icon: LucideIcons.badgeCheck,
                     tone: AppTone.success,
                     dense: true,
                   ),
-                  SizedBox(width: AppSpacing.sm),
-                  RatingBadge(rating: 4.9, swaps: 14),
+                  const SizedBox(width: AppSpacing.sm),
+                  const RatingBadge(rating: 4.9, swaps: 14),
                 ],
               ),
             ),

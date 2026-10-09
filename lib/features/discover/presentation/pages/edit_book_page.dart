@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/design/design.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../l10n/listing/gen/listing_l10n.dart';
 import '../../domain/entities/book.dart';
 import '../bloc/book/book_bloc.dart';
 import '../bloc/book/book_event.dart';
@@ -151,10 +152,11 @@ class _EditBookPageContentState extends State<_EditBookPageContent> {
     if (context.read<BookBloc>().state is BookLoading) return;
 
     if (_isDirty) {
+      final l = ListingL10n.of(context);
       final discard = await confirmDiscardBookForm(
         context,
-        title: 'Discard your changes?',
-        message: 'The edits you made to this book won\'t be saved.',
+        title: l.discardEditTitle,
+        message: l.discardEditMessage,
       );
       if (!discard) return;
     }
@@ -169,7 +171,7 @@ class _EditBookPageContentState extends State<_EditBookPageContent> {
         if (state is BookUpdated) {
           showAppSnack(
             context,
-            'Your changes are saved',
+            ListingL10n.of(context).snackChangesSaved,
             tone: AppTone.success,
           );
           context.pop();
@@ -179,6 +181,7 @@ class _EditBookPageContentState extends State<_EditBookPageContent> {
       },
       builder: (context, state) {
         final isLoading = state is BookLoading;
+        final l = ListingL10n.of(context);
 
         return PopScope(
           canPop: !isLoading && !_isDirty,
@@ -187,10 +190,10 @@ class _EditBookPageContentState extends State<_EditBookPageContent> {
           },
           child: Scaffold(
             appBar: AppBar(
-              title: const Text('Edit book'),
+              title: Text(l.editBookTitle),
               leading: IconButton(
                 icon: const Icon(LucideIcons.arrowLeft),
-                tooltip: 'Back',
+                tooltip: context.core.commonBack,
                 onPressed: isLoading ? null : _handleBack,
               ),
             ),
@@ -214,7 +217,7 @@ class _EditBookPageContentState extends State<_EditBookPageContent> {
                       _BookSummaryCard(book: widget.book),
                       const SizedBox(height: AppSpacing.xxl),
 
-                      const BookFormHeading(title: 'Details'),
+                      BookFormHeading(title: l.detailsHeading),
                       const SizedBox(height: AppSpacing.md),
                       BookDetailsFields(
                         titleController: _titleController,
@@ -224,9 +227,9 @@ class _EditBookPageContentState extends State<_EditBookPageContent> {
                       ),
                       const SizedBox(height: AppSpacing.xl),
 
-                      const BookFormHeading(
-                        title: 'Condition',
-                        hint: 'Be honest, it builds trust.',
+                      BookFormHeading(
+                        title: l.conditionHeading,
+                        hint: l.conditionHint,
                       ),
                       const SizedBox(height: AppSpacing.md),
                       BookConditionPicker(
@@ -250,9 +253,9 @@ class _EditBookPageContentState extends State<_EditBookPageContent> {
                       ),
                       const SizedBox(height: AppSpacing.xxl),
 
-                      const BookFormHeading(
-                        title: 'How you share it',
-                        hint: 'Choose what you would like in return.',
+                      BookFormHeading(
+                        title: l.sharingHeading,
+                        hint: l.sharingHint,
                       ),
                       const SizedBox(height: AppSpacing.md),
                       BookModePicker(
@@ -266,9 +269,9 @@ class _EditBookPageContentState extends State<_EditBookPageContent> {
               ),
             ),
             bottomNavigationBar: BookFormBottomBar(
-              primaryLabel: 'Save changes',
+              primaryLabel: l.actionSaveChanges,
               primaryIcon: LucideIcons.check,
-              loadingLabel: 'Saving…',
+              loadingLabel: l.loadingSaving,
               isLoading: isLoading,
               onPrimary: _submitUpdate,
             ),
@@ -298,7 +301,7 @@ class _BookSummaryCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Eyebrow('Editing'),
+                Eyebrow(ListingL10n.of(context).editingEyebrow),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   book.title,
@@ -310,7 +313,7 @@ class _BookSummaryCard extends StatelessWidget {
                 StatusPill.book(book.status, dense: true),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'The cover photo and pickup location stay as they are.',
+                  ListingL10n.of(context).editSummaryNote,
                   style: context.text.bodySmall?.copyWith(
                     color: colors.onSurfaceVariant,
                   ),

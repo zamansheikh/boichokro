@@ -12,6 +12,7 @@ import '../../../../core/design/design.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/network/firebase_service.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../l10n/library/gen/library_l10n.dart';
 import '../../../discover/domain/entities/book.dart';
 import '../../../discover/domain/entities/user.dart';
 import '../../../discover/domain/usecases/book_usecases.dart';
@@ -181,7 +182,7 @@ class _MyLibraryPageState extends State<MyLibraryPage>
     } else if (state is BookDeleted) {
       showAppSnack(
         context,
-        'Book removed from your library',
+        LibraryL10n.of(context).snackBookRemoved,
         tone: AppTone.success,
       );
       _reloadBooks();
@@ -311,7 +312,7 @@ class _MyLibraryPageState extends State<MyLibraryPage>
               padding: const EdgeInsets.only(right: AppSpacing.xs),
               child: IconButton(
                 icon: const Icon(LucideIcons.arrowLeft),
-                tooltip: 'Back',
+                tooltip: context.core.commonBack,
                 onPressed: () {
                   if (context.canPop()) {
                     context.pop();
@@ -326,7 +327,7 @@ class _MyLibraryPageState extends State<MyLibraryPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'My library',
+                  LibraryL10n.of(context).libraryTitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: context.text.headlineMedium,
@@ -345,7 +346,7 @@ class _MyLibraryPageState extends State<MyLibraryPage>
           ),
           IconButton(
             icon: const Icon(LucideIcons.refreshCcw),
-            tooltip: 'Refresh',
+            tooltip: context.core.commonRefresh,
             onPressed: _currentUserId == null ? null : _refreshAll,
           ),
         ],
@@ -354,18 +355,15 @@ class _MyLibraryPageState extends State<MyLibraryPage>
   }
 
   String _summaryLine() {
-    if (_currentUserId == null) return 'Sign in to share and request books';
+    final l = LibraryL10n.of(context);
+    if (_currentUserId == null) return l.summarySignedOut;
 
     final books = _books;
-    if (books == null && _requests == null) return 'Opening your shelf…';
+    if (books == null && _requests == null) return l.summaryLoading;
 
     final parts = <String>[];
     if (books != null) {
-      parts.add(
-        books.isEmpty
-            ? 'No books shared yet'
-            : '${books.length} ${books.length == 1 ? 'book' : 'books'} shared',
-      );
+      parts.add(l.summaryBooksShared(books.length));
     }
     if (_requests != null) {
       final received = _receivedRequests;
@@ -378,17 +376,16 @@ class _MyLibraryPageState extends State<MyLibraryPage>
       ].where((r) => r.status == RequestStatus.accepted).length;
 
       if (waiting > 0) {
-        parts.add('$waiting ${waiting == 1 ? 'request' : 'requests'} waiting');
+        parts.add(l.summaryRequestsWaiting(waiting));
       } else if (handOffs > 0) {
-        parts.add(
-          '$handOffs ${handOffs == 1 ? 'hand-off' : 'hand-offs'} in progress',
-        );
+        parts.add(l.summaryHandOffsInProgress(handOffs));
       }
     }
     return parts.join(' · ');
   }
 
   Widget _buildTabBar() {
+    final l = LibraryL10n.of(context);
     final hasRequests = _requests != null;
     final sent = _sentRequests;
     final received = _receivedRequests;
@@ -404,32 +401,31 @@ class _MyLibraryPageState extends State<MyLibraryPage>
       tabAlignment: TabAlignment.start,
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
       tabs: [
-        _LibraryTab(label: 'My books', count: _books?.length),
+        _LibraryTab(label: l.tabMyBooks, count: _books?.length),
         _LibraryTab(
-          label: 'My requests',
+          label: l.tabMyRequests,
           count: hasRequests ? sent.length : null,
           highlight: sent.any((r) => needsMe(r, isSeeker: true)),
         ),
         _LibraryTab(
-          label: 'Requests to me',
+          label: l.tabRequestsToMe,
           count: hasRequests ? received.length : null,
           highlight: received.any((r) => needsMe(r, isSeeker: false)),
         ),
-        const _LibraryTab(label: 'History'),
+        _LibraryTab(label: l.tabHistory),
       ],
     );
   }
 
   Widget _buildSignedOut() {
+    final l = LibraryL10n.of(context);
     return Padding(
       padding: EdgeInsets.only(bottom: _bottomPadding),
       child: AppEmptyState(
         icon: LucideIcons.library,
-        title: 'Your library lives here',
-        message:
-            'Sign in to share your books, ask for others and follow every '
-            'hand-off.',
-        actionLabel: 'Sign in',
+        title: l.signedOutTitle,
+        message: l.signedOutMessage,
+        actionLabel: l.signInAction,
         actionIcon: LucideIcons.logIn,
         onAction: () => context.go(RoutePaths.auth),
       ),
@@ -461,6 +457,7 @@ class _MyLibraryPageState extends State<MyLibraryPage>
   Widget _buildMyBooksTab() {
     if (_currentUserId == null) return _buildSignedOut();
 
+    final l = LibraryL10n.of(context);
     final books = _books;
     if (books == null) {
       final state = _bookBloc.state;
@@ -468,7 +465,7 @@ class _MyLibraryPageState extends State<MyLibraryPage>
         return Padding(
           padding: EdgeInsets.only(bottom: _bottomPadding),
           child: AppErrorState(
-            title: 'Could not load your books',
+            title: l.booksLoadErrorTitle,
             message: state.message,
             onRetry: _refreshAll,
           ),
@@ -480,11 +477,9 @@ class _MyLibraryPageState extends State<MyLibraryPage>
     if (books.isEmpty) {
       return _buildEmpty(
         icon: LucideIcons.library,
-        title: 'Your shelf is empty',
-        message:
-            'Share a book you have finished. A reader nearby may be looking '
-            'for exactly that one.',
-        actionLabel: 'Add a book',
+        title: l.emptyBooksTitle,
+        message: l.emptyBooksMessage,
+        actionLabel: l.addBookAction,
         actionIcon: LucideIcons.plus,
         onAction: _addBook,
       );
@@ -524,11 +519,12 @@ class _MyLibraryPageState extends State<MyLibraryPage>
 
   Future<void> _showBookActions(Book book) async {
     final editable = book.status == BookStatus.available;
+    final l = LibraryL10n.of(context);
 
     final action = await showAppSheet<_BookAction>(
       context,
       builder: (sheetContext) => SheetScaffold(
-        title: 'Book options',
+        title: l.bookOptionsTitle,
         subtitle: book.title,
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
         child: Column(
@@ -546,21 +542,19 @@ class _MyLibraryPageState extends State<MyLibraryPage>
                   tone: AppTone.warning,
                   icon: LucideIcons.lock,
                   message: book.status == BookStatus.completed
-                      ? 'This book has already found its reader, so it can '
-                            'no longer be edited or removed.'
-                      : 'This book is part of a request right now. You can '
-                            'edit or remove it once that is settled.',
+                      ? l.bookLockedCompleted
+                      : l.bookLockedInRequest,
                 ),
               ),
             ListTile(
               leading: const Icon(LucideIcons.eye),
-              title: const Text('View book'),
+              title: Text(l.bookActionView),
               onTap: () => Navigator.pop(sheetContext, _BookAction.view),
             ),
             ListTile(
               enabled: editable,
               leading: const Icon(LucideIcons.pencil),
-              title: const Text('Edit details'),
+              title: Text(l.bookActionEdit),
               onTap: () => Navigator.pop(sheetContext, _BookAction.edit),
             ),
             ListTile(
@@ -570,7 +564,7 @@ class _MyLibraryPageState extends State<MyLibraryPage>
                 color: editable ? sheetContext.colors.error : null,
               ),
               title: Text(
-                'Remove from library',
+                l.bookActionRemove,
                 style: editable
                     ? TextStyle(color: sheetContext.colors.error)
                     : null,
@@ -603,13 +597,12 @@ class _MyLibraryPageState extends State<MyLibraryPage>
   }
 
   Future<void> _confirmDeleteBook(Book book) async {
+    final l = LibraryL10n.of(context);
     final confirmed = await _confirm(
-      title: 'Remove this book?',
-      message:
-          '"${book.title}" will be taken off Boichokro and readers will no '
-          'longer be able to ask for it. This cannot be undone.',
-      confirmLabel: 'Remove',
-      cancelLabel: 'Keep it',
+      title: l.deleteBookTitle,
+      message: l.deleteBookMessage(book.title),
+      confirmLabel: l.deleteBookConfirm,
+      cancelLabel: l.keepItAction,
       destructive: true,
     );
     if (!confirmed || !mounted) return;
@@ -618,15 +611,14 @@ class _MyLibraryPageState extends State<MyLibraryPage>
 
   // ========== TAB 2: MY REQUESTS ==========
   Widget _buildMyRequestsTab() {
+    final l = LibraryL10n.of(context);
     return _buildRequestList(
       requests: _sentRequests,
       empty: () => _buildEmpty(
         icon: LucideIcons.send,
-        title: 'No requests on the way',
-        message:
-            'When you ask for a book, you can follow its journey here, from '
-            'request to hand-off.',
-        actionLabel: 'Discover books',
+        title: l.emptySentTitle,
+        message: l.emptySentMessage,
+        actionLabel: l.discoverBooksAction,
         actionIcon: LucideIcons.compass,
         onAction: () => HomePage.goToTab(context, 0),
       ),
@@ -636,15 +628,14 @@ class _MyLibraryPageState extends State<MyLibraryPage>
 
   // ========== TAB 3: REQUESTS TO ME ==========
   Widget _buildRequestsToMeTab() {
+    final l = LibraryL10n.of(context);
     return _buildRequestList(
       requests: _receivedRequests,
       empty: () => _buildEmpty(
         icon: LucideIcons.inbox,
-        title: 'No one has asked yet',
-        message:
-            'When a reader asks for one of your books, their request shows '
-            'up here for you to accept or decline.',
-        actionLabel: 'Add a book',
+        title: l.emptyReceivedTitle,
+        message: l.emptyReceivedMessage,
+        actionLabel: l.addBookAction,
         actionIcon: LucideIcons.plus,
         onAction: _addBook,
       ),
@@ -654,14 +645,13 @@ class _MyLibraryPageState extends State<MyLibraryPage>
 
   // ========== TAB 4: HISTORY ==========
   Widget _buildHistoryTab() {
+    final l = LibraryL10n.of(context);
     return _buildRequestList(
       requests: _history,
       empty: () => _buildEmpty(
         icon: LucideIcons.history,
-        title: 'No history yet',
-        message:
-            'Completed, declined and cancelled requests are kept here, along '
-            'with the reviews you exchange.',
+        title: l.emptyHistoryTitle,
+        message: l.emptyHistoryMessage,
       ),
       itemBuilder: _buildHistoryCard,
     );
@@ -680,7 +670,7 @@ class _MyLibraryPageState extends State<MyLibraryPage>
         return Padding(
           padding: EdgeInsets.only(bottom: _bottomPadding),
           child: AppErrorState(
-            title: 'Could not load your requests',
+            title: LibraryL10n.of(context).requestsLoadErrorTitle,
             message: state.message,
             onRetry: _refreshAll,
           ),
@@ -773,8 +763,7 @@ class _MyLibraryPageState extends State<MyLibraryPage>
   // ========== REQUEST ACTIONS ==========
 
   void _acceptRequest(BookRequest request) {
-    _pendingRequestMessage =
-        'Request accepted. Use the chat to arrange the hand-off.';
+    _pendingRequestMessage = LibraryL10n.of(context).snackRequestAccepted;
     _requestBloc.add(
       UpdateRequestStatus(
         requestId: request.id,
@@ -784,19 +773,18 @@ class _MyLibraryPageState extends State<MyLibraryPage>
   }
 
   Future<void> _declineRequest(BookRequest request, User? seeker) async {
-    final name = seeker?.name ?? 'The reader';
+    final l = LibraryL10n.of(context);
+    final name = seeker?.name ?? l.fallbackReader;
     final confirmed = await _confirm(
-      title: 'Decline this request?',
-      message:
-          '$name will see that you declined. Your book stays available for '
-          'other readers.',
-      confirmLabel: 'Decline',
-      cancelLabel: 'Not now',
+      title: l.declineDialogTitle,
+      message: l.declineDialogMessage(name),
+      confirmLabel: l.declineAction,
+      cancelLabel: l.notNowAction,
       destructive: true,
     );
     if (!confirmed || !mounted) return;
 
-    _pendingRequestMessage = 'Request declined';
+    _pendingRequestMessage = l.snackRequestDeclined;
     _requestBloc.add(
       UpdateRequestStatus(
         requestId: request.id,
@@ -806,18 +794,17 @@ class _MyLibraryPageState extends State<MyLibraryPage>
   }
 
   Future<void> _cancelRequest(BookRequest request) async {
+    final l = LibraryL10n.of(context);
     final confirmed = await _confirm(
-      title: 'Cancel your request?',
-      message:
-          'The owner will see that you no longer need this book. You can '
-          'ask for it again later if it is still available.',
-      confirmLabel: 'Cancel request',
-      cancelLabel: 'Keep it',
+      title: l.cancelDialogTitle,
+      message: l.cancelDialogMessage,
+      confirmLabel: l.cancelRequestAction,
+      cancelLabel: l.keepItAction,
       destructive: true,
     );
     if (!confirmed || !mounted) return;
 
-    _pendingRequestMessage = 'Request cancelled';
+    _pendingRequestMessage = l.snackRequestCancelled;
     _requestBloc.add(
       UpdateRequestStatus(
         requestId: request.id,
@@ -834,22 +821,21 @@ class _MyLibraryPageState extends State<MyLibraryPage>
         ? request.ownerConfirmed
         : request.seekerConfirmed;
 
+    final l = LibraryL10n.of(context);
     final confirmed = await _confirm(
-      title: isSeeker ? 'Did you receive the book?' : 'Did you hand it over?',
-      message: isSeeker
-          ? 'Confirm only once the book is in your hands. '
-          : 'Confirm only once the reader has the book. ',
+      title: isSeeker ? l.confirmReceivedTitle : l.confirmHandedOverTitle,
+      message: isSeeker ? l.confirmReceivedMessage : l.confirmHandedOverMessage,
       detail: otherConfirmed
-          ? 'This completes the exchange, and you can then review each other.'
-          : 'The exchange completes when the other person confirms too.',
-      confirmLabel: isSeeker ? 'Yes, I have it' : 'Yes, handed over',
-      cancelLabel: 'Not yet',
+          ? l.confirmDetailCompletes
+          : l.confirmDetailWaitsOther,
+      confirmLabel: isSeeker ? l.confirmReceivedYes : l.confirmHandedOverYes,
+      cancelLabel: l.notYetAction,
     );
     if (!confirmed || !mounted) return;
 
     _pendingRequestMessage = otherConfirmed
-        ? 'Exchange complete. You can now leave a review.'
-        : 'Confirmed. Waiting for the other person to confirm too.';
+        ? l.snackExchangeComplete
+        : l.snackConfirmedWaiting;
     _requestBloc.add(ConfirmExchange(requestId: request.id, userId: userId));
   }
 
@@ -857,13 +843,14 @@ class _MyLibraryPageState extends State<MyLibraryPage>
     final userId = _currentUserId;
     if (userId == null) return;
 
+    final l = LibraryL10n.of(context);
     final draft = await showAppSheet<_ReviewDraft>(
       context,
       builder: (_) => _ReviewSheet(name: other?.name),
     );
     if (draft == null || !mounted) return;
 
-    _pendingRequestMessage = 'Review submitted. Thank you!';
+    _pendingRequestMessage = l.snackReviewSubmitted;
     _requestBloc.add(
       SubmitReview(
         requestId: request.id,
@@ -886,7 +873,7 @@ class _MyLibraryPageState extends State<MyLibraryPage>
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(title),
-        content: Text(detail == null ? message : '$message$detail'),
+        content: Text(detail == null ? message : '$message $detail'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -933,21 +920,6 @@ class _MyLibraryPageState extends State<MyLibraryPage>
 // Shared helpers
 // ============================================================================
 
-String _relativeDate(DateTime date) {
-  final diff = DateTime.now().difference(date);
-  if (diff.inDays == 0) {
-    if (diff.inHours == 0) {
-      if (diff.inMinutes <= 0) return 'just now';
-      return '${diff.inMinutes}m ago';
-    }
-    return '${diff.inHours}h ago';
-  }
-  if (diff.inDays < 7) return '${diff.inDays}d ago';
-  return DateFormat('d MMM y').format(date);
-}
-
-const String _missingBookTitle = 'A book that is no longer listed';
-
 /// Tab label with an optional count bubble.
 class _LibraryTab extends StatelessWidget {
   const _LibraryTab({required this.label, this.count, this.highlight = false});
@@ -968,7 +940,7 @@ class _LibraryTab extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label),
+          Text(label, maxLines: 1, softWrap: false),
           if (count != null && count > 0) ...[
             const SizedBox(width: 6),
             Container(
@@ -981,7 +953,7 @@ class _LibraryTab extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppRadius.pill),
               ),
               child: Text(
-                '$count',
+                context.number(count),
                 textAlign: TextAlign.center,
                 style: context.text.labelSmall?.copyWith(
                   color: highlight ? colors.onPrimary : colors.onSurfaceVariant,
@@ -1074,7 +1046,7 @@ class _MyBookCard extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(LucideIcons.ellipsisVertical),
-            tooltip: 'Book options',
+            tooltip: LibraryL10n.of(context).bookOptionsTitle,
             constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             color: context.colors.onSurfaceVariant,
             onPressed: onMore,
@@ -1089,25 +1061,24 @@ class _MyBookCard extends StatelessWidget {
     final IconData icon;
     final AppTone tone;
     var actionable = true;
+    final l = LibraryL10n.of(context);
 
     if (waitingCount > 0) {
-      label = waitingCount == 1
-          ? '1 person asked for this'
-          : '$waitingCount people asked for this';
+      label = l.bookNextPeopleAsked(waitingCount);
       icon = LucideIcons.mail;
       tone = AppTone.warning;
     } else {
       switch (book.status) {
         case BookStatus.requested:
-          label = 'Someone asked for this';
+          label = l.bookNextSomeoneAsked;
           icon = LucideIcons.mail;
           tone = AppTone.warning;
         case BookStatus.pending:
-          label = 'Hand-off in progress';
+          label = l.bookNextHandOff;
           icon = LucideIcons.handshake;
           tone = AppTone.exchange;
         case BookStatus.completed:
-          label = 'Found a new reader';
+          label = l.bookNextFoundReader;
           icon = LucideIcons.checkCheck;
           tone = AppTone.neutral;
           actionable = false;
@@ -1256,7 +1227,7 @@ class _BookRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    book?.title ?? _missingBookTitle,
+                    book?.title ?? LibraryL10n.of(context).missingBookTitle,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: context.text.titleMedium,
@@ -1355,12 +1326,15 @@ class _RequestCard extends StatelessWidget {
       request.exchangeMethod == null &&
       onOpenChat != null;
 
-  String get _name => other?.name ?? (isSeeker ? 'The owner' : 'The reader');
-  String get _nameInline =>
-      other?.name ?? (isSeeker ? 'the owner' : 'the reader');
+  String _name(LibraryL10n l) =>
+      other?.name ?? (isSeeker ? l.fallbackOwner : l.fallbackReader);
+  String _nameInline(LibraryL10n l) =>
+      other?.name ??
+      (isSeeker ? l.fallbackOwnerInline : l.fallbackReaderInline);
 
   @override
   Widget build(BuildContext context) {
+    final l = LibraryL10n.of(context);
     final book = this.book;
     final arrangement = _buildArrangement(context);
     final actions = _buildActions(context);
@@ -1371,9 +1345,9 @@ class _RequestCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _PersonRow(
-            caption: isSeeker ? 'You asked' : 'Asked by',
+            caption: isSeeker ? l.captionYouAsked : l.captionAskedBy,
             user: other,
-            fallbackName: _name,
+            fallbackName: _name(l),
             trailing: StatusPill.request(request.status, dense: true),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -1386,7 +1360,7 @@ class _RequestCard extends StatelessWidget {
               if (book != null) StatusPill.mode(book.mode, dense: true),
               MetaItem(
                 icon: LucideIcons.clock,
-                label: 'Asked ${_relativeDate(request.createdAt)}',
+                label: l.askedTime(context.relativeTime(request.createdAt)),
               ),
             ],
           ),
@@ -1409,11 +1383,11 @@ class _RequestCard extends StatelessWidget {
                         color: context.tone(AppTone.exchange).foreground,
                       ),
                       const SizedBox(width: 6),
-                      Eyebrow(
-                        isSeeker
-                            ? 'You offered in return'
-                            : 'Offered in return',
-                        color: context.tone(AppTone.exchange).foreground,
+                      Expanded(
+                        child: Eyebrow(
+                          isSeeker ? l.youOfferedInReturn : l.offeredInReturn,
+                          color: context.tone(AppTone.exchange).foreground,
+                        ),
                       ),
                     ],
                   ),
@@ -1451,9 +1425,18 @@ class _RequestCard extends StatelessWidget {
               spacing: AppSpacing.sm,
               runSpacing: 6,
               children: [
-                _confirmationPill('You', _mineConfirmed),
                 _confirmationPill(
-                  isSeeker ? 'Owner' : 'Reader',
+                  _mineConfirmed ? l.pillYouConfirmed : l.pillYouNotYet,
+                  _mineConfirmed,
+                ),
+                _confirmationPill(
+                  isSeeker
+                      ? (_theirsConfirmed
+                            ? l.pillOwnerConfirmed
+                            : l.pillOwnerNotYet)
+                      : (_theirsConfirmed
+                            ? l.pillReaderConfirmed
+                            : l.pillReaderNotYet),
                   _theirsConfirmed,
                 ),
               ],
@@ -1478,9 +1461,9 @@ class _RequestCard extends StatelessWidget {
     );
   }
 
-  Widget _confirmationPill(String who, bool confirmed) {
+  Widget _confirmationPill(String label, bool confirmed) {
     return StatusPill(
-      label: confirmed ? '$who: confirmed' : '$who: not yet',
+      label: label,
       icon: confirmed ? LucideIcons.circleCheck : LucideIcons.circle,
       tone: confirmed ? AppTone.success : AppTone.neutral,
       dense: true,
@@ -1493,45 +1476,43 @@ class _RequestCard extends StatelessWidget {
     final IconData icon;
     final AppTone tone;
 
+    final l = LibraryL10n.of(context);
+    final name = _name(l);
+    final nameInline = _nameInline(l);
+
     if (_pending) {
       if (isSeeker) {
-        title = 'Waiting for $_nameInline';
-        message =
-            'They will accept or decline your request. You can cancel it any '
-            'time before then.';
+        title = l.requestBannerWaitingTitle(nameInline);
+        message = l.requestBannerWaitingMessage;
         icon = LucideIcons.hourglass;
         tone = AppTone.neutral;
       } else {
         title = request.offeredBookId != null
-            ? '$_name is offering a swap'
-            : '$_name would like this book';
-        message =
-            'Accepting opens a chat to arrange the hand-off and declines any '
-            'other requests for this book.';
+            ? l.requestBannerSwapOfferTitle(name)
+            : l.requestBannerWantsBookTitle(name);
+        message = l.requestBannerIncomingMessage;
         icon = LucideIcons.mail;
         tone = AppTone.warning;
       }
     } else if (_mineConfirmed) {
-      title = 'You have confirmed';
-      message = 'Waiting for $_nameInline to confirm the hand-off too.';
+      title = l.requestBannerYouConfirmedTitle;
+      message = l.requestBannerYouConfirmedMessage(nameInline);
       icon = LucideIcons.hourglass;
       tone = AppTone.neutral;
     } else if (_theirsConfirmed) {
-      title = 'Your turn to confirm';
+      title = l.requestBannerYourTurnTitle;
       message = isSeeker
-          ? '$_name confirmed handing the book over. Confirm once it is in '
-                'your hands to complete the exchange.'
-          : '$_name confirmed receiving the book. Confirm on your side to '
-                'complete the exchange.';
+          ? l.requestBannerYourTurnSeekerMessage(name)
+          : l.requestBannerYourTurnOwnerMessage(name);
       icon = LucideIcons.packageCheck;
       tone = AppTone.warning;
     } else {
-      title = isSeeker ? '$_name said yes' : 'Time to hand it over';
+      title = isSeeker
+          ? l.requestBannerSaidYesTitle(name)
+          : l.requestBannerHandOverTitle;
       message = isSeeker
-          ? 'Agree on a time and place in chat. Once the book is in your '
-                'hands, confirm it here.'
-          : 'Agree on a time and place in chat. Once you have handed the '
-                'book over, confirm it here.';
+          ? l.requestBannerArrangeSeekerMessage
+          : l.requestBannerArrangeOwnerMessage;
       icon = LucideIcons.handshake;
       tone = AppTone.primary;
     }
@@ -1543,6 +1524,7 @@ class _RequestCard extends StatelessWidget {
   Widget? _buildArrangement(BuildContext context) {
     final method = request.exchangeMethod;
     if (method == null) return null;
+    final l = LibraryL10n.of(context);
 
     final rows = <Widget>[];
     void add(IconData icon, String? value) {
@@ -1583,13 +1565,13 @@ class _RequestCard extends StatelessWidget {
       final time = request.meetingTime;
       add(
         LucideIcons.calendarClock,
-        time == null ? null : DateFormat('EEE d MMM, h:mm a').format(time),
+        time == null ? null : context.date(time, 'EEE d MMM, h:mm a'),
       );
       add(LucideIcons.mapPin, request.meetingLocation);
     } else {
       add(LucideIcons.truck, request.courierMethod);
       final tracking = request.trackingId?.trim() ?? '';
-      add(LucideIcons.hash, tracking.isEmpty ? null : 'Tracking $tracking');
+      add(LucideIcons.hash, tracking.isEmpty ? null : l.trackingId(tracking));
     }
 
     return Container(
@@ -1601,9 +1583,9 @@ class _RequestCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Eyebrow('Hand-off'),
+          Eyebrow(l.handOffEyebrow),
           const SizedBox(height: 2),
-          Text(method.displayName, style: context.text.titleSmall),
+          Text(method.label(context), style: context.text.titleSmall),
           ...rows,
         ],
       ),
@@ -1612,24 +1594,39 @@ class _RequestCard extends StatelessWidget {
 
   /// The single most important thing to do next, if there is one.
   Widget? _buildActions(BuildContext context) {
+    final l = LibraryL10n.of(context);
     if (_pending && !isSeeker) {
+      // Accept carries an icon, so it gets the wider share; both labels may
+      // wrap rather than overflow on narrow screens.
       return Row(
         children: [
           Expanded(
+            flex: 5,
             child: OutlinedButton(
               onPressed: busy ? null : onDecline,
               style: OutlinedButton.styleFrom(
                 foregroundColor: context.colors.error,
               ),
-              child: const Text('Decline'),
+              child: Text(
+                l.declineAction,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
+            flex: 6,
             child: FilledButton.icon(
               onPressed: busy ? null : onAccept,
               icon: const Icon(LucideIcons.check, size: 18),
-              label: const Text('Accept'),
+              label: Text(
+                l.acceptAction,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
         ],
@@ -1642,7 +1639,7 @@ class _RequestCard extends StatelessWidget {
         size: 18,
       );
       final confirmLabel = Text(
-        isSeeker ? 'I received the book' : 'I handed it over',
+        isSeeker ? l.receivedBookAction : l.handedOverAction,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       );
@@ -1654,8 +1651,8 @@ class _RequestCard extends StatelessWidget {
             FilledButton.icon(
               onPressed: onOpenChat,
               icon: const Icon(LucideIcons.messageCircle, size: 18),
-              label: const Text(
-                'Arrange hand-off in chat',
+              label: Text(
+                l.arrangeInChatAction,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -1684,6 +1681,7 @@ class _RequestCard extends StatelessWidget {
   Widget? _buildSecondaryActions(BuildContext context) {
     final showChat = onOpenChat != null && !_arrangeFirst;
     if (!showChat && onCancel == null) return null;
+    final l = LibraryL10n.of(context);
 
     return Wrap(
       alignment: WrapAlignment.spaceBetween,
@@ -1693,13 +1691,13 @@ class _RequestCard extends StatelessWidget {
           TextButton.icon(
             onPressed: onOpenChat,
             icon: const Icon(LucideIcons.messageCircle, size: 18),
-            label: const Text('Open chat'),
+            label: Text(l.openChatAction),
           ),
         if (onCancel != null)
           TextButton(
             onPressed: busy ? null : onCancel,
             style: TextButton.styleFrom(foregroundColor: context.colors.error),
-            child: const Text('Cancel request'),
+            child: Text(l.cancelRequestAction),
           ),
       ],
     );
@@ -1791,29 +1789,33 @@ class _HistoryCard extends StatelessWidget {
   final VoidCallback? onOpenBook;
   final VoidCallback onReview;
 
-  String get _nameInline =>
-      other?.name ?? (isSeeker ? 'the owner' : 'the reader');
-  String get _name => other?.name ?? (isSeeker ? 'The owner' : 'The reader');
+  String _nameInline(LibraryL10n l) =>
+      other?.name ??
+      (isSeeker ? l.fallbackOwnerInline : l.fallbackReaderInline);
+  String _name(LibraryL10n l) =>
+      other?.name ?? (isSeeker ? l.fallbackOwner : l.fallbackReader);
 
-  String get _story {
+  String _story(LibraryL10n l) {
+    final name = _name(l);
+    final nameInline = _nameInline(l);
     switch (request.status) {
       case RequestStatus.completed:
         return isSeeker
-            ? 'You received this from $_nameInline'
-            : 'You gave this to $_nameInline';
+            ? l.historyReceivedFrom(nameInline)
+            : l.historyGaveTo(nameInline);
       case RequestStatus.declined:
         return isSeeker
-            ? '$_name declined your request'
-            : 'You declined the request from $_nameInline';
+            ? l.historyTheyDeclined(name)
+            : l.historyYouDeclined(nameInline);
       case RequestStatus.cancelled:
         return isSeeker
-            ? 'You cancelled your request to $_nameInline'
-            : '$_name cancelled their request';
+            ? l.historyYouCancelled(nameInline)
+            : l.historyTheyCancelled(name);
       case RequestStatus.pending:
       case RequestStatus.accepted:
         return isSeeker
-            ? 'You asked $_nameInline'
-            : '$_name asked for this book';
+            ? l.historyYouAsked(nameInline)
+            : l.historyTheyAsked(name);
     }
   }
 
@@ -1846,14 +1848,14 @@ class _HistoryCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        book?.title ?? _missingBookTitle,
+                        book?.title ?? LibraryL10n.of(context).missingBookTitle,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: context.text.titleSmall,
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        _story,
+                        _story(LibraryL10n.of(context)),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: context.text.bodySmall?.copyWith(color: muted),
@@ -1867,7 +1869,7 @@ class _HistoryCard extends StatelessWidget {
                           StatusPill.request(request.status, dense: true),
                           MetaItem(
                             icon: LucideIcons.calendar,
-                            label: _relativeDate(request.updatedAt),
+                            label: context.relativeTime(request.updatedAt),
                           ),
                         ],
                       ),
@@ -1894,33 +1896,33 @@ class _HistoryCard extends StatelessWidget {
     final theirRating = isSeeker ? request.ownerRating : request.seekerRating;
     final theirReview = isSeeker ? request.ownerReview : request.seekerReview;
     final muted = context.colors.onSurfaceVariant;
+    final l = LibraryL10n.of(context);
 
     return [
       if (myRating != null)
-        _ReviewLine(label: 'You rated', rating: myRating, review: myReview)
+        _ReviewLine(label: l.reviewYouRated, rating: myRating, review: myReview)
       else ...[
         Text(
-          'How was your exchange with $_nameInline? Your review helps other '
-          'readers trust them.',
+          l.reviewPrompt(_nameInline(l)),
           style: context.text.bodySmall?.copyWith(color: muted),
         ),
         const SizedBox(height: AppSpacing.md),
         FilledButton.tonalIcon(
           onPressed: busy ? null : onReview,
           icon: const Icon(LucideIcons.star, size: 18),
-          label: const Text('Leave a review'),
+          label: Text(l.leaveReviewAction),
         ),
       ],
       const SizedBox(height: AppSpacing.md),
       if (theirRating != null)
         _ReviewLine(
-          label: 'They rated you',
+          label: l.reviewTheyRated,
           rating: theirRating,
           review: theirReview,
         )
       else
         Text(
-          '$_name has not left a review yet.',
+          l.reviewNotLeftYet(_name(l)),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: context.text.bodySmall?.copyWith(color: muted),
@@ -1957,7 +1959,7 @@ class _ReviewLine extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             Text(
-              rating.toStringAsFixed(1),
+              NumberFormat('0.0', context.core.localeName).format(rating),
               style: context.text.labelMedium?.copyWith(
                 color: context.colors.onSurface,
                 fontWeight: FontWeight.w700,
@@ -1968,7 +1970,7 @@ class _ReviewLine extends StatelessWidget {
         if (text.isNotEmpty) ...[
           const SizedBox(height: 6),
           Text(
-            '"$text"',
+            LibraryL10n.of(context).reviewQuote(text),
             maxLines: 4,
             overflow: TextOverflow.ellipsis,
             style: context.text.bodySmall?.copyWith(
@@ -1997,14 +1999,6 @@ class _ReviewSheet extends StatefulWidget {
 }
 
 class _ReviewSheetState extends State<_ReviewSheet> {
-  static const List<String> _labels = [
-    'Not good',
-    'Could be better',
-    'Okay',
-    'Good',
-    'Excellent',
-  ];
-
   final TextEditingController _controller = TextEditingController();
   double _rating = 5;
 
@@ -2016,20 +2010,28 @@ class _ReviewSheetState extends State<_ReviewSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l = LibraryL10n.of(context);
     final name = widget.name;
-    final labelIndex = (_rating.round() - 1).clamp(0, _labels.length - 1);
+    final labels = [
+      l.ratingLabelNotGood,
+      l.ratingLabelCouldBeBetter,
+      l.ratingLabelOkay,
+      l.ratingLabelGood,
+      l.ratingLabelExcellent,
+    ];
+    final labelIndex = (_rating.round() - 1).clamp(0, labels.length - 1);
 
     return SheetScaffold(
-      title: 'Leave a review',
+      title: l.leaveReviewAction,
       subtitle: name == null
-          ? 'How did the exchange go?'
-          : 'How was your exchange with $name?',
+          ? l.reviewSheetSubtitle
+          : l.reviewSheetSubtitleNamed(name),
       footer: FilledButton(
         onPressed: () => Navigator.pop<_ReviewDraft>(context, (
           rating: _rating,
           text: _controller.text.trim(),
         )),
-        child: const Text('Submit review'),
+        child: Text(l.submitReviewAction),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -2055,7 +2057,7 @@ class _ReviewSheetState extends State<_ReviewSheet> {
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            _labels[labelIndex],
+            labels[labelIndex],
             textAlign: TextAlign.center,
             style: context.text.titleSmall,
           ),
@@ -2065,16 +2067,16 @@ class _ReviewSheetState extends State<_ReviewSheet> {
             minLines: 3,
             maxLines: 5,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'Your review (optional)',
-              hintText: 'Was the book as described? Were they easy to meet?',
+            decoration: InputDecoration(
+              labelText: l.reviewFieldLabel,
+              hintText: l.reviewFieldHint,
+              hintMaxLines: 2,
               alignLabelWithHint: true,
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Your rating is shared with them and counts towards their '
-            'profile.',
+            l.reviewShareNote,
             style: context.text.bodySmall?.copyWith(
               color: context.colors.onSurfaceVariant,
             ),

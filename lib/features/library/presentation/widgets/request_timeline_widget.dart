@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/design/design.dart';
+import '../../../../l10n/library/gen/library_l10n.dart';
 import '../../domain/entities/request.dart';
 
 /// The journey of a request, drawn as a vertical path:
@@ -47,7 +48,8 @@ class _RequestTimelineWidgetState extends State<RequestTimelineWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final steps = _buildSteps();
+    final l = LibraryL10n.of(context);
+    final steps = _buildSteps(l);
     final doneCount = steps.where((s) => s.state == _StepState.done).length;
     final stopped = steps.any((s) => s.state == _StepState.stopped);
     final progress = doneCount / _fullLength;
@@ -71,10 +73,10 @@ class _RequestTimelineWidgetState extends State<RequestTimelineWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Eyebrow('Journey'),
+                Eyebrow(l.journeyEyebrow),
                 const SizedBox(height: 2),
                 Text(
-                  _summary(steps, doneCount),
+                  _summary(l, steps, doneCount),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: context.text.titleSmall,
@@ -112,7 +114,7 @@ class _RequestTimelineWidgetState extends State<RequestTimelineWidget> {
             Semantics(
               button: true,
               expanded: _expanded,
-              label: _expanded ? 'Hide journey steps' : 'Show journey steps',
+              label: _expanded ? l.journeyHideSteps : l.journeyShowSteps,
               child: InkWell(
                 onTap: () => setState(() => _expanded = !_expanded),
                 child: header,
@@ -151,19 +153,19 @@ class _RequestTimelineWidgetState extends State<RequestTimelineWidget> {
     );
   }
 
-  String _summary(List<_JourneyStep> steps, int doneCount) {
+  String _summary(LibraryL10n l, List<_JourneyStep> steps, int doneCount) {
     final status = widget.request.status;
-    if (status == RequestStatus.declined) return 'Ended · request declined';
-    if (status == RequestStatus.cancelled) return 'Ended · request cancelled';
-    if (doneCount >= steps.length) return 'Complete · reviewed and done';
+    if (status == RequestStatus.declined) return l.journeySummaryDeclined;
+    if (status == RequestStatus.cancelled) return l.journeySummaryCancelled;
+    if (doneCount >= steps.length) return l.journeySummaryComplete;
 
     final index = steps.indexWhere((s) => s.state != _StepState.done);
     final step = steps[index];
     // Name the step still ahead as "next" so it never reads as already done.
-    return '$doneCount of ${steps.length} done · Next: ${step.title}';
+    return l.journeySummaryProgress(doneCount, steps.length, step.title);
   }
 
-  List<_JourneyStep> _buildSteps() {
+  List<_JourneyStep> _buildSteps(LibraryL10n l) {
     final request = widget.request;
     final isSeeker = widget.isSeeker;
     final status = request.status;
@@ -172,10 +174,10 @@ class _RequestTimelineWidgetState extends State<RequestTimelineWidget> {
 
     final steps = <_JourneyStep>[
       _JourneyStep(
-        title: 'Requested',
-        detail:
-            '${isSeeker ? 'You asked for this book' : 'A reader asked for your book'}'
-            ' · ${_formatDate(request.createdAt)}',
+        title: l.journeyStepRequested,
+        detail: isSeeker
+            ? l.journeyRequestedSeeker(context.relativeTime(request.createdAt))
+            : l.journeyRequestedOwner(context.relativeTime(request.createdAt)),
         state: _StepState.done,
       ),
     ];
@@ -183,10 +185,8 @@ class _RequestTimelineWidgetState extends State<RequestTimelineWidget> {
     if (status == RequestStatus.declined) {
       steps.add(
         _JourneyStep(
-          title: 'Declined',
-          detail: isSeeker
-              ? 'The owner could not share this book this time'
-              : 'You declined this request',
+          title: l.journeyStepDeclined,
+          detail: isSeeker ? l.journeyDeclinedSeeker : l.journeyDeclinedOwner,
           state: _StepState.stopped,
         ),
       );
@@ -196,10 +196,8 @@ class _RequestTimelineWidgetState extends State<RequestTimelineWidget> {
     if (status == RequestStatus.cancelled) {
       steps.add(
         _JourneyStep(
-          title: 'Cancelled',
-          detail: isSeeker
-              ? 'You cancelled this request'
-              : 'The reader cancelled their request',
+          title: l.journeyStepCancelled,
+          detail: isSeeker ? l.journeyCancelledSeeker : l.journeyCancelledOwner,
           state: _StepState.stopped,
         ),
       );
@@ -209,14 +207,14 @@ class _RequestTimelineWidgetState extends State<RequestTimelineWidget> {
     // Accepted
     steps.add(
       _JourneyStep(
-        title: 'Accepted',
+        title: l.journeyStepAccepted,
         detail: accepted
             ? (request.acceptedAt != null
-                  ? _formatDate(request.acceptedAt!)
+                  ? context.relativeTime(request.acceptedAt!)
                   : null)
             : isSeeker
-            ? 'Waiting for the owner to reply'
-            : 'Waiting for your reply',
+            ? l.journeyWaitingOwnerReply
+            : l.journeyWaitingYourReply,
         state: accepted ? _StepState.done : _StepState.current,
       ),
     );
@@ -229,11 +227,10 @@ class _RequestTimelineWidgetState extends State<RequestTimelineWidget> {
         request.seekerConfirmed;
     steps.add(
       _JourneyStep(
-        title: 'Hand-off arranged',
+        title: l.journeyStepHandOffArranged,
         detail: !accepted
             ? null
-            : _arrangementDetail() ??
-                  (arranged ? null : 'Agree on a time and place in chat'),
+            : _arrangementDetail(l) ?? (arranged ? null : l.journeyArrangeHint),
         state: !accepted
             ? _StepState.upcoming
             : arranged
@@ -245,11 +242,11 @@ class _RequestTimelineWidgetState extends State<RequestTimelineWidget> {
     // Both confirmed
     steps.add(
       _JourneyStep(
-        title: 'Both confirmed',
+        title: l.journeyStepBothConfirmed,
         detail: completed
-            ? 'The book changed hands'
+            ? l.journeyChangedHands
             : accepted
-            ? _confirmationDetail()
+            ? _confirmationDetail(l)
             : null,
         state: completed
             ? _StepState.done
@@ -265,17 +262,16 @@ class _RequestTimelineWidgetState extends State<RequestTimelineWidget> {
     String? reviewDetail;
     if (completed) {
       if (mine == null) {
-        reviewDetail = 'Leave a review to close the loop';
+        reviewDetail = l.journeyReviewPrompt;
+      } else if (theirs == null) {
+        reviewDetail = l.journeyYouRated(_rating(mine));
       } else {
-        reviewDetail = 'You rated ${mine.toStringAsFixed(1)}';
-        if (theirs != null) {
-          reviewDetail += ' · they rated you ${theirs.toStringAsFixed(1)}';
-        }
+        reviewDetail = l.journeyBothRated(_rating(mine), _rating(theirs));
       }
     }
     steps.add(
       _JourneyStep(
-        title: 'Reviewed',
+        title: l.journeyStepReviewed,
         detail: reviewDetail,
         state: mine != null
             ? _StepState.done
@@ -288,15 +284,19 @@ class _RequestTimelineWidgetState extends State<RequestTimelineWidget> {
     return steps;
   }
 
-  String? _arrangementDetail() {
+  /// A rating with one decimal, in the reader's digits.
+  String _rating(double value) =>
+      NumberFormat('0.0', context.core.localeName).format(value);
+
+  String? _arrangementDetail(LibraryL10n l) {
     final request = widget.request;
     final method = request.exchangeMethod;
     if (method == null) return null;
 
-    final parts = <String>[method.displayName];
+    final parts = <String>[method.label(context)];
     if (method == ExchangeMethod.meetup) {
       if (request.meetingTime != null) {
-        parts.add(DateFormat('EEE d MMM, h:mm a').format(request.meetingTime!));
+        parts.add(context.date(request.meetingTime!, 'EEE d MMM, h:mm a'));
       }
       final place = request.meetingLocation?.trim() ?? '';
       if (place.isNotEmpty) parts.add(place);
@@ -304,37 +304,26 @@ class _RequestTimelineWidgetState extends State<RequestTimelineWidget> {
       final courier = request.courierMethod?.trim() ?? '';
       if (courier.isNotEmpty) parts.add(courier);
       final tracking = request.trackingId?.trim() ?? '';
-      if (tracking.isNotEmpty) parts.add('Tracking $tracking');
+      if (tracking.isNotEmpty) parts.add(l.trackingId(tracking));
     }
     return parts.join(' · ');
   }
 
-  String _confirmationDetail() {
+  String _confirmationDetail(LibraryL10n l) {
     final request = widget.request;
     final isSeeker = widget.isSeeker;
     final mine = isSeeker ? request.seekerConfirmed : request.ownerConfirmed;
     final theirs = isSeeker ? request.ownerConfirmed : request.seekerConfirmed;
-    final other = isSeeker ? 'Owner' : 'Reader';
 
-    if (mine && theirs) return 'Both confirmed · finishing up';
-    return 'You: ${mine ? 'confirmed' : 'not yet'}'
-        ' · $other: ${theirs ? 'confirmed' : 'not yet'}';
-  }
-
-  String _formatDate(DateTime date) {
-    final diff = DateTime.now().difference(date);
-
-    if (diff.inDays == 0) {
-      if (diff.inHours == 0) {
-        if (diff.inMinutes <= 0) return 'just now';
-        return '${diff.inMinutes}m ago';
-      }
-      return '${diff.inHours}h ago';
-    } else if (diff.inDays < 7) {
-      return '${diff.inDays}d ago';
+    if (mine && theirs) return l.journeyBothConfirmedFinishing;
+    final you = mine ? l.pillYouConfirmed : l.pillYouNotYet;
+    final String other;
+    if (isSeeker) {
+      other = theirs ? l.pillOwnerConfirmed : l.pillOwnerNotYet;
+    } else {
+      other = theirs ? l.pillReaderConfirmed : l.pillReaderNotYet;
     }
-
-    return DateFormat('d MMM y').format(date);
+    return '$you · $other';
   }
 }
 
@@ -425,8 +414,8 @@ class _StepRow extends StatelessWidget {
                       ),
                       if (state == _StepState.current) ...[
                         const SizedBox(width: AppSpacing.sm),
-                        const StatusPill(
-                          label: 'Now',
+                        StatusPill(
+                          label: LibraryL10n.of(context).journeyNow,
                           tone: AppTone.primary,
                           dense: true,
                         ),

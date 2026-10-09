@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/design/design.dart';
+import '../../../../l10n/listing/gen/listing_l10n.dart';
 
 const String _tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const String _tileUserAgent = 'com.example.boichokro';
@@ -88,21 +89,19 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
           context: context,
           barrierDismissible: false,
           builder: (BuildContext dialogContext) {
+            final l = ListingL10n.of(dialogContext);
             return AlertDialog(
               icon: const Icon(LucideIcons.mapPin),
-              title: const Text('Location access required'),
-              content: const Text(
-                'Boichokro needs your location to help you pinpoint your current address '
-                'for assigning a pickup location to a book you upload, or finding a nearby book.',
-              ),
+              title: Text(l.locationDisclosureTitle),
+              content: Text(l.locationDisclosureMessage),
               actions: <Widget>[
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('Deny'),
+                  child: Text(l.locationDisclosureDeny),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.of(dialogContext).pop(true),
-                  child: const Text('Accept'),
+                  child: Text(l.locationDisclosureAccept),
                 ),
               ],
             );
@@ -146,8 +145,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
       if (mounted) {
         showAppSnack(
           context,
-          'We couldn\'t get your location. Please try again, or pick the '
-          'spot on the map.',
+          ListingL10n.of(context).errorLocationUnavailable,
           tone: AppTone.danger,
         );
       }
@@ -180,15 +178,18 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
         _mapController.move(location, 15.0);
       } else {
         if (mounted) {
-          showAppSnack(context, 'Address not found', tone: AppTone.warning);
+          showAppSnack(
+            context,
+            ListingL10n.of(context).snackAddressNotFound,
+            tone: AppTone.warning,
+          );
         }
       }
     } catch (e) {
       if (mounted) {
         showAppSnack(
           context,
-          'Could not find that address. Try a different search or tap the '
-          'spot on the map.',
+          ListingL10n.of(context).errorAddressSearch,
           tone: AppTone.warning,
         );
       }
@@ -252,9 +253,10 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
   @override
   Widget build(BuildContext context) {
     final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final l = ListingL10n.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Pickup location')),
+      appBar: AppBar(title: Text(l.pickupHeading)),
       body: SafeArea(
         top: false,
         bottom: false,
@@ -319,7 +321,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
             child: FilledButton.icon(
               onPressed: _selectedLocation == null ? null : _confirmLocation,
               icon: const Icon(LucideIcons.check, size: 18),
-              label: const Text('Use this location'),
+              label: Text(l.actionUseThisLocation),
             ),
           ),
         ),
@@ -328,6 +330,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
   }
 
   Widget _buildSearchField() {
+    final l = ListingL10n.of(context);
     return TextField(
       controller: _searchController,
       textInputAction: TextInputAction.search,
@@ -335,7 +338,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
       textCapitalization: TextCapitalization.words,
       onSubmitted: (_) => _searchAddress(),
       decoration: InputDecoration(
-        hintText: 'Search an area, road or landmark',
+        hintText: l.searchHint,
         prefixIcon: const Icon(LucideIcons.search, size: 20),
         suffixIcon: _isSearching
             ? const Padding(
@@ -348,7 +351,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
               )
             : IconButton(
                 onPressed: _searchAddress,
-                tooltip: 'Search',
+                tooltip: l.searchTooltip,
                 icon: const Icon(LucideIcons.arrowRight, size: 20),
               ),
       ),
@@ -357,6 +360,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
 
   Widget _buildMap(BuildContext context) {
     final radius = BorderRadius.circular(AppRadius.xl);
+    final l = ListingL10n.of(context);
 
     return DecoratedBox(
       position: DecorationPosition.foreground,
@@ -424,7 +428,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
                   child: IgnorePointer(
                     child: _MapLabel(
                       icon: LucideIcons.mapPin,
-                      label: 'Tap the map to place the pin',
+                      label: l.mapTapHint,
                       style: context.text.labelMedium,
                     ),
                   ),
@@ -471,7 +475,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
                       )
                     : CircleIconButton(
                         icon: LucideIcons.locateFixed,
-                        tooltip: 'Use my current location',
+                        tooltip: l.tooltipUseCurrentLocation,
                         size: 48,
                         onPressed: _getCurrentLocation,
                       ),
@@ -484,38 +488,33 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
   }
 
   Widget _buildIssueBanner(_LocationIssue issue) {
+    final l = ListingL10n.of(context);
     switch (issue) {
       case _LocationIssue.denied:
         return AppBanner(
           tone: AppTone.warning,
           icon: LucideIcons.mapPinOff,
-          title: 'Location access is off',
-          message:
-              'No problem. Search for an address or tap the map to place '
-              'the pin yourself.',
-          actionLabel: 'Try again',
+          title: l.issueDeniedTitle,
+          message: l.issueDeniedMessage,
+          actionLabel: context.core.commonRetry,
           onAction: _getCurrentLocation,
         );
       case _LocationIssue.deniedForever:
         return AppBanner(
           tone: AppTone.warning,
           icon: LucideIcons.mapPinOff,
-          title: 'Location access is blocked',
-          message:
-              'Allow location for Boichokro in your phone settings, or '
-              'search and tap the map instead.',
-          actionLabel: 'Open settings',
+          title: l.issueBlockedTitle,
+          message: l.issueBlockedMessage,
+          actionLabel: l.actionOpenSettings,
           onAction: Geolocator.openAppSettings,
         );
       case _LocationIssue.serviceOff:
         return AppBanner(
           tone: AppTone.warning,
           icon: LucideIcons.mapPinOff,
-          title: 'Location is turned off',
-          message:
-              'Turn on location on your phone and try again, or search '
-              'and tap the map instead.',
-          actionLabel: 'Open location settings',
+          title: l.issueServiceOffTitle,
+          message: l.issueServiceOffMessage,
+          actionLabel: l.actionOpenLocationSettings,
           onAction: Geolocator.openLocationSettings,
         );
     }
@@ -523,6 +522,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
 
   Widget _buildAddressCard(BuildContext context) {
     final location = _selectedLocation;
+    final l = ListingL10n.of(context);
 
     if (location == null) {
       return AppCard(
@@ -538,10 +538,10 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('No spot chosen yet', style: context.text.titleSmall),
+                  Text(l.noSpotTitle, style: context.text.titleSmall),
                   const SizedBox(height: 2),
                   Text(
-                    'Pick where readers can collect the book.',
+                    l.noSpotSubtitle,
                     style: context.text.bodySmall?.copyWith(
                       color: context.colors.onSurfaceVariant,
                     ),
@@ -552,7 +552,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
             TextButton.icon(
               onPressed: _isLocating ? null : _getCurrentLocation,
               icon: const Icon(LucideIcons.locateFixed, size: 16),
-              label: const Text('Locate me'),
+              label: Text(l.actionLocateMe),
             ),
           ],
         ),
@@ -583,7 +583,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Eyebrow('Selected spot'),
+                Eyebrow(l.selectedSpotEyebrow),
                 const SizedBox(height: AppSpacing.xs),
                 if (showSkeleton) ...[
                   const SizedBox(height: 2),
@@ -592,7 +592,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
                 ] else
                   Text(
                     _selectedAddress.isEmpty
-                        ? 'Pinned spot (no street address found)'
+                        ? l.pinnedSpotNoAddress
                         : _selectedAddress,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
@@ -668,7 +668,9 @@ class _MapLabel extends StatelessWidget {
 /// [width] x [height] with `alignment: Alignment.topCenter` so that the tip
 /// sits on the coordinate.
 class LocationMapPin extends StatelessWidget {
-  const LocationMapPin({super.key});
+  const LocationMapPin({super.key, this.icon = LucideIcons.bookOpen});
+
+  final IconData icon;
 
   static const double width = 44;
   static const double height = 52;
@@ -694,7 +696,7 @@ class LocationMapPin extends StatelessWidget {
               ),
             ],
           ),
-          child: Icon(LucideIcons.bookOpen, size: 18, color: colors.onPrimary),
+          child: Icon(icon, size: 18, color: colors.onPrimary),
         ),
         Container(
           width: 3,
@@ -718,10 +720,12 @@ class LocationPreviewMap extends StatelessWidget {
     super.key,
     required this.location,
     this.height = 136,
+    this.pinIcon = LucideIcons.bookOpen,
   });
 
   final LatLng location;
   final double height;
+  final IconData pinIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -752,7 +756,7 @@ class LocationPreviewMap extends StatelessWidget {
                     width: LocationMapPin.width,
                     height: LocationMapPin.height,
                     alignment: Alignment.topCenter,
-                    child: const LocationMapPin(),
+                    child: LocationMapPin(icon: pinIcon),
                   ),
                 ],
               ),

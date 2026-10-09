@@ -11,6 +11,7 @@ import '../../../../core/design/design.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/network/firebase_service.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../l10n/browse/gen/browse_l10n.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/usecases/user_usecases.dart';
 import '../../domain/entities/book.dart';
@@ -142,6 +143,7 @@ class _DiscoverPageState extends State<DiscoverPage>
   // ---------------------------------------------------------------------------
 
   Widget _buildTitleRow() {
+    final l = BrowseL10n.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.page,
@@ -158,14 +160,14 @@ class _DiscoverPageState extends State<DiscoverPage>
               children: [
                 Eyebrow(
                   _currentPosition != null
-                      ? 'Books near you'
-                      : 'Books in the circle',
+                      ? l.discoverEyebrowNearby
+                      : l.discoverEyebrowCircle,
                   color: context.colors.primary,
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Find your next read',
-                  maxLines: 1,
+                  l.discoverTitle,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: context.text.headlineMedium,
                 ),
@@ -183,6 +185,7 @@ class _DiscoverPageState extends State<DiscoverPage>
   }
 
   Widget _buildSearchAndFilters() {
+    final l = BrowseL10n.of(context);
     final colors = context.colors;
     final border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -206,7 +209,7 @@ class _DiscoverPageState extends State<DiscoverPage>
                     onChanged: _onSearchChanged,
                     onTapOutside: (_) => FocusScope.of(context).unfocus(),
                     decoration: InputDecoration(
-                      hintText: 'Title, author or genre',
+                      hintText: l.searchHint,
                       contentPadding: EdgeInsets.zero,
                       border: border,
                       enabledBorder: border,
@@ -220,7 +223,7 @@ class _DiscoverPageState extends State<DiscoverPage>
                       suffixIcon: _searchController.text.isEmpty
                           ? null
                           : IconButton(
-                              tooltip: 'Clear search',
+                              tooltip: l.searchClear,
                               icon: const Icon(LucideIcons.x, size: 18),
                               onPressed: () {
                                 _searchController.clear();
@@ -234,7 +237,7 @@ class _DiscoverPageState extends State<DiscoverPage>
               const SizedBox(width: AppSpacing.sm),
               CircleIconButton(
                 icon: LucideIcons.slidersHorizontal,
-                tooltip: 'Filters',
+                tooltip: l.filtersTitle,
                 size: 50,
                 badge: _filters.advancedCount > 0,
                 onPressed: _showFilterSheet,
@@ -250,19 +253,19 @@ class _DiscoverPageState extends State<DiscoverPage>
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
             children: [
               _FilterPill(
-                label: 'All',
+                label: l.filterAll,
                 selected: _filters.mode == null,
                 onTap: () => _setFilters(_filters.copyWith(mode: null)),
               ),
               _FilterPill(
-                label: 'Free',
+                label: BookMode.donate.offer(context),
                 icon: BookMode.donate.icon,
                 tone: AppTone.donate,
                 selected: _filters.mode == BookMode.donate,
                 onTap: () => _toggleMode(BookMode.donate),
               ),
               _FilterPill(
-                label: 'Swap',
+                label: BookMode.exchange.offer(context),
                 icon: BookMode.exchange.icon,
                 tone: AppTone.exchange,
                 selected: _filters.mode == BookMode.exchange,
@@ -276,7 +279,7 @@ class _DiscoverPageState extends State<DiscoverPage>
                 ),
               ),
               _FilterPill(
-                label: 'Within ${_nearbyRadiusKm.round()} km',
+                label: l.filterWithinKm(_nearbyRadiusKm.round()),
                 icon: LucideIcons.mapPin,
                 loading: _isFetchingLocation,
                 selected: _filters.nearbyOnly,
@@ -285,7 +288,7 @@ class _DiscoverPageState extends State<DiscoverPage>
                     : () => _toggleNearby(!_filters.nearbyOnly),
               ),
               _FilterPill(
-                label: 'Available now',
+                label: l.filterAvailableNow,
                 icon: LucideIcons.circleCheck,
                 selected: _filters.onlyAvailable,
                 onTap: () => _setFilters(
@@ -294,15 +297,16 @@ class _DiscoverPageState extends State<DiscoverPage>
               ),
               if (_filters.genre != null)
                 _FilterPill(
-                  label: _filters.genre!,
+                  label: context.genreLabel(_filters.genre!),
                   selected: true,
                   removable: true,
                   onTap: () => _setFilters(_filters.copyWith(genre: null)),
                 ),
               if (_filters.minCondition != null)
                 _FilterPill(
-                  label:
-                      '${AppConstants.bookConditions[_filters.minCondition!]} or better',
+                  label: l.conditionOrBetter(
+                    context.conditionLabel(_filters.minCondition!),
+                  ),
                   selected: true,
                   removable: true,
                   onTap: () =>
@@ -385,7 +389,7 @@ class _DiscoverPageState extends State<DiscoverPage>
           SliverFillRemaining(
             hasScrollBody: false,
             child: AppErrorState(
-              title: 'Could not load books',
+              title: BrowseL10n.of(context).loadErrorTitle,
               message: state.message,
               onRetry: () => _bookBloc.add(const LoadAllBooks()),
             ),
@@ -475,7 +479,8 @@ class _DiscoverPageState extends State<DiscoverPage>
   Widget _buildResultSummary(int count) {
     final sortedByDistance = _currentPosition != null;
     final hasFilters = _filters.activeCount > 0 || _query.isNotEmpty;
-    final label = count == 1 ? '1 book' : '$count books';
+    final l = BrowseL10n.of(context);
+    final label = l.resultCount(count);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -500,9 +505,8 @@ class _DiscoverPageState extends State<DiscoverPage>
                       ),
                     ),
                     TextSpan(
-                      text: sortedByDistance
-                          ? '  ·  nearest first'
-                          : '  ·  from readers around you',
+                      text:
+                          '  ·  ${sortedByDistance ? l.resultSortNearest : l.resultSortAround}',
                     ),
                   ],
                 ),
@@ -520,7 +524,7 @@ class _DiscoverPageState extends State<DiscoverPage>
                 style: TextButton.styleFrom(
                   visualDensity: VisualDensity.compact,
                 ),
-                child: const Text('Clear filters'),
+                child: Text(l.clearFilters),
               )
             else
               const SizedBox(width: AppSpacing.md),
@@ -531,30 +535,29 @@ class _DiscoverPageState extends State<DiscoverPage>
   }
 
   Widget _buildEmptyState() {
+    final l = BrowseL10n.of(context);
     return AppEmptyState(
       icon: LucideIcons.bookOpen,
-      title: 'No books here yet',
-      message:
-          'Be the first to put a book into the circle. Someone nearby is '
-          'probably looking for it.',
-      actionLabel: 'Share a book',
+      title: l.emptyTitle,
+      message: l.emptyMessage,
+      actionLabel: l.shareABook,
       actionIcon: LucideIcons.plus,
       onAction: () => context.push(RoutePaths.addBook),
-      secondaryLabel: 'Refresh',
+      secondaryLabel: context.core.commonRefresh,
       onSecondary: () => _bookBloc.add(const LoadAllBooks()),
     );
   }
 
   Widget _buildNoResults() {
+    final l = BrowseL10n.of(context);
     return AppEmptyState(
       icon: LucideIcons.searchX,
       tone: AppTone.neutral,
-      title: 'No books match',
+      title: l.noResultsTitle,
       message: _filters.nearbyOnly
-          ? 'Nothing within ${_nearbyRadiusKm.round()} km right now. Try a '
-                'wider search or fewer filters.'
-          : 'Try a different title or author, or loosen the filters.',
-      actionLabel: 'Clear filters',
+          ? l.noResultsNearby(_nearbyRadiusKm.round())
+          : l.noResultsGeneric,
+      actionLabel: l.clearFilters,
       actionIcon: LucideIcons.filterX,
       onAction: _clearAll,
     );
@@ -596,9 +599,6 @@ class _DiscoverPageState extends State<DiscoverPage>
                           ),
                         ),
                       ],
-                      const Spacer(),
-                      if (distance != null)
-                        MetaItem(icon: LucideIcons.mapPin, label: distance),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.sm),
@@ -619,7 +619,19 @@ class _DiscoverPageState extends State<DiscoverPage>
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  ConditionMeter(condition: book.condition),
+                  // Distance sits beside the condition so the pill row above
+                  // has room for two full pills in either language.
+                  Row(
+                    children: [
+                      Flexible(
+                        child: ConditionMeter(condition: book.condition),
+                      ),
+                      if (distance != null) ...[
+                        const SizedBox(width: AppSpacing.md),
+                        MetaItem(icon: LucideIcons.mapPin, label: distance),
+                      ],
+                    ],
+                  ),
                   const SizedBox(height: AppSpacing.md),
                   _buildOwnerSummary(book.ownerId),
                 ],
@@ -636,13 +648,13 @@ class _DiscoverPageState extends State<DiscoverPage>
   String _shortStatus(BookStatus status) {
     switch (status) {
       case BookStatus.available:
-        return 'Available';
+        return context.core.bookStatusAvailable;
       case BookStatus.requested:
-        return 'Requested';
+        return context.core.bookStatusRequested;
       case BookStatus.pending:
-        return 'Reserved';
+        return BrowseL10n.of(context).statusShortReserved;
       case BookStatus.completed:
-        return 'Gone';
+        return BrowseL10n.of(context).statusShortGone;
     }
   }
 
@@ -674,7 +686,7 @@ class _DiscoverPageState extends State<DiscoverPage>
             const SizedBox(width: AppSpacing.sm),
             Flexible(
               child: Text(
-                user?.name ?? 'A reader',
+                user?.name ?? context.core.aReader,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: context.text.bodySmall?.copyWith(
@@ -704,11 +716,11 @@ class _DiscoverPageState extends State<DiscoverPage>
     if (loaded == null) {
       body = state is BookError
           ? AppErrorState(
-              title: 'Could not load books',
+              title: BrowseL10n.of(context).loadErrorTitle,
               message: state.message,
               onRetry: () => _bookBloc.add(const LoadAllBooks()),
             )
-          : const AppLoading(message: 'Finding books around you');
+          : AppLoading(message: BrowseL10n.of(context).mapLoading);
     } else {
       body = _buildMap(_applyAllFilters(loaded));
     }
@@ -735,6 +747,7 @@ class _DiscoverPageState extends State<DiscoverPage>
   }
 
   Widget _buildMap(List<Book> books) {
+    final l = BrowseL10n.of(context);
     final position = _currentPosition;
     final LatLng center;
     if (position != null) {
@@ -812,13 +825,7 @@ class _DiscoverPageState extends State<DiscoverPage>
         Positioned(
           top: AppSpacing.lg,
           left: AppSpacing.lg,
-          child: _MapChip(
-            label: books.isEmpty
-                ? 'No books match here'
-                : books.length == 1
-                ? '1 book on the map'
-                : '${books.length} books on the map',
-          ),
+          child: _MapChip(label: l.mapBookCount(books.length)),
         ),
         Positioned(
           top: AppSpacing.lg,
@@ -827,13 +834,13 @@ class _DiscoverPageState extends State<DiscoverPage>
             children: [
               CircleIconButton(
                 icon: LucideIcons.locateFixed,
-                tooltip: 'My location',
+                tooltip: l.mapMyLocation,
                 onPressed: _isFetchingLocation ? null : _centerOnMe,
               ),
               const SizedBox(height: AppSpacing.sm),
               CircleIconButton(
                 icon: LucideIcons.refreshCcw,
-                tooltip: 'Refresh',
+                tooltip: context.core.commonRefresh,
                 onPressed: () => _bookBloc.add(const LoadAllBooks()),
               ),
             ],
@@ -856,11 +863,11 @@ class _DiscoverPageState extends State<DiscoverPage>
                 children: [
                   Expanded(
                     child: Text(
-                      'Nothing matches your search and filters.',
+                      l.mapNothingMatches,
                       style: context.text.bodyMedium,
                     ),
                   ),
-                  TextButton(onPressed: _clearAll, child: const Text('Clear')),
+                  TextButton(onPressed: _clearAll, child: Text(l.mapClear)),
                 ],
               ),
             ),
@@ -881,11 +888,12 @@ class _DiscoverPageState extends State<DiscoverPage>
 
   void _showBookPreview(Book book) {
     final distance = _distanceLabel(book);
+    final l = BrowseL10n.of(context);
 
     showAppSheet<void>(
       context,
       builder: (sheetContext) => SheetScaffold(
-        title: 'On the map',
+        title: l.previewTitle,
         subtitle: book.location.address,
         footer: FilledButton.icon(
           onPressed: () {
@@ -893,7 +901,7 @@ class _DiscoverPageState extends State<DiscoverPage>
             context.push('/book/${book.id}');
           },
           icon: const Icon(LucideIcons.bookOpen, size: 18),
-          label: const Text('View this book'),
+          label: Text(l.previewViewBook),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -934,7 +942,10 @@ class _DiscoverPageState extends State<DiscoverPage>
                   ConditionMeter(condition: book.condition),
                   if (distance != null) ...[
                     const SizedBox(height: AppSpacing.sm),
-                    MetaItem(icon: LucideIcons.mapPin, label: '$distance away'),
+                    MetaItem(
+                      icon: LucideIcons.mapPin,
+                      label: l.distanceAway(distance),
+                    ),
                   ],
                 ],
               ),
@@ -961,15 +972,14 @@ class _DiscoverPageState extends State<DiscoverPage>
       _isFetchingLocation = true;
     });
 
+    final l = BrowseL10n.of(context);
+    final appName = context.core.appName;
+
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (mounted) {
-          showAppSnack(
-            context,
-            'Turn on location services to see nearby books.',
-            tone: AppTone.warning,
-          );
+          showAppSnack(context, l.locationServicesOff, tone: AppTone.warning);
         }
         return false;
       }
@@ -987,22 +997,19 @@ class _DiscoverPageState extends State<DiscoverPage>
                   LucideIcons.mapPin,
                   color: dialogContext.colors.primary,
                 ),
-                title: const Text('Location Access Required'),
-                content: const Text(
-                  'Boichokro needs your location to find and display nearby books available for exchange. '
-                  'Your location is only used locally to calculate distance and is not continuously tracked.',
-                ),
+                title: Text(l.locationDialogTitle),
+                content: Text(l.locationDialogBody(appName)),
                 actions: <Widget>[
                   TextButton(
                     onPressed: () => Navigator.of(dialogContext).pop(false),
-                    child: const Text('Deny'),
+                    child: Text(l.locationDeny),
                   ),
                   FilledButton(
                     onPressed: () => Navigator.of(dialogContext).pop(true),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(0, 44),
                     ),
-                    child: const Text('Accept'),
+                    child: Text(l.locationAccept),
                   ),
                 ],
               );
@@ -1022,11 +1029,11 @@ class _DiscoverPageState extends State<DiscoverPage>
         if (mounted) {
           showAppSnack(
             context,
-            'Location permission is needed to show books near you.',
+            l.locationPermissionNeeded,
             tone: AppTone.warning,
             action: permission == LocationPermission.deniedForever
                 ? SnackBarAction(
-                    label: 'Settings',
+                    label: l.locationOpenSettings,
                     onPressed: Geolocator.openAppSettings,
                   )
                 : null,
@@ -1043,11 +1050,7 @@ class _DiscoverPageState extends State<DiscoverPage>
       return true;
     } catch (error) {
       if (mounted) {
-        showAppSnack(
-          context,
-          'Could not determine your location. Please try again.',
-          tone: AppTone.danger,
-        );
+        showAppSnack(context, l.locationFailed, tone: AppTone.danger);
       }
       return false;
     } finally {
@@ -1101,7 +1104,12 @@ class _DiscoverPageState extends State<DiscoverPage>
           (book) =>
               book.title.toLowerCase().contains(query) ||
               book.author.toLowerCase().contains(query) ||
-              book.genres.any((genre) => genre.toLowerCase().contains(query)),
+              book.genres.any(
+                (genre) =>
+                    genre.toLowerCase().contains(query) ||
+                    // Genres are stored in English; also match what is shown.
+                    context.genreLabel(genre).toLowerCase().contains(query),
+              ),
         )
         .toList();
   }
@@ -1176,12 +1184,7 @@ class _DiscoverPageState extends State<DiscoverPage>
       return null;
     }
 
-    if (distance < 1000) {
-      return '${distance.round()} m';
-    }
-
-    final km = distance / 1000;
-    return km >= 10 ? '${km.round()} km' : '${km.toStringAsFixed(1)} km';
+    return context.distance(distance);
   }
 
   Future<User?> _fetchUser(String userId) async {
@@ -1283,6 +1286,8 @@ class _ViewToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = BrowseL10n.of(context);
+
     Widget segment({
       required IconData icon,
       required String tooltip,
@@ -1325,13 +1330,13 @@ class _ViewToggle extends StatelessWidget {
         children: [
           segment(
             icon: LucideIcons.list,
-            tooltip: 'List view',
+            tooltip: l.viewList,
             selected: !isMapView,
             value: false,
           ),
           segment(
             icon: LucideIcons.map,
-            tooltip: 'Map view',
+            tooltip: l.viewMap,
             selected: isMapView,
             value: true,
           ),
@@ -1404,11 +1409,15 @@ class _FilterPill extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                 ],
-                Text(
-                  label,
-                  style: context.text.labelMedium?.copyWith(
-                    color: foreground,
-                    fontSize: 13,
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.text.labelMedium?.copyWith(
+                      color: foreground,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
                 if (removable) ...[
@@ -1522,6 +1531,8 @@ class _MapChip extends StatelessWidget {
       ),
       child: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: context.text.labelMedium?.copyWith(
           color: context.colors.onSurface,
         ),
@@ -1572,48 +1583,47 @@ class _FilterSheetState extends State<_FilterSheet> {
   @override
   Widget build(BuildContext context) {
     final count = widget.countFor(_draft);
+    final l = BrowseL10n.of(context);
 
     return SheetScaffold(
-      title: 'Filters',
-      subtitle: 'Narrow down the books you see',
+      title: l.filtersTitle,
+      subtitle: l.filterSheetSubtitle,
       trailing: TextButton(
         onPressed: _draft.activeCount == 0
             ? null
             : () => _update(const _DiscoverFilters()),
-        child: const Text('Reset'),
+        child: Text(l.filterSheetReset),
       ),
       footer: FilledButton(
         onPressed: () => Navigator.of(context).pop(_draft),
         child: Text(
-          count == 0
-              ? 'No books match'
-              : count == 1
-              ? 'Show 1 book'
-              : 'Show $count books',
+          l.filterSheetApply(count),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Eyebrow('How it is shared'),
+          Eyebrow(l.filterSectionMode),
           const SizedBox(height: AppSpacing.sm),
           Wrap(
             runSpacing: AppSpacing.sm,
             children: [
               _pill(
-                label: 'All',
+                label: l.filterAll,
                 selected: _draft.mode == null,
                 onTap: () => _update(_draft.copyWith(mode: null)),
               ),
               _pill(
-                label: 'Free to take',
+                label: l.filterFreeToTake,
                 icon: BookMode.donate.icon,
                 tone: AppTone.donate,
                 selected: _draft.mode == BookMode.donate,
                 onTap: () => _update(_draft.copyWith(mode: BookMode.donate)),
               ),
               _pill(
-                label: 'Swap',
+                label: BookMode.exchange.offer(context),
                 icon: BookMode.exchange.icon,
                 tone: AppTone.exchange,
                 selected: _draft.mode == BookMode.exchange,
@@ -1622,19 +1632,19 @@ class _FilterSheetState extends State<_FilterSheet> {
             ],
           ),
           const SizedBox(height: AppSpacing.xxl),
-          const Eyebrow('Genre'),
+          Eyebrow(l.filterSectionGenre),
           const SizedBox(height: AppSpacing.sm),
           Wrap(
             runSpacing: AppSpacing.sm,
             children: [
               _pill(
-                label: 'Any genre',
+                label: l.filterAnyGenre,
                 selected: _draft.genre == null,
                 onTap: () => _update(_draft.copyWith(genre: null)),
               ),
               for (final genre in AppConstants.bookGenres)
                 _pill(
-                  label: genre,
+                  label: context.genreLabel(genre),
                   selected: _draft.genre == genre,
                   onTap: () => _update(
                     _draft.copyWith(
@@ -1645,13 +1655,13 @@ class _FilterSheetState extends State<_FilterSheet> {
             ],
           ),
           const SizedBox(height: AppSpacing.xxl),
-          const Eyebrow('Condition'),
+          Eyebrow(l.filterSectionCondition),
           const SizedBox(height: AppSpacing.sm),
           Wrap(
             runSpacing: AppSpacing.sm,
             children: [
               _pill(
-                label: 'Any condition',
+                label: l.filterAnyCondition,
                 selected: _draft.minCondition == null,
                 onTap: () => _update(_draft.copyWith(minCondition: null)),
               ),
@@ -1663,8 +1673,8 @@ class _FilterSheetState extends State<_FilterSheet> {
               )
                 _pill(
                   label: index == 0
-                      ? AppConstants.bookConditions[index]
-                      : '${AppConstants.bookConditions[index]} or better',
+                      ? context.conditionLabel(index)
+                      : l.conditionOrBetter(context.conditionLabel(index)),
                   selected: _draft.minCondition == index,
                   onTap: () => _update(
                     _draft.copyWith(
@@ -1678,19 +1688,15 @@ class _FilterSheetState extends State<_FilterSheet> {
           const Divider(),
           SwitchListTile.adaptive(
             contentPadding: EdgeInsets.zero,
-            title: Text('Within ${widget.radiusKm} km of me'),
-            subtitle: Text(
-              _locating
-                  ? 'Finding your location…'
-                  : 'Uses your location only to measure distance',
-            ),
+            title: Text(l.filterNearMe(widget.radiusKm)),
+            subtitle: Text(_locating ? l.filterLocating : l.filterNearMeHint),
             value: _draft.nearbyOnly,
             onChanged: _locating ? null : _setNearby,
           ),
           SwitchListTile.adaptive(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Available now'),
-            subtitle: const Text('Hide books that are already requested'),
+            title: Text(l.filterAvailableNow),
+            subtitle: Text(l.filterAvailableHint),
             value: _draft.onlyAvailable,
             onChanged: (value) =>
                 _update(_draft.copyWith(onlyAvailable: value)),

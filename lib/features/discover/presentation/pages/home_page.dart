@@ -8,6 +8,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/design/design.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../l10n/browse/gen/browse_l10n.dart';
 import '../bloc/book/book_bloc.dart';
 import '../bloc/user/user_bloc.dart';
 import 'discover_page.dart';
@@ -130,6 +131,7 @@ class _HomeNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l = BrowseL10n.of(context);
 
     return SafeArea(
       minimum: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -148,20 +150,20 @@ class _HomeNavBar extends StatelessWidget {
             children: [
               _NavItem(
                 icon: LucideIcons.compass,
-                label: 'Discover',
+                label: l.navDiscover,
                 selected: currentIndex == 0,
                 onTap: () => onSelect(0),
               ),
               _NavItem(
                 icon: LucideIcons.library,
-                label: 'Library',
+                label: l.navLibrary,
                 selected: currentIndex == 1,
                 onTap: () => onSelect(1),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
                 child: Tooltip(
-                  message: 'Share a book',
+                  message: l.shareABook,
                   child: Material(
                     color: colors.primary,
                     shape: const CircleBorder(),
@@ -174,7 +176,7 @@ class _HomeNavBar extends StatelessWidget {
                           LucideIcons.plus,
                           color: colors.onPrimary,
                           size: 24,
-                          semanticLabel: 'Share a book',
+                          semanticLabel: l.shareABook,
                         ),
                       ),
                     ),
@@ -183,13 +185,13 @@ class _HomeNavBar extends StatelessWidget {
               ),
               _NavItem(
                 icon: LucideIcons.messageSquare,
-                label: 'Chats',
+                label: l.navChats,
                 selected: currentIndex == 2,
                 onTap: () => onSelect(2),
               ),
               _NavItem(
                 icon: LucideIcons.user,
-                label: 'Profile',
+                label: l.navProfile,
                 selected: currentIndex == 3,
                 onTap: () => onSelect(3),
               ),
