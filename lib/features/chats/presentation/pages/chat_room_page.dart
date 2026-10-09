@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../../../core/design/design.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/network/firebase_service.dart';
-import '../../domain/entities/chat.dart';
-import '../../../library/domain/entities/request.dart';
-import '../../../library/presentation/widgets/request_timeline_widget.dart';
-import '../bloc/chat_bloc.dart';
-import '../bloc/chat_event.dart';
-import '../bloc/chat_state.dart';
+import '../../../../core/utils/constants.dart';
 import '../../../discover/presentation/bloc/user/user_bloc.dart';
 import '../../../discover/presentation/bloc/user/user_event.dart';
 import '../../../discover/presentation/bloc/user/user_state.dart';
+import '../../domain/entities/chat.dart';
+import '../../domain/usecases/mark_messages_as_read_usecase.dart';
+import '../bloc/chat_bloc.dart';
+import '../bloc/chat_event.dart';
+import '../bloc/chat_state.dart';
 
 /// Chat Room Page - Individual chat conversation with book context
 class ChatRoomPage extends StatefulWidget {
@@ -25,12 +31,29 @@ class ChatRoomPage extends StatefulWidget {
 }
 
 class _ChatRoomPageState extends State<ChatRoomPage> {
+  static const String _mapsPrefix =
+      'https://www.google.com/maps/search/?api=1&query=';
+
   late ChatBloc _chatBloc;
   late UserBloc _userBloc;
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _composerFocus = FocusNode();
+
   ChatRoom? _chatRoom;
-  BookRequest? _bookRequest;
+
+  /// Every message received so far, keyed by id. The bloc re-emits the list
+  /// when other events finish and the live subscription replays history, so
+  /// the page keeps its own de-duplicated copy to render from.
+  final Map<String, Message> _messagesById = {};
+
+  /// Newest first, matching the reversed list view.
+  List<Message> _messages = const [];
+  bool _messagesLoaded = false;
+  String? _loadError;
+  bool _safetyTipDismissed = false;
+  bool _sharingLocation = false;
+  String? _lastMarkedRead;
 
   @override
   void initState() {
@@ -45,861 +68,1299 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    _composerFocus.dispose();
     _chatBloc.close();
     super.dispose();
+  }
+
+  // ── Chat state ────────────────────────────────────────────────────────────
+
+  void _onChatState(BuildContext context, ChatState state) {
+    if (state is ChatRoomLoaded) {
+      setState(() {
+        _chatRoom = state.chatRoom;
+        _loadError = null;
+      });
+    } else if (state is MessagesLoaded) {
+      setState(() {
+        for (final message in state.messages) {
+          final key = message.id.isNotEmpty
+              ? message.id
+              : '${message.senderId}-'
+                    '${message.createdAt.microsecondsSinceEpoch}';
+          _messagesById[key] = message;
+        }
+        _messages = _messagesById.values.toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        _messagesLoaded = true;
+        _loadError = null;
+      });
+      _markRead();
+    } else if (state is ChatError) {
+      if (_chatRoom != null && _messagesLoaded) {
+        // The conversation is already on screen, so this is a failed action
+        // (usually a message that could not be sent).
+        showAppSnack(context, state.message, tone: AppTone.danger);
+      } else {
+        setState(() => _loadError = state.message);
+      }
+    }
+  }
+
+  /// Clears this reader's unread count once per new incoming message. Called
+  /// through the use case rather than the bloc, whose `MarkedAsRead` state
+  /// would replace the conversation on screen.
+  void _markRead() {
+    final userId = getIt<FirebaseService>().auth.currentUser?.uid;
+    if (userId == null) return;
+
+    final latest = _messages.isEmpty ? null : _messages.first;
+    final marker = latest?.id ?? '';
+    if (_lastMarkedRead == marker) return;
+    if (latest != null &&
+        latest.senderId == userId &&
+        _lastMarkedRead != null) {
+      return;
+    }
+    _lastMarkedRead = marker;
+
+    getIt<MarkMessagesAsReadUseCase>()(
+      MarkMessagesAsReadParams(chatRoomId: widget.roomId, userId: userId),
+    );
+  }
+
+  void _retryLoad() {
+    setState(() => _loadError = null);
+    if (_chatRoom == null) _chatBloc.add(LoadChatRoom(widget.roomId));
+    if (!_messagesLoaded) _chatBloc.add(SubscribeToMessages(widget.roomId));
   }
 
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
         0,
-        duration: const Duration(milliseconds: 300),
+        duration: AppMotion.medium,
         curve: Curves.easeOut,
       );
     }
   }
 
+  // ── Sending ───────────────────────────────────────────────────────────────
+
+  void _send(String content, MessageType type) {
+    final chatRoom = _chatRoom;
+    final sender = getIt<FirebaseService>().currentUser;
+    if (chatRoom == null || sender == null) return;
+
+    final message = Message(
+      id: '', // Will be set by backend
+      chatRoomId: chatRoom.id,
+      senderId: sender.uid,
+      content: content,
+      type: type,
+      isRead: false,
+      createdAt: DateTime.now(),
+    );
+    _chatBloc.add(SendMessage(message));
+    _scrollToBottom();
+  }
+
   void _sendMessage() {
     final text = _messageController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || _chatRoom == null) return;
 
-    if (_chatRoom != null) {
-      final message = Message(
-        id: '', // Will be set by backend
-        chatRoomId: _chatRoom!.id,
-        senderId: getIt<FirebaseService>().currentUser!.uid,
-        content: text,
-        type: MessageType.text,
-        isRead: false,
-        createdAt: DateTime.now(),
+    _send(text, MessageType.text);
+    _messageController.clear();
+  }
+
+  void _useStarter(String text) {
+    _messageController.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+    _composerFocus.requestFocus();
+  }
+
+  // ── Location ──────────────────────────────────────────────────────────────
+
+  Future<void> _confirmShareLocation() async {
+    FocusScope.of(context).unfocus();
+    final confirmed = await showAppSheet<bool>(
+      context,
+      builder: (sheetContext) => SheetScaffold(
+        title: 'Share your location',
+        subtitle: 'Sends a map pin of where you are right now.',
+        footer: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(sheetContext, false),
+                child: const Text('Cancel'),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: FilledButton(
+                onPressed: () => Navigator.pop(sheetContext, true),
+                child: const Text('Share pin'),
+              ),
+            ),
+          ],
+        ),
+        child: const AppBanner(
+          tone: AppTone.warning,
+          icon: LucideIcons.shieldCheck,
+          title: 'Share with care',
+          message:
+              'Only share your location when you are ready to meet, and '
+              'pick a busy public place rather than your home.',
+        ),
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await _shareLocation();
+  }
+
+  Future<void> _shareLocation() async {
+    setState(() => _sharingLocation = true);
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        _snack('Turn on location services to share a pin.', AppTone.warning);
+        return;
+      }
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        _snack(
+          'Location permission is needed to share a pin.',
+          AppTone.warning,
+        );
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 20),
+        ),
       );
-      _chatBloc.add(SendMessage(message));
-      _messageController.clear();
-      _scrollToBottom();
+      if (!mounted) return;
+
+      _send(
+        '$_mapsPrefix${position.latitude.toStringAsFixed(6)},'
+        '${position.longitude.toStringAsFixed(6)}',
+        MessageType.location,
+      );
+    } catch (_) {
+      _snack('Could not get your location. Please try again.', AppTone.danger);
+    } finally {
+      if (mounted) setState(() => _sharingLocation = false);
     }
   }
 
-  void _showTimelineDialog() {
-    if (_bookRequest == null) return;
-
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Request Timeline',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 24),
-              RequestTimelineWidget(
-                request: _bookRequest!,
-                isSeeker:
-                    getIt<FirebaseService>().currentUser!.uid ==
-                    _bookRequest!.seekerId,
-              ),
-              const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Close'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  Future<void> _openLocation(({double lat, double lng}) point) async {
+    final uri = Uri.parse('$_mapsPrefix${point.lat},${point.lng}');
+    var opened = false;
+    try {
+      opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      opened = false;
+    }
+    if (!opened) _snack('Could not open a maps app.', AppTone.danger);
   }
 
-  void _showReportDialog(String targetUserId) {
-    String selectedReason = 'Spam';
-    final reasons = ['Spam', 'Harassment', 'Inappropriate Content', 'Other'];
+  void _snack(String message, AppTone tone) {
+    if (!mounted) return;
+    showAppSnack(context, message, tone: tone);
+  }
 
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            title: const Text('Report User'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Please select a reason for reporting this user:'),
-                const SizedBox(height: 16),
-                ...reasons.map(
-                  (reason) => RadioListTile<String>(
-                    title: Text(reason),
-                    value: reason,
-                    groupValue: selectedReason,
-                    onChanged: (value) {
-                      if (value != null) {
-                        setDialogState(() => selectedReason = value);
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
+  // ── Report / block ────────────────────────────────────────────────────────
+
+  Future<void> _showReportSheet(String targetUserId, String name) async {
+    final reason = await showAppSheet<String>(
+      context,
+      builder: (_) => _ReportSheet(name: name),
+    );
+    if (reason == null || !mounted) return;
+    _userBloc.add(ReportUser(userId: targetUserId, reason: reason));
+  }
+
+  Future<void> _showBlockSheet(String targetUserId, String name) async {
+    final confirmed = await showAppSheet<bool>(
+      context,
+      builder: (sheetContext) => SheetScaffold(
+        title: 'Block $name?',
+        footer: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(sheetContext, false),
                 child: const Text('Cancel'),
               ),
-              FilledButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _userBloc.add(
-                    ReportUser(userId: targetUserId, reason: selectedReason),
-                  );
-                },
-                child: const Text('Submit Report'),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: sheetContext.colors.error,
+                  foregroundColor: sheetContext.colors.onError,
+                ),
+                onPressed: () => Navigator.pop(sheetContext, true),
+                child: const Text('Block'),
               ),
-            ],
-          );
-        },
+            ),
+          ],
+        ),
+        child: Text(
+          'You will no longer receive messages from them, and they will not '
+          'be able to interact with your books.',
+          style: sheetContext.text.bodyLarge?.copyWith(
+            color: sheetContext.colors.onSurfaceVariant,
+          ),
+        ),
       ),
     );
+    if (confirmed != true || !mounted) return;
+    _userBloc.add(BlockUser(targetUserId));
   }
 
-  void _showBlockDialog(String targetUserId) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Block User'),
-        content: const Text(
-          'Are you sure you want to block this user? You will no longer receive messages from them, and they will not be able to interact with your books.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Theme.of(context).colorScheme.onError,
-            ),
-            onPressed: () {
-              Navigator.pop(context);
-              _userBloc.add(BlockUser(targetUserId));
-            },
-            child: const Text('Block'),
-          ),
-        ],
-      ),
-    );
+  // ── Derived data ──────────────────────────────────────────────────────────
+
+  /// The room stores both display names but not which participant is which,
+  /// so the other reader is whichever name is not the signed-in user's.
+  String _otherName(ChatRoom? chatRoom) {
+    if (chatRoom == null) return 'Chat';
+    final owner = chatRoom.ownerName?.trim() ?? '';
+    final requester = chatRoom.requesterName?.trim() ?? '';
+    final me =
+        getIt<FirebaseService>().currentUser?.displayName
+            ?.trim()
+            .toLowerCase() ??
+        '';
+
+    if (owner.isEmpty && requester.isEmpty) return 'Reader';
+    if (owner.isEmpty) return requester;
+    if (requester.isEmpty) return owner;
+    if (me.isNotEmpty && owner.toLowerCase() == me) return requester;
+    if (me.isNotEmpty && requester.toLowerCase() == me) return owner;
+    return '$owner & $requester';
   }
+
+  void _openBook() {
+    final bookId = _chatRoom?.bookId;
+    if (bookId != null) context.push('/book/$bookId');
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final currentUserId = getIt<FirebaseService>().currentUser?.uid;
-    final otherUserId = _chatRoom?.participantIds.firstWhere(
+    final chatRoom = _chatRoom;
+    final otherUserId = chatRoom?.participantIds.firstWhere(
       (id) => id != currentUserId,
       orElse: () => '',
     );
+    final otherName = _otherName(chatRoom);
 
     return BlocProvider.value(
       value: _userBloc,
       child: BlocListener<UserBloc, UserState>(
         listener: (context, state) {
           if (state is UserActionSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  state.message,
-                  style: const TextStyle(color: Colors.white),
-                ),
-                backgroundColor: Colors.green,
-              ),
-            );
+            showAppSnack(context, state.message, tone: AppTone.success);
             if (state.message.contains('blocked')) {
               context.pop(); // Exit chat room after blocking
             }
           } else if (state is UserError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  state.message,
-                  style: const TextStyle(color: Colors.white),
-                ),
-                backgroundColor: Colors.red,
-              ),
-            );
+            showAppSnack(context, state.message, tone: AppTone.danger);
           }
         },
         child: Scaffold(
           appBar: AppBar(
-            title: Text(_chatRoom?.chatName ?? 'Chat'),
+            titleSpacing: 0,
+            title: _RoomTitle(
+              name: otherName,
+              bookName: chatRoom?.bookName,
+              showAvatar: chatRoom != null,
+            ),
             actions: [
-              if (_chatRoom?.bookId != null)
-                IconButton(
-                  icon: const Icon(Icons.info_outline),
-                  onPressed: () => context.push('/book/${_chatRoom!.bookId}'),
-                  tooltip: 'View Book Details',
-                ),
-              if (otherUserId != null && otherUserId.isNotEmpty)
+              if (chatRoom != null &&
+                  (chatRoom.bookId != null ||
+                      (otherUserId != null && otherUserId.isNotEmpty)))
                 PopupMenuButton<String>(
+                  tooltip: 'More options',
+                  icon: const Icon(LucideIcons.ellipsisVertical),
                   onSelected: (value) {
-                    if (value == 'report') {
-                      _showReportDialog(otherUserId);
+                    if (value == 'book') {
+                      _openBook();
+                    } else if (value == 'report') {
+                      _showReportSheet(otherUserId!, otherName);
                     } else if (value == 'block') {
-                      _showBlockDialog(otherUserId);
+                      _showBlockSheet(otherUserId!, otherName);
                     }
                   },
                   itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'report',
-                      child: Row(
-                        children: [
-                          Icon(Icons.flag_outlined, size: 20),
-                          SizedBox(width: 12),
-                          Text('Report User'),
-                        ],
+                    if (chatRoom.bookId != null)
+                      const PopupMenuItem(
+                        value: 'book',
+                        child: _MenuRow(
+                          icon: LucideIcons.bookOpen,
+                          label: 'View book details',
+                        ),
                       ),
-                    ),
-                    PopupMenuItem(
-                      value: 'block',
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.block,
-                            size: 20,
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Block User',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
-                            ),
-                          ),
-                        ],
+                    if (otherUserId != null && otherUserId.isNotEmpty) ...[
+                      const PopupMenuItem(
+                        value: 'report',
+                        child: _MenuRow(
+                          icon: LucideIcons.flag,
+                          label: 'Report user',
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-            ],
-          ),
-          body: BlocConsumer<ChatBloc, ChatState>(
-            bloc: _chatBloc,
-            listener: (context, state) {
-              // Update chatRoom when loaded
-              if (state is ChatRoomLoaded) {
-                setState(() {
-                  _chatRoom = state.chatRoom;
-                });
-              }
-            },
-            builder: (context, state) {
-              // Show loading only if we don't have chat room data yet
-              if (state is ChatLoading && _chatRoom == null) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (state is ChatError && _chatRoom == null) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        size: 48,
-                        color: Colors.red,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(state.message),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () =>
-                            _chatBloc.add(LoadChatRoom(widget.roomId)),
-                        child: const Text('Retry'),
+                      PopupMenuItem(
+                        value: 'block',
+                        child: _MenuRow(
+                          icon: LucideIcons.ban,
+                          label: 'Block user',
+                          color: context.colors.error,
+                        ),
                       ),
                     ],
-                  ),
-                );
-              }
-
-              if (_chatRoom == null) {
-                return const Center(child: Text('Chat room not found'));
-              }
-
-              final messages = state is MessagesLoaded
-                  ? state.messages
-                  : <Message>[];
-
-              return Column(
-                children: [
-                  // Book Info Section
-                  _buildBookInfoSection(),
-
-                  // Current Status Section
-                  if (_bookRequest != null) _buildStatusSection(),
-
-                  // Exchange Arrangement Section
-                  if (_bookRequest != null &&
-                      _bookRequest!.status == RequestStatus.accepted &&
-                      _bookRequest!.exchangeMethod != null)
-                    _buildExchangeArrangement(),
-
-                  const Divider(height: 1),
-
-                  // Messages List
-                  Expanded(
-                    child: messages.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.chat_bubble_outline,
-                                  size: 64,
-                                  color: Colors.grey[400],
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'No messages yet',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Start the conversation!',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[500],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : ListView.builder(
-                            controller: _scrollController,
-                            reverse: true,
-                            padding: const EdgeInsets.all(16),
-                            itemCount: messages.length,
-                            itemBuilder: (context, index) {
-                              final message = messages[index];
-                              final isMe = message.senderId == currentUserId;
-                              final showDate =
-                                  index == messages.length - 1 ||
-                                  !_isSameDay(
-                                    message.createdAt,
-                                    messages[index + 1].createdAt,
-                                  );
-
-                              return Column(
-                                children: [
-                                  if (showDate)
-                                    _buildDateSeparator(message.createdAt),
-                                  _buildMessageBubble(message, isMe),
-                                ],
-                              );
-                            },
-                          ),
-                  ),
-
-                  // Message Input
-                  _buildMessageInput(),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBookInfoSection() {
-    if (_chatRoom == null || _chatRoom!.bookId == null) {
-      return Container(
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.grey[100],
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[300]!),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.menu_book, color: Colors.grey[400], size: 32),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Book information not available',
-                style: TextStyle(color: Colors.grey[600]),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return InkWell(
-      onTap: () => context.push('/book/${_chatRoom!.bookId}'),
-      child: Container(
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[300]!),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Book Cover Icon
-            Container(
-              width: 60,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.book, color: Colors.grey, size: 32),
-            ),
-            const SizedBox(width: 16),
-
-            // Book Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _chatRoom!.bookName ?? 'Unknown Book',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  if (_chatRoom!.ownerName != null) ...[
-                    Text(
-                      'Owner: ${_chatRoom!.ownerName}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  if (_chatRoom!.requesterName != null)
-                    Text(
-                      'Requester: ${_chatRoom!.requesterName}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
-                ],
-              ),
-            ),
-
-            // Arrow Icon
-            Icon(Icons.arrow_forward, color: Colors.grey[400]),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusSection() {
-    if (_bookRequest == null) return const SizedBox.shrink();
-
-    Color statusColor;
-    String statusText;
-    IconData statusIcon;
-
-    switch (_bookRequest!.status) {
-      case RequestStatus.pending:
-        statusColor = Colors.orange;
-        statusText = 'Pending Approval';
-        statusIcon = Icons.schedule;
-        break;
-      case RequestStatus.accepted:
-        statusColor = Colors.green;
-        statusText = 'Accepted';
-        statusIcon = Icons.check_circle;
-        break;
-      case RequestStatus.declined:
-        statusColor = Colors.red;
-        statusText = 'Declined';
-        statusIcon = Icons.cancel;
-        break;
-      case RequestStatus.completed:
-        statusColor = Colors.blue;
-        statusText = 'Completed';
-        statusIcon = Icons.done_all;
-        break;
-      case RequestStatus.cancelled:
-        statusColor = Colors.grey;
-        statusText = 'Cancelled';
-        statusIcon = Icons.close;
-        break;
-    }
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: statusColor.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(statusIcon, color: statusColor, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Current Status',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[700],
-                  ),
-                ),
-              ),
-              Chip(
-                label: Text(
-                  statusText,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-                backgroundColor: statusColor,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            ],
-          ),
-          if (_bookRequest!.status == RequestStatus.accepted ||
-              _bookRequest!.status == RequestStatus.completed) ...[
-            const SizedBox(height: 12),
-            InkWell(
-              onTap: _showTimelineDialog,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: statusColor.withOpacity(0.3)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.timeline, size: 16, color: statusColor),
-                    const SizedBox(width: 6),
-                    Text(
-                      'View Request Timeline',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: statusColor,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(Icons.chevron_right, size: 16, color: statusColor),
                   ],
                 ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildExchangeArrangement() {
-    if (_bookRequest == null) return const SizedBox.shrink();
-
-    final exchangeMethod = _bookRequest!.exchangeMethod;
-    if (exchangeMethod == null) return const SizedBox.shrink();
-
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue[200]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                exchangeMethod == ExchangeMethod.meetup
-                    ? Icons.location_on
-                    : Icons.local_shipping,
-                color: Colors.blue[700],
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Exchange Arrangement',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
+              const SizedBox(width: AppSpacing.xs),
             ],
           ),
-          const SizedBox(height: 12),
-
-          if (exchangeMethod == ExchangeMethod.meetup) ...[
-            if (_bookRequest!.meetingTime != null) ...[
-              _buildInfoRow(
-                Icons.schedule,
-                'Meeting Time',
-                DateFormat(
-                  'MMM dd, yyyy • hh:mm a',
-                ).format(_bookRequest!.meetingTime!),
-              ),
-              const SizedBox(height: 8),
-            ],
-            if (_bookRequest!.meetingLocation != null)
-              _buildInfoRow(
-                Icons.place,
-                'Location',
-                _bookRequest!.meetingLocation!,
-              ),
-          ] else if (exchangeMethod == ExchangeMethod.courier) ...[
-            if (_bookRequest!.courierMethod != null) ...[
-              _buildInfoRow(
-                Icons.local_shipping,
-                'Courier Service',
-                _bookRequest!.courierMethod!,
-              ),
-              const SizedBox(height: 8),
-            ],
-            if (_bookRequest!.trackingId != null)
-              _buildInfoRow(
-                Icons.qr_code,
-                'Tracking ID',
-                _bookRequest!.trackingId!,
-              ),
-          ],
-        ],
+          body: BlocListener<ChatBloc, ChatState>(
+            bloc: _chatBloc,
+            listener: _onChatState,
+            child: _buildBody(currentUserId, otherName),
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildBody(String? currentUserId, String otherName) {
+    final chatRoom = _chatRoom;
+    final loadError = _loadError;
+
+    if (chatRoom == null) {
+      if (loadError != null) {
+        return AppErrorState(
+          title: 'Could not open this chat',
+          message: loadError,
+          onRetry: _retryLoad,
+        );
+      }
+      return const AppLoading(message: 'Opening conversation');
+    }
+
+    final Widget conversation;
+    if (!_messagesLoaded) {
+      conversation = loadError != null
+          ? AppErrorState(
+              title: 'Could not load messages',
+              message: loadError,
+              onRetry: _retryLoad,
+            )
+          : const AppLoading();
+    } else if (_messages.isEmpty) {
+      conversation = _buildEmptyConversation(chatRoom, otherName);
+    } else {
+      conversation = _buildMessageList(currentUserId, otherName);
+    }
+
+    return Column(
       children: [
-        Icon(icon, size: 16, color: Colors.blue[700]),
-        const SizedBox(width: 8),
+        _BookContextStrip(
+          chatRoom: chatRoom,
+          onTap: chatRoom.bookId != null ? _openBook : null,
+        ),
+        Expanded(child: conversation),
+        _Composer(
+          controller: _messageController,
+          focusNode: _composerFocus,
+          sharingLocation: _sharingLocation,
+          onSend: _sendMessage,
+          onShareLocation: _confirmShareLocation,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSafetyTip() {
+    return AppBanner(
+      tone: AppTone.exchange,
+      icon: LucideIcons.shieldCheck,
+      title: 'Meet safely',
+      message:
+          'Hand books over in a busy public place during the day, and never '
+          'send money or personal details in chat.',
+      actionLabel: 'Got it',
+      onAction: () => setState(() => _safetyTipDismissed = true),
+    );
+  }
+
+  Widget _buildEmptyConversation(ChatRoom chatRoom, String otherName) {
+    final bookName = chatRoom.bookName?.trim() ?? '';
+    final starters = [
+      bookName.isEmpty
+          ? 'Hi! Is the book still available?'
+          : 'Hi! Is "$bookName" still available?',
+      'When and where would be good to meet?',
+      'Thank you for sharing this book!',
+    ];
+
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.page,
+          vertical: AppSpacing.xxl,
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: context.colors.primaryContainer,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                LucideIcons.messageCircle,
+                size: 30,
+                color: context.colors.onPrimaryContainer,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'Start the conversation',
+              style: context.text.titleLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Say hello to $otherName and agree on how to hand the book '
+              'over. Tap a suggestion to use it.',
+              textAlign: TextAlign.center,
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+              style: context.text.bodyMedium?.copyWith(
+                color: context.colors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            for (final starter in starters) ...[
+              _StarterChip(label: starter, onTap: () => _useStarter(starter)),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+            if (!_safetyTipDismissed) ...[
+              const SizedBox(height: AppSpacing.lg),
+              _buildSafetyTip(),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMessageList(String? currentUserId, String otherName) {
+    final messages = _messages;
+    final showTip = !_safetyTipDismissed;
+
+    return ListView.builder(
+      controller: _scrollController,
+      reverse: true,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.md,
+      ),
+      itemCount: messages.length + (showTip ? 1 : 0),
+      itemBuilder: (context, index) {
+        // The list is reversed, so the last index is the top of the thread.
+        if (index == messages.length) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: _buildSafetyTip(),
+          );
+        }
+
+        final message = messages[index];
+        final older = index + 1 < messages.length ? messages[index + 1] : null;
+        final newer = index > 0 ? messages[index - 1] : null;
+
+        final showDate =
+            older == null || !_isSameDay(message.createdAt, older.createdAt);
+        final firstInGroup = showDate || !_sameGroup(message, older);
+        final lastInGroup =
+            newer == null ||
+            !_isSameDay(message.createdAt, newer.createdAt) ||
+            !_sameGroup(message, newer);
+
+        final Widget child;
+        if (message.type == MessageType.system) {
+          child = _SystemMessage(text: message.content);
+        } else {
+          child = _MessageBubble(
+            message: message,
+            isMe: message.senderId == currentUserId,
+            otherName: otherName,
+            firstInGroup: firstInGroup,
+            lastInGroup: lastInGroup,
+            location: message.type == MessageType.location
+                ? _parseLocation(message.content)
+                : null,
+            onOpenLocation: _openLocation,
+          );
+        }
+
+        if (!showDate) return child;
+        return Column(
+          children: [
+            _DaySeparator(date: message.createdAt),
+            child,
+          ],
+        );
+      },
+    );
+  }
+
+  static bool _sameGroup(Message a, Message b) {
+    return a.senderId == b.senderId &&
+        a.type != MessageType.system &&
+        b.type != MessageType.system &&
+        a.createdAt.difference(b.createdAt).inMinutes.abs() < 10;
+  }
+
+  static bool _isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+        date1.month == date2.month &&
+        date1.day == date2.day;
+  }
+
+  static ({double lat, double lng})? _parseLocation(String content) {
+    final match = RegExp(
+      r'(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)',
+    ).firstMatch(content);
+    if (match == null) return null;
+    final lat = double.tryParse(match.group(1)!);
+    final lng = double.tryParse(match.group(2)!);
+    if (lat == null || lng == null) return null;
+    if (lat.abs() > 90 || lng.abs() > 180) return null;
+    return (lat: lat, lng: lng);
+  }
+}
+
+// ── App bar ─────────────────────────────────────────────────────────────────
+
+class _RoomTitle extends StatelessWidget {
+  const _RoomTitle({
+    required this.name,
+    required this.bookName,
+    required this.showAvatar,
+  });
+
+  final String name;
+  final String? bookName;
+  final bool showAvatar;
+
+  @override
+  Widget build(BuildContext context) {
+    final book = bookName?.trim() ?? '';
+
+    return Row(
+      children: [
+        if (showAvatar) ...[
+          UserAvatar(name: name, radius: 18),
+          const SizedBox(width: AppSpacing.md),
+        ],
         Expanded(
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                label,
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: context.text.titleMedium,
               ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey[800],
+              if (book.isNotEmpty)
+                Text(
+                  book,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.text.bodySmall?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
                 ),
-              ),
             ],
           ),
         ),
       ],
     );
   }
+}
 
-  Widget _buildDateSeparator(DateTime date) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final messageDate = DateTime(date.year, date.month, date.day);
+class _MenuRow extends StatelessWidget {
+  const _MenuRow({required this.icon, required this.label, this.color});
 
-    String dateText;
-    if (messageDate == today) {
-      dateText = 'Today';
-    } else if (messageDate == today.subtract(const Duration(days: 1))) {
-      dateText = 'Yesterday';
-    } else if (date.year == now.year) {
-      dateText = DateFormat('MMMM d').format(date);
-    } else {
-      dateText = DateFormat('MMMM d, y').format(date);
+  final IconData icon;
+  final String label;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolved = color ?? context.colors.onSurface;
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: resolved),
+        const SizedBox(width: AppSpacing.md),
+        Text(label, style: context.text.bodyLarge?.copyWith(color: resolved)),
+      ],
+    );
+  }
+}
+
+// ── Book context ────────────────────────────────────────────────────────────
+
+/// Slim strip pinned under the app bar that says which book the chat is
+/// about and opens it.
+class _BookContextStrip extends StatelessWidget {
+  const _BookContextStrip({required this.chatRoom, required this.onTap});
+
+  final ChatRoom chatRoom;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final bookName = chatRoom.bookName?.trim() ?? '';
+    final owner = chatRoom.ownerName?.trim() ?? '';
+    final requester = chatRoom.requesterName?.trim() ?? '';
+
+    if (bookName.isEmpty && onTap == null) {
+      return Divider(height: 1, thickness: 1, color: colors.outlineVariant);
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Row(
-        children: [
-          Expanded(child: Divider(color: Colors.grey[300])),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              dateText,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
-              ),
+    final people = [
+      if (owner.isNotEmpty) 'Shared by $owner',
+      if (requester.isNotEmpty) 'requested by $requester',
+    ].join(' · ');
+
+    return Material(
+      color: colors.surface,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 60),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.page,
+            vertical: AppSpacing.sm,
+          ),
+          decoration: BoxDecoration(
+            border: Border.symmetric(
+              horizontal: BorderSide(color: colors.outlineVariant),
             ),
           ),
-          Expanded(child: Divider(color: Colors.grey[300])),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessageBubble(Message message, bool isMe) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        mainAxisAlignment: isMe
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (!isMe) ...[
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: Colors.grey[300],
-              child: Icon(Icons.person, size: 18, color: Colors.grey[600]),
-            ),
-            const SizedBox(width: 8),
-          ],
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: isMe ? Theme.of(context).primaryColor : Colors.grey[200],
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(16),
-                  topRight: const Radius.circular(16),
-                  bottomLeft: Radius.circular(isMe ? 16 : 4),
-                  bottomRight: Radius.circular(isMe ? 4 : 16),
+          child: Row(
+            children: [
+              BookCover(
+                imageUrl: null,
+                title: bookName,
+                width: 28,
+                elevated: false,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      bookName.isEmpty ? 'Book in this chat' : bookName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.text.titleSmall,
+                    ),
+                    if (people.isNotEmpty)
+                      Text(
+                        people,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.text.bodySmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    message.content,
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: isMe ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    DateFormat('hh:mm a').format(message.createdAt),
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isMe ? Colors.white70 : Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (isMe) ...[
-            const SizedBox(width: 8),
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
-              child: Icon(
-                Icons.person,
-                size: 18,
-                color: Theme.of(context).primaryColor,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessageInput() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _messageController,
-                decoration: InputDecoration(
-                  hintText: 'Type a message...',
-                  hintStyle: TextStyle(color: Colors.grey[400]),
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
+              if (onTap != null) ...[
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  'View',
+                  style: context.text.labelLarge?.copyWith(
+                    color: colors.primary,
                   ),
                 ),
-                maxLines: null,
-                textCapitalization: TextCapitalization.sentences,
-                onSubmitted: (_) => _sendMessage(),
-              ),
-            ),
-            const SizedBox(width: 12),
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: Theme.of(context).primaryColor,
-              child: IconButton(
-                icon: const Icon(Icons.send, color: Colors.white, size: 20),
-                onPressed: _sendMessage,
-                padding: EdgeInsets.zero,
-              ),
-            ),
-          ],
+                Icon(LucideIcons.chevronRight, size: 18, color: colors.primary),
+              ],
+            ],
+          ),
         ),
       ),
     );
   }
+}
 
-  bool _isSameDay(DateTime date1, DateTime date2) {
-    return date1.year == date2.year &&
-        date1.month == date2.month &&
-        date1.day == date2.day;
+// ── Messages ────────────────────────────────────────────────────────────────
+
+class _DaySeparator extends StatelessWidget {
+  const _DaySeparator({required this.date});
+
+  final DateTime date;
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final messageDate = DateTime(date.year, date.month, date.day);
+
+    final String label;
+    if (messageDate == today) {
+      label = 'Today';
+    } else if (messageDate == today.subtract(const Duration(days: 1))) {
+      label = 'Yesterday';
+    } else if (date.year == now.year) {
+      label = DateFormat('MMMM d').format(date);
+    } else {
+      label = DateFormat('MMMM d, y').format(date);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.lg, bottom: AppSpacing.xs),
+      child: Center(
+        child: Text(
+          label,
+          style: context.text.labelSmall?.copyWith(
+            color: context.colors.onSurfaceVariant,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SystemMessage extends StatelessWidget {
+  const _SystemMessage({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 300),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.xs + 2,
+          ),
+          decoration: BoxDecoration(
+            color: context.colors.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+          ),
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: context.text.bodySmall?.copyWith(
+              color: context.colors.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MessageBubble extends StatelessWidget {
+  const _MessageBubble({
+    required this.message,
+    required this.isMe,
+    required this.otherName,
+    required this.firstInGroup,
+    required this.lastInGroup,
+    required this.location,
+    required this.onOpenLocation,
+  });
+
+  static const double _avatarRadius = 14;
+  static const double _avatarSlot = _avatarRadius * 2 + AppSpacing.sm;
+
+  final Message message;
+  final bool isMe;
+  final String otherName;
+
+  /// Top-most and bottom-most bubble of a run from the same sender.
+  final bool firstInGroup;
+  final bool lastInGroup;
+
+  /// Parsed coordinates when this is a location message that carries them.
+  final ({double lat, double lng})? location;
+  final ValueChanged<({double lat, double lng})> onOpenLocation;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final foreground = isMe ? colors.onPrimary : colors.onSurface;
+
+    const round = Radius.circular(AppRadius.xl);
+    const joined = Radius.circular(AppRadius.sm);
+    const tail = Radius.circular(AppRadius.sm / 2);
+    final radius = BorderRadius.only(
+      topLeft: isMe || firstInGroup ? round : joined,
+      topRight: !isMe || firstInGroup ? round : joined,
+      bottomLeft: isMe ? round : (lastInGroup ? tail : joined),
+      bottomRight: !isMe ? round : (lastInGroup ? tail : joined),
+    );
+
+    final point = location;
+    final isLocation = message.type == MessageType.location;
+
+    final bubble = Material(
+      color: isMe ? colors.primary : colors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: isMe ? BorderSide.none : BorderSide(color: colors.outlineVariant),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: point != null ? () => onOpenLocation(point) : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg - 2,
+            vertical: AppSpacing.sm + 2,
+          ),
+          child: isLocation
+              ? _LocationContent(
+                  content: message.content,
+                  location: point,
+                  isMe: isMe,
+                  foreground: foreground,
+                )
+              : Text(
+                  message.content,
+                  style: context.text.bodyLarge?.copyWith(
+                    color: foreground,
+                    fontSize: 15,
+                    height: 1.4,
+                  ),
+                ),
+        ),
+      ),
+    );
+
+    return Padding(
+      padding: EdgeInsets.only(top: firstInGroup ? AppSpacing.md : 3),
+      child: Column(
+        crossAxisAlignment: isMe
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: isMe
+                ? MainAxisAlignment.end
+                : MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (!isMe) ...[
+                if (lastInGroup)
+                  UserAvatar(name: otherName, radius: _avatarRadius)
+                else
+                  const SizedBox(width: _avatarRadius * 2),
+                const SizedBox(width: AppSpacing.sm),
+              ],
+              Flexible(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.sizeOf(context).width * 0.76,
+                  ),
+                  child: bubble,
+                ),
+              ),
+            ],
+          ),
+          if (lastInGroup)
+            Padding(
+              padding: EdgeInsets.only(
+                top: AppSpacing.xs,
+                left: isMe ? 0 : _avatarSlot + AppSpacing.xs,
+                right: isMe ? AppSpacing.xs : 0,
+              ),
+              child: Text(
+                DateFormat('h:mm a').format(message.createdAt),
+                style: context.text.labelSmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LocationContent extends StatelessWidget {
+  const _LocationContent({
+    required this.content,
+    required this.location,
+    required this.isMe,
+    required this.foreground,
+  });
+
+  final String content;
+  final ({double lat, double lng})? location;
+  final bool isMe;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final point = location;
+    final muted = foreground.withValues(alpha: 0.78);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: isMe
+                ? colors.onPrimary.withValues(alpha: 0.16)
+                : colors.primaryContainer,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            LucideIcons.mapPin,
+            size: 20,
+            color: isMe ? colors.onPrimary : colors.onPrimaryContainer,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Flexible(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isMe ? 'You shared a location' : 'Shared location',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: context.text.titleSmall?.copyWith(color: foreground),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                point != null
+                    ? '${point.lat.toStringAsFixed(4)}, '
+                          '${point.lng.toStringAsFixed(4)}'
+                    : content,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: context.text.bodySmall?.copyWith(color: muted),
+              ),
+              if (point != null) ...[
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Tap to open in maps',
+                  style: context.text.labelMedium?.copyWith(color: foreground),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StarterChip extends StatelessWidget {
+  const _StarterChip({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Material(
+      color: colors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        side: BorderSide(color: colors.outlineVariant),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.md,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.text.bodyMedium?.copyWith(
+                      color: colors.onSurface,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Icon(
+                  LucideIcons.cornerDownLeft,
+                  size: 16,
+                  color: colors.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Composer ────────────────────────────────────────────────────────────────
+
+class _Composer extends StatelessWidget {
+  const _Composer({
+    required this.controller,
+    required this.focusNode,
+    required this.sharingLocation,
+    required this.onSend,
+    required this.onShareLocation,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final bool sharingLocation;
+  final VoidCallback onSend;
+  final VoidCallback onShareLocation;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    OutlineInputBorder border(Color color, [double width = 1]) {
+      return OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
+        borderSide: BorderSide(color: color, width: width),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border(top: BorderSide(color: colors.outlineVariant)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.sm,
+            AppSpacing.sm,
+            AppSpacing.md,
+            AppSpacing.sm,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: sharingLocation
+                    ? const Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : IconButton(
+                        tooltip: 'Share your location',
+                        icon: const Icon(LucideIcons.mapPin),
+                        color: colors.onSurfaceVariant,
+                        onPressed: onShareLocation,
+                      ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  minLines: 1,
+                  maxLines: 5,
+                  textCapitalization: TextCapitalization.sentences,
+                  inputFormatters: [
+                    LengthLimitingTextInputFormatter(
+                      AppConstants.maxMessageLength,
+                    ),
+                  ],
+                  style: context.text.bodyLarge?.copyWith(fontSize: 15),
+                  decoration: InputDecoration(
+                    hintText: 'Write a message',
+                    isDense: true,
+                    filled: true,
+                    fillColor: colors.surfaceContainerHighest.withValues(
+                      alpha: 0.5,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                      vertical: AppSpacing.md + 1,
+                    ),
+                    border: border(colors.outlineVariant),
+                    enabledBorder: border(colors.outlineVariant),
+                    focusedBorder: border(colors.primary, 1.5),
+                  ),
+                  onSubmitted: (_) => onSend(),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              ValueListenableBuilder<TextEditingValue>(
+                valueListenable: controller,
+                builder: (context, value, _) {
+                  final canSend = value.text.trim().isNotEmpty;
+                  return Tooltip(
+                    message: 'Send',
+                    child: Material(
+                      color: canSend
+                          ? colors.primary
+                          : colors.surfaceContainerHighest,
+                      shape: const CircleBorder(),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: canSend ? onSend : null,
+                        child: SizedBox(
+                          width: 48,
+                          height: 48,
+                          child: Icon(
+                            LucideIcons.sendHorizontal,
+                            size: 20,
+                            color: canSend
+                                ? colors.onPrimary
+                                : colors.onSurfaceVariant.withValues(
+                                    alpha: 0.6,
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Report sheet ────────────────────────────────────────────────────────────
+
+/// Lets the reader pick why they are reporting someone. Pops with the chosen
+/// reason, or null when dismissed.
+class _ReportSheet extends StatefulWidget {
+  const _ReportSheet({required this.name});
+
+  final String name;
+
+  @override
+  State<_ReportSheet> createState() => _ReportSheetState();
+}
+
+class _ReportSheetState extends State<_ReportSheet> {
+  static const List<String> _reasons = [
+    'Spam',
+    'Harassment',
+    'Inappropriate Content',
+    'Other',
+  ];
+
+  String _selected = _reasons.first;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return SheetScaffold(
+      title: 'Report user',
+      subtitle: 'Tell us what is wrong with ${widget.name}.',
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      footer: FilledButton(
+        onPressed: () => Navigator.pop(context, _selected),
+        child: const Text('Submit report'),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final reason in _reasons)
+            InkWell(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              onTap: () => setState(() => _selected = reason),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 52),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        reason == _selected
+                            ? LucideIcons.circleCheck
+                            : LucideIcons.circle,
+                        size: 22,
+                        color: reason == _selected
+                            ? colors.primary
+                            : colors.outline,
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Text(
+                          reason == 'Inappropriate Content'
+                              ? 'Inappropriate content'
+                              : reason,
+                          style: context.text.bodyLarge?.copyWith(
+                            fontWeight: reason == _selected
+                                ? FontWeight.w600
+                                : null,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }

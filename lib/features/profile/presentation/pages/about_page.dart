@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/design/design.dart';
+import 'settings_page.dart'
+    show ProfileMenuGroup, ProfileMenuRow, appVersionLabel;
 
 /// About Page
 class AboutPage extends StatelessWidget {
@@ -7,249 +11,180 @@ class AboutPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final muted = context.colors.onSurfaceVariant;
 
     return Scaffold(
       appBar: AppBar(title: const Text('About')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(height: 24),
-
-            // App Logo
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.asset(
-                'assets/icon/icon.png',
-                width: 80,
-                height: 80,
-                fit: BoxFit.contain,
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            Text(
-              'Boichokro',
-              style: textTheme.headlineLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                letterSpacing: -1,
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            Text(
-              'Share Books, Spread Knowledge',
-              style: textTheme.titleMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                'Version 1.0.0',
-                style: textTheme.labelLarge?.copyWith(
-                  color: colorScheme.onPrimaryContainer,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 40),
-
-            // Mission Statement
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    colorScheme.primaryContainer.withValues(alpha: 0.3),
-                    colorScheme.secondaryContainer.withValues(alpha: 0.3),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.page,
+            AppSpacing.lg,
+            AppSpacing.page,
+            AppSpacing.xxxl,
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 640),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(
-                    Icons.favorite_rounded,
-                    color: colorScheme.primary,
-                    size: 32,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Our Mission',
-                    style: textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+                  // Identity
+                  Center(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(AppRadius.xl),
+                      child: Image.asset(
+                        'assets/icon/icon.png',
+                        width: 88,
+                        height: 88,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.xl),
                   Text(
-                    'Boichokro is a community-driven platform that connects book lovers to exchange and donate books. We believe in making knowledge accessible to everyone and reducing waste by giving books a second life.',
-                    style: textTheme.bodyMedium?.copyWith(height: 1.6),
+                    'Boichokro',
                     textAlign: TextAlign.center,
+                    style: context.text.headlineLarge,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'বইচক্র',
+                    textAlign: TextAlign.center,
+                    style: context.text.titleMedium?.copyWith(color: muted),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    'Books that keep moving',
+                    textAlign: TextAlign.center,
+                    style: context.text.bodyLarge?.copyWith(color: muted),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  const Center(
+                    child: StatusPill(
+                      label: 'Version $appVersionLabel',
+                      tone: AppTone.primary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxxl),
+
+                  // Mission
+                  AppCard(
+                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Eyebrow('Our mission'),
+                        const SizedBox(height: AppSpacing.md),
+                        Text(
+                          'Boichokro is a community-driven platform that connects book lovers to exchange and donate books. We believe in making knowledge accessible to everyone and reducing waste by giving books a second life.',
+                          style: context.text.titleMedium?.copyWith(
+                            height: 1.6,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxl),
+
+                  // Features
+                  const ProfileMenuGroup(
+                    label: 'What you can do',
+                    children: [
+                      ProfileMenuRow(
+                        icon: LucideIcons.mapPin,
+                        title: 'Discover nearby',
+                        subtitle:
+                            'Find books available for exchange or donation in your area',
+                      ),
+                      ProfileMenuRow(
+                        icon: LucideIcons.repeat,
+                        tone: AppTone.exchange,
+                        title: 'Exchange & donate',
+                        subtitle:
+                            'Share your books with others through exchange or donation',
+                      ),
+                      ProfileMenuRow(
+                        icon: LucideIcons.messageCircle,
+                        tone: AppTone.donate,
+                        title: 'Connect',
+                        subtitle:
+                            'Chat with book owners and build a reading community',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xxl),
+
+                  // Contact
+                  ProfileMenuGroup(
+                    label: 'Get in touch',
+                    children: [
+                      ProfileMenuRow(
+                        icon: LucideIcons.mail,
+                        title: 'Email us',
+                        subtitle: 'support@boichokro.com',
+                        trailing: Icon(
+                          LucideIcons.externalLink,
+                          size: 16,
+                          color: muted,
+                        ),
+                        onTap: () =>
+                            _launchEmail(context, 'support@boichokro.com'),
+                      ),
+                      ProfileMenuRow(
+                        icon: LucideIcons.globe,
+                        title: 'Visit our website',
+                        subtitle: 'www.boichokro.com',
+                        trailing: Icon(
+                          LucideIcons.externalLink,
+                          size: 16,
+                          color: muted,
+                        ),
+                        onTap: () =>
+                            _launchUrl(context, 'https://www.boichokro.com'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xxxl),
+
+                  // Footer
+                  Text(
+                    'Made with ❤️ for book lovers',
+                    textAlign: TextAlign.center,
+                    style: context.text.bodySmall?.copyWith(color: muted),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    '© 2024 Boichokro. All rights reserved.',
+                    textAlign: TextAlign.center,
+                    style: context.text.bodySmall?.copyWith(color: muted),
                   ),
                 ],
               ),
             ),
-
-            const SizedBox(height: 32),
-
-            // Features
-            _buildFeature(
-              context,
-              Icons.location_on_rounded,
-              'Discover Nearby',
-              'Find books available for exchange or donation in your area',
-            ),
-            _buildFeature(
-              context,
-              Icons.swap_horiz_rounded,
-              'Exchange & Donate',
-              'Share your books with others through exchange or donation',
-            ),
-            _buildFeature(
-              context,
-              Icons.chat_rounded,
-              'Connect',
-              'Chat with book owners and build a reading community',
-            ),
-
-            const SizedBox(height: 32),
-
-            // Contact Section
-            Text(
-              'Get in Touch',
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            _buildContactButton(
-              context,
-              icon: Icons.email_outlined,
-              label: 'support@boichokro.com',
-              onTap: () => _launchEmail('support@boichokro.com'),
-            ),
-            const SizedBox(height: 8),
-            _buildContactButton(
-              context,
-              icon: Icons.language_rounded,
-              label: 'www.boichokro.com',
-              onTap: () => _launchUrl('https://www.boichokro.com'),
-            ),
-
-            const SizedBox(height: 40),
-
-            // Footer
-            Text(
-              'Made with ❤️ for book lovers',
-              style: textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '© 2024 Boichokro. All rights reserved.',
-              style: textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-
-            const SizedBox(height: 32),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildFeature(
-    BuildContext context,
-    IconData icon,
-    String title,
-    String description,
-  ) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: colorScheme.onPrimaryContainer, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildContactButton(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return OutlinedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon),
-      label: Text(label),
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        side: BorderSide(color: colorScheme.outline),
-      ),
-    );
-  }
-
-  Future<void> _launchEmail(String email) async {
+  Future<void> _launchEmail(BuildContext context, String email) async {
     final uri = Uri(scheme: 'mailto', path: email);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
+    } else if (context.mounted) {
+      showAppSnack(context, 'No email app found. Write to us at $email');
     }
   }
 
-  Future<void> _launchUrl(String url) async {
+  Future<void> _launchUrl(BuildContext context, String url) async {
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else if (context.mounted) {
+      showAppSnack(context, 'Could not open $url');
     }
   }
 }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/design/design.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../discover/domain/entities/book.dart';
 
 /// Onboarding Page - Introduction slides
 class OnboardingPage extends StatefulWidget {
@@ -15,29 +18,28 @@ class _OnboardingPageState extends State<OnboardingPage> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final List<OnboardingSlide> _slides = [
+  static const List<OnboardingSlide> _slides = [
     OnboardingSlide(
-      icon: Icons.search_rounded,
-      title: 'Discover Books Nearby',
+      title: 'Discover books nearby',
       description:
-          'Find books available for exchange or donation in your area. Connect with readers around you.',
-      colors: [Color(0xFF00695C), Color(0xFF00897B)],
+          'Browse the shelves of readers around you and find your next read a short walk away.',
+      illustration: _NearbyIllustration(),
     ),
     OnboardingSlide(
-      icon: Icons.swap_horiz_rounded,
-      title: 'Exchange or Donate',
+      title: 'Exchange or donate',
       description:
-          'Choose to exchange books with others or donate them freely. Share knowledge, spread joy.',
-      colors: [Color(0xFFD84315), Color(0xFFFF6F00)],
+          'Swap a book you have finished for one you want, or simply give it away for free.',
+      illustration: _ExchangeIllustration(),
     ),
     OnboardingSlide(
-      icon: Icons.chat_bubble_rounded,
-      title: 'Connect with Readers',
+      title: 'Connect with readers',
       description:
-          'Chat with book owners, arrange pickups, and build a community of book lovers.',
-      colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
+          'Chat with the owner, agree on a place to meet, and pass the book on.',
+      illustration: _ConnectIllustration(),
     ),
   ];
+
+  bool get _isLastPage => _currentPage == _slides.length - 1;
 
   @override
   void dispose() {
@@ -60,10 +62,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   void _nextPage() {
-    if (_currentPage < _slides.length - 1) {
+    if (!_isLastPage) {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
+        duration: AppMotion.slow,
+        curve: AppMotion.curve,
       );
     } else {
       _navigateToAuth();
@@ -76,169 +78,438 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   @override
   Widget build(BuildContext context) {
-    final slide = _slides[_currentPage];
-
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              slide.colors[0].withValues(alpha: 0.1),
-              slide.colors[1].withValues(alpha: 0.05),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Skip Button
-              Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: TextButton(
-                    onPressed: _skip,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Brand + skip
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.page,
+                AppSpacing.sm,
+                AppSpacing.sm,
+                0,
+              ),
+              child: Row(
+                children: [
+                  const ChokroMark(size: 32),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
                     child: Text(
-                      'Skip',
-                      style: TextStyle(
-                        color: slide.colors[0],
-                        fontWeight: FontWeight.w600,
+                      'Boichokro',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.text.titleMedium,
+                    ),
+                  ),
+                  AnimatedOpacity(
+                    opacity: _isLastPage ? 0 : 1,
+                    duration: AppMotion.fast,
+                    child: IgnorePointer(
+                      ignoring: _isLastPage,
+                      child: TextButton(
+                        onPressed: _skip,
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(64, 48),
+                        ),
+                        child: const Text('Skip'),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
-              // Page View
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  onPageChanged: _onPageChanged,
-                  itemCount: _slides.length,
-                  itemBuilder: (context, index) {
-                    return _buildSlide(_slides[index]);
-                  },
-                ),
+            ),
+            // Slides
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                onPageChanged: _onPageChanged,
+                itemCount: _slides.length,
+                itemBuilder: (context, index) {
+                  return _SlideView(slide: _slides[index]);
+                },
               ),
-              // Page Indicator
-              Row(
+            ),
+            // Page indicator
+            Semantics(
+              label: 'Page ${_currentPage + 1} of ${_slides.length}',
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  _slides.length,
-                  (index) => _buildDot(index),
-                ),
-              ),
-              const SizedBox(height: 32),
-              // Next/Get Started Button
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _nextPage,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      backgroundColor: slide.colors[0],
-                      foregroundColor: Colors.white,
-                    ),
-                    child: Text(
-                      _currentPage == _slides.length - 1
-                          ? 'Get Started'
-                          : 'Next',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                children: [
+                  for (int i = 0; i < _slides.length; i++)
+                    AnimatedContainer(
+                      duration: AppMotion.medium,
+                      curve: AppMotion.curve,
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs,
+                      ),
+                      width: _currentPage == i ? 28 : 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: _currentPage == i
+                            ? context.colors.primary
+                            : context.colors.outline.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
                       ),
                     ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+            // Next / Get started
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.page,
+                0,
+                AppSpacing.page,
+                AppSpacing.xl,
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _nextPage,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(_isLastPage ? 'Get started' : 'Next'),
+                      const SizedBox(width: AppSpacing.sm),
+                      const Icon(LucideIcons.arrowRight, size: 18),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
-            ],
-          ),
+            ),
+          ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSlide(OnboardingSlide slide) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Padding(
-      padding: const EdgeInsets.all(32.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(40),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: slide.colors,
-              ),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: slide.colors[0].withValues(alpha: 0.4),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Icon(slide.icon, size: 80, color: Colors.white),
-          ),
-          const SizedBox(height: 56),
-          Text(
-            slide.title,
-            textAlign: TextAlign.center,
-            style: textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: slide.colors[0],
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            slide.description,
-            textAlign: TextAlign.center,
-            style: textTheme.bodyLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDot(int index) {
-    final color = _slides[_currentPage].colors[0];
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      width: _currentPage == index ? 32 : 8,
-      height: 8,
-      decoration: BoxDecoration(
-        color: _currentPage == index ? color : color.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(4),
       ),
     );
   }
 }
 
+/// Content of one onboarding slide.
 class OnboardingSlide {
-  final IconData icon;
-  final String title;
-  final String description;
-  final List<Color> colors;
-
-  OnboardingSlide({
-    required this.icon,
+  const OnboardingSlide({
     required this.title,
     required this.description,
-    required this.colors,
+    required this.illustration,
   });
+
+  final String title;
+  final String description;
+
+  /// Composed illustration, laid out on a 300 x 240 canvas.
+  final Widget illustration;
+}
+
+class _SlideView extends StatelessWidget {
+  const _SlideView({required this.slide});
+
+  final OnboardingSlide slide;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final artHeight = (constraints.maxHeight * 0.52).clamp(140.0, 300.0);
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  height: artHeight,
+                  child: FittedBox(
+                    child: ExcludeSemantics(
+                      child: SizedBox(
+                        width: 300,
+                        height: 240,
+                        child: slide.illustration,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xxl),
+                Text(
+                  slide.title,
+                  textAlign: TextAlign.center,
+                  style: context.text.headlineMedium,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Text(
+                    slide.description,
+                    textAlign: TextAlign.center,
+                    style: context.text.bodyLarge?.copyWith(
+                      color: context.colors.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Soft tinted disc that sits behind every illustration.
+class _Backdrop extends StatelessWidget {
+  const _Backdrop({required this.tone});
+
+  final AppTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        width: 220,
+        height: 220,
+        decoration: BoxDecoration(
+          color: context.tone(tone).background.withValues(alpha: 0.6),
+          shape: BoxShape.circle,
+        ),
+      ),
+    );
+  }
+}
+
+/// Small paper chip that floats over an illustration.
+class _FloatingChip extends StatelessWidget {
+  const _FloatingChip({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: context.colors.outlineVariant),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// A fan of three books with a "nearby" chip.
+class _NearbyIllustration extends StatelessWidget {
+  const _NearbyIllustration();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        const _Backdrop(tone: AppTone.primary),
+        Positioned(
+          left: 44,
+          top: 58,
+          child: Transform.rotate(
+            angle: -0.2,
+            child: const BookCover(
+              imageUrl: null,
+              width: 88,
+              title: 'পথের পাঁচালী',
+            ),
+          ),
+        ),
+        Positioned(
+          right: 44,
+          top: 58,
+          child: Transform.rotate(
+            angle: 0.2,
+            child: const BookCover(
+              imageUrl: null,
+              width: 88,
+              title: 'Feluda Samagra',
+            ),
+          ),
+        ),
+        const Positioned(
+          left: 102,
+          top: 40,
+          child: BookCover(imageUrl: null, width: 96, title: 'হাজার বছর ধরে'),
+        ),
+        const Positioned(
+          right: 14,
+          top: 22,
+          child: _FloatingChip(
+            child: MetaItem(icon: LucideIcons.mapPin, label: '650 m away'),
+          ),
+        ),
+        const Positioned(
+          left: 10,
+          bottom: 14,
+          child: _FloatingChip(
+            child: MetaItem(
+              icon: LucideIcons.library,
+              label: '12 books near you',
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Two books travelling around the brand wheel, labelled swap and free.
+class _ExchangeIllustration extends StatelessWidget {
+  const _ExchangeIllustration();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        const _Backdrop(tone: AppTone.exchange),
+        Positioned(
+          left: 18,
+          top: 28,
+          child: Transform.rotate(
+            angle: -0.1,
+            child: const BookCover(imageUrl: null, width: 84, title: 'Sapiens'),
+          ),
+        ),
+        Positioned(
+          right: 18,
+          bottom: 28,
+          child: Transform.rotate(
+            angle: 0.1,
+            child: const BookCover(
+              imageUrl: null,
+              width: 84,
+              title: 'শেষের কবিতা',
+            ),
+          ),
+        ),
+        const Center(child: ChokroMark(size: 104)),
+        Positioned(
+          left: 20,
+          bottom: 22,
+          child: StatusPill.mode(BookMode.exchange),
+        ),
+        Positioned(right: 20, top: 26, child: StatusPill.mode(BookMode.donate)),
+      ],
+    );
+  }
+}
+
+/// A short conversation between two readers about a book.
+class _ConnectIllustration extends StatelessWidget {
+  const _ConnectIllustration();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        const _Backdrop(tone: AppTone.donate),
+        const Positioned(
+          left: 8,
+          top: 30,
+          right: 56,
+          child: _Bubble(
+            name: 'Nusrat Jahan',
+            text: 'Is the book still available?',
+            mine: false,
+          ),
+        ),
+        const Positioned(
+          left: 56,
+          top: 104,
+          right: 8,
+          child: _Bubble(
+            name: 'Arif Rahman',
+            text: 'Yes! Meet at the library gate?',
+            mine: true,
+          ),
+        ),
+        const Positioned(
+          left: 0,
+          right: 0,
+          bottom: 14,
+          child: Center(
+            child: _FloatingChip(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  StatusPill(
+                    label: 'Verified reader',
+                    icon: LucideIcons.badgeCheck,
+                    tone: AppTone.success,
+                    dense: true,
+                  ),
+                  SizedBox(width: AppSpacing.sm),
+                  RatingBadge(rating: 4.9, swaps: 14),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Bubble extends StatelessWidget {
+  const _Bubble({required this.name, required this.text, required this.mine});
+
+  final String name;
+  final String text;
+  final bool mine;
+
+  @override
+  Widget build(BuildContext context) {
+    const corner = Radius.circular(AppRadius.lg);
+    const tail = Radius.circular(AppSpacing.xs);
+    final avatar = UserAvatar(name: name, radius: 18, verified: mine);
+    final bubble = Flexible(
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.md,
+        ),
+        decoration: BoxDecoration(
+          color: mine ? context.colors.primary : context.colors.surface,
+          border: mine
+              ? null
+              : Border.all(color: context.colors.outlineVariant),
+          borderRadius: BorderRadius.only(
+            topLeft: corner,
+            topRight: corner,
+            bottomLeft: mine ? corner : tail,
+            bottomRight: mine ? tail : corner,
+          ),
+        ),
+        child: Text(
+          text,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: context.text.bodyMedium?.copyWith(
+            color: mine ? context.colors.onPrimary : context.colors.onSurface,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+
+    return Row(
+      mainAxisAlignment: mine ? MainAxisAlignment.end : MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: mine
+          ? [bubble, const SizedBox(width: AppSpacing.sm), avatar]
+          : [avatar, const SizedBox(width: AppSpacing.sm), bubble],
+    );
+  }
 }

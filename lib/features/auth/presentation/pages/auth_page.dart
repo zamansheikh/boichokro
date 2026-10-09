@@ -1,7 +1,9 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../../core/design/design.dart';
 import '../../../../core/di/injection_container.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
@@ -15,195 +17,363 @@ class AuthPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => getIt<AuthBloc>(),
-      child: Scaffold(
-        body: BlocConsumer<AuthBloc, AuthState>(
-          listener: (context, state) {
-            if (state is AuthAuthenticated) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Welcome ${state.user.name}!')),
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.light.copyWith(
+          statusBarColor: Colors.transparent,
+        ),
+        child: Scaffold(
+          body: BlocConsumer<AuthBloc, AuthState>(
+            listener: (context, state) {
+              if (state is AuthAuthenticated) {
+                showAppSnack(
+                  context,
+                  'Welcome ${state.user.name}!',
+                  tone: AppTone.success,
+                );
+                context.go('/home');
+              }
+            },
+            builder: (context, state) {
+              return _SignInView(
+                // Stay busy once authenticated: the app is navigating home.
+                isBusy: state is AuthLoading || state is AuthAuthenticated,
+                errorMessage: state is AuthError ? state.message : null,
               );
-              context.go('/home');
-            } else if (state is AuthError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Theme.of(context).colorScheme.error,
-                ),
-              );
-            }
-          },
-          builder: (context, state) {
-            if (state is AuthLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            return _buildSignInUI(context);
-          },
+            },
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildSignInUI(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+class _SignInView extends StatelessWidget {
+  const _SignInView({required this.isBusy, required this.errorMessage});
 
-    return Container(
+  final bool isBusy;
+  final String? errorMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const _BrandHeader(),
+                  Expanded(
+                    child: SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.page,
+                          AppSpacing.xxl,
+                          AppSpacing.page,
+                          AppSpacing.lg,
+                        ),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 480),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                const _TrustPoints(),
+                                const Spacer(),
+                                const SizedBox(height: AppSpacing.xxl),
+                                if (errorMessage != null) ...[
+                                  AppBanner(
+                                    tone: AppTone.danger,
+                                    icon: LucideIcons.circleAlert,
+                                    title: 'We couldn\'t sign you in',
+                                    message: errorMessage!,
+                                  ),
+                                  const SizedBox(height: AppSpacing.lg),
+                                ],
+                                _GoogleButton(isBusy: isBusy),
+                                const SizedBox(height: AppSpacing.md),
+                                const _LegalNote(),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Brand gradient with the mark, wordmark and headline.
+class _BrandHeader extends StatelessWidget {
+  const _BrandHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final onHero = palette.onHero;
+    final compact = MediaQuery.sizeOf(context).height < 700;
+
+    return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            colorScheme.primary.withValues(alpha: 0.08),
-            colorScheme.primaryContainer.withValues(alpha: 0.04),
-          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [palette.heroStart, palette.heroEnd],
+        ),
+        borderRadius: const BorderRadius.vertical(
+          bottom: Radius.circular(AppRadius.xxl),
         ),
       ),
       child: SafeArea(
+        bottom: false,
         child: Padding(
-          padding: const EdgeInsets.all(28.0),
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.xxl,
+            compact ? AppSpacing.xxl : AppSpacing.xxxl + AppSpacing.lg,
+            AppSpacing.xxl,
+            compact ? AppSpacing.xxl : AppSpacing.xxxl + AppSpacing.sm,
+          ),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Spacer(),
-
-              // App Logo with gradient background
-              Center(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Image.asset(
-                    'assets/icon/icon.png',
-                    width: 120,
-                    height: 120,
-                    fit: BoxFit.contain,
+              Row(
+                children: [
+                  ChokroMark(size: compact ? 56 : 72, onDark: true),
+                  const SizedBox(width: AppSpacing.lg),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Boichokro',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.text.headlineSmall?.copyWith(
+                            color: onHero,
+                          ),
+                        ),
+                        Text(
+                          'বইচক্র',
+                          style: context.text.titleMedium?.copyWith(
+                            color: onHero.withValues(alpha: 0.75),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(height: 40),
-
-              // App Name
+              SizedBox(height: compact ? AppSpacing.xxl : AppSpacing.xxxl),
               Text(
-                'Boichokro',
-                textAlign: TextAlign.center,
-                style: textTheme.displaySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.primary,
-                  letterSpacing: -0.5,
-                ),
+                'Pass a book on.\nPick one up.',
+                style:
+                    (compact
+                            ? context.text.headlineLarge
+                            : context.text.displaySmall)
+                        ?.copyWith(color: onHero),
               ),
-              const SizedBox(height: 12),
-
-              // Tagline
+              const SizedBox(height: AppSpacing.md),
               Text(
-                'Share Books, Spread Knowledge',
-                textAlign: TextAlign.center,
-                style: textTheme.titleMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                  letterSpacing: 0.3,
+                'Exchange and donate books with readers in your neighbourhood.',
+                style: context.text.bodyLarge?.copyWith(
+                  color: onHero.withValues(alpha: 0.78),
                 ),
               ),
-              const Spacer(),
-
-              // Sign in instructions
-              Text(
-                'Join the community',
-                textAlign: TextAlign.center,
-                style: textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 28),
-
-              // Google Sign-In Button
-              Container(
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                      color: colorScheme.primary.withValues(alpha: 0.15),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    context.read<AuthBloc>().add(const SignInWithGoogle());
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: colorScheme.onSurface,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  icon: Image.network(
-                    'https://www.google.com/favicon.ico',
-                    height: 24,
-                    width: 24,
-                    errorBuilder: (context, error, stackTrace) =>
-                        Icon(Icons.login, color: colorScheme.primary),
-                  ),
-                  label: const Text(
-                    'Continue with Google',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 28),
-
-              // Terms and privacy
-              RichText(
-                textAlign: TextAlign.center,
-                text: TextSpan(
-                  style: textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    height: 1.5,
-                    letterSpacing: 0.2,
-                  ),
-                  children: [
-                    const TextSpan(text: 'By continuing, you agree to our\n'),
-                    TextSpan(
-                      text: 'Terms of Service',
-                      style: TextStyle(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                        decoration: TextDecoration.underline,
-                      ),
-                      recognizer: TapGestureRecognizer()
-                        ..onTap = () {
-                          // Note: In real app, make sure RoutePaths.termsConditions is accessible from auth
-                          context.push('/terms-conditions');
-                        },
-                    ),
-                    const TextSpan(text: ' and '),
-                    TextSpan(
-                      text: 'Privacy Policy',
-                      style: TextStyle(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                        decoration: TextDecoration.underline,
-                      ),
-                      recognizer: TapGestureRecognizer()
-                        ..onTap = () {
-                          // Note: In real app, make sure RoutePaths.privacyPolicy is accessible from auth
-                          context.push('/privacy-policy');
-                        },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Three short reasons to trust the app.
+class _TrustPoints extends StatelessWidget {
+  const _TrustPoints();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      children: [
+        _TrustPoint(
+          icon: LucideIcons.gift,
+          tone: AppTone.donate,
+          title: 'Always free',
+          message: 'No fees and no selling, only swaps and gifts.',
+        ),
+        SizedBox(height: AppSpacing.lg),
+        _TrustPoint(
+          icon: LucideIcons.mapPin,
+          tone: AppTone.exchange,
+          title: 'Close to you',
+          message: 'See books from readers in your own area.',
+        ),
+        SizedBox(height: AppSpacing.lg),
+        _TrustPoint(
+          icon: LucideIcons.badgeCheck,
+          tone: AppTone.primary,
+          title: 'Verified readers',
+          message: 'Ratings and badges show who you can rely on.',
+        ),
+      ],
+    );
+  }
+}
+
+class _TrustPoint extends StatelessWidget {
+  const _TrustPoint({
+    required this.icon,
+    required this.tone,
+    required this.title,
+    required this.message,
+  });
+
+  final IconData icon;
+  final AppTone tone;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tone(tone);
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: colors.background,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
+          child: Icon(icon, size: 20, color: colors.foreground),
+        ),
+        const SizedBox(width: AppSpacing.lg),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: context.text.titleSmall),
+              const SizedBox(height: 2),
+              Text(
+                message,
+                style: context.text.bodySmall?.copyWith(
+                  color: context.colors.onSurfaceVariant,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GoogleButton extends StatelessWidget {
+  const _GoogleButton({required this.isBusy});
+
+  final bool isBusy;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return OutlinedButton(
+      onPressed: isBusy
+          ? null
+          : () => context.read<AuthBloc>().add(const SignInWithGoogle()),
+      style: OutlinedButton.styleFrom(
+        backgroundColor: colors.surface,
+        disabledBackgroundColor: colors.surface,
+        foregroundColor: colors.onSurface,
+        minimumSize: const Size.fromHeight(56),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox.square(
+            dimension: 22,
+            child: isBusy
+                ? CircularProgressIndicator(
+                    strokeWidth: 2.4,
+                    color: colors.primary,
+                  )
+                : Image.network(
+                    'https://www.google.com/favicon.ico',
+                    errorBuilder: (context, error, stackTrace) => Icon(
+                      LucideIcons.logIn,
+                      size: 20,
+                      color: colors.primary,
+                    ),
+                  ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Flexible(
+            child: Text(
+              isBusy ? 'Signing you in…' : 'Continue with Google',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Small print with links to the terms and the privacy policy.
+class _LegalNote extends StatelessWidget {
+  const _LegalNote();
+
+  @override
+  Widget build(BuildContext context) {
+    final style = context.text.bodySmall?.copyWith(
+      color: context.colors.onSurfaceVariant,
+    );
+    final linkStyle = TextButton.styleFrom(
+      minimumSize: const Size(44, 44),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      textStyle: context.text.labelMedium?.copyWith(
+        decoration: TextDecoration.underline,
+      ),
+    );
+
+    return Column(
+      children: [
+        Text(
+          'By continuing, you agree to our',
+          textAlign: TextAlign.center,
+          style: style,
+        ),
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            TextButton(
+              style: linkStyle,
+              onPressed: () => context.push('/terms-conditions'),
+              child: const Text('Terms of Service'),
+            ),
+            Text('and', style: style),
+            TextButton(
+              style: linkStyle,
+              onPressed: () => context.push('/privacy-policy'),
+              child: const Text('Privacy Policy'),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

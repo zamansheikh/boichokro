@@ -1,9 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart' as geo;
+import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/design/design.dart';
+
+const String _tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const String _tileUserAgent = 'com.example.boichokro';
+
+/// Formats a coordinate pair for display when no street address is known.
+String formatLatLng(LatLng location) =>
+    '${location.latitude.toStringAsFixed(6)}, '
+    '${location.longitude.toStringAsFixed(6)}';
+
+/// Full-screen picker: search for an address, tap the map or use the device
+/// location, then confirm. Reports the result through [onLocationSelected].
 class LocationPickerWidget extends StatefulWidget {
   final LatLng? initialLocation;
   final String? initialAddress;
@@ -20,13 +33,22 @@ class LocationPickerWidget extends StatefulWidget {
   State<LocationPickerWidget> createState() => _LocationPickerWidgetState();
 }
 
+/// Why the device location could not be used.
+enum _LocationIssue { denied, deniedForever, serviceOff }
+
 class _LocationPickerWidgetState extends State<LocationPickerWidget> {
   late MapController _mapController;
   LatLng? _selectedLocation;
   String _selectedAddress = '';
-  bool _isLoading = false;
+  bool _isLocating = false;
+  bool _isSearching = false;
+  bool _isResolving = false;
+  int _resolveRequest = 0;
+  _LocationIssue? _issue;
   final TextEditingController _searchController = TextEditingController();
   final geo.Geocoding _geocoding = geo.Geocoding();
+
+  bool get _isBusy => _isLocating || _isSearching || _isResolving;
 
   @override
   void initState() {
@@ -42,55 +64,66 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
   @override
   void dispose() {
     _searchController.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
   Future<void> _getCurrentLocation() async {
-    setState(() => _isLoading = true);
+    if (_isLocating) return;
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _isLocating = true;
+      _issue = null;
+    });
 
     try {
       // Check permission
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
-        // Prominent Disclosure for Google Play Policy Compliance
-        if (mounted) {
-          final bool? shouldRequest = await showDialog<bool>(
-            context: context,
-            barrierDismissible: false,
-            builder: (BuildContext dialogContext) {
-              return AlertDialog(
-                title: const Text('Location Access Required'),
-                content: const Text(
-                  'Boichokro needs your location to help you pinpoint your current address '
-                  'for assigning a pickup location to a book you upload, or finding a nearby book.',
-                ),
-                actions: <Widget>[
-                  TextButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(false),
-                    child: const Text('Deny'),
-                  ),
-                  FilledButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(true),
-                    child: const Text('Accept'),
-                  ),
-                ],
-              );
-            },
-          );
+        if (!mounted) return;
 
-          if (shouldRequest != true) {
-            throw Exception('Location permission denied by user');
-          }
+        // Prominent disclosure for Google Play policy compliance: shown
+        // before the system permission prompt.
+        final bool? shouldRequest = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext dialogContext) {
+            return AlertDialog(
+              icon: const Icon(LucideIcons.mapPin),
+              title: const Text('Location access required'),
+              content: const Text(
+                'Boichokro needs your location to help you pinpoint your current address '
+                'for assigning a pickup location to a book you upload, or finding a nearby book.',
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Deny'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('Accept'),
+                ),
+              ],
+            );
+          },
+        );
+
+        if (shouldRequest != true) {
+          _showIssue(_LocationIssue.denied);
+          return;
         }
 
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          throw Exception('Location permission denied');
+          _showIssue(_LocationIssue.denied);
+          return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        throw Exception('Location permissions are permanently denied');
+        _showIssue(_LocationIssue.deniedForever);
+        return;
       }
 
       // Get current position
@@ -102,25 +135,38 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
 
       final location = LatLng(position.latitude, position.longitude);
       await _updateLocation(location);
+      if (!mounted) return;
 
       // Animate to location
       _mapController.move(location, 15.0);
+    } on LocationServiceDisabledException {
+      _showIssue(_LocationIssue.serviceOff);
     } catch (e) {
+      debugPrint('Error getting location: $e');
       if (mounted) {
-        ScaffoldMessenger.of(
+        showAppSnack(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error getting location: $e')));
+          'We couldn\'t get your location. Please try again, or pick the '
+          'spot on the map.',
+          tone: AppTone.danger,
+        );
       }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLocating = false);
     }
+  }
+
+  void _showIssue(_LocationIssue issue) {
+    if (!mounted) return;
+    setState(() => _issue = issue);
   }
 
   Future<void> _searchAddress() async {
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
 
-    setState(() => _isLoading = true);
+    FocusScope.of(context).unfocus();
+    setState(() => _isSearching = true);
 
     try {
       final locations = await _geocoding.locationFromAddress(query);
@@ -130,34 +176,33 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
           locations.first.longitude,
         );
         await _updateLocation(location);
+        if (!mounted) return;
         _mapController.move(location, 15.0);
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Address not found')));
+          showAppSnack(context, 'Address not found', tone: AppTone.warning);
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Could not find address. Please try a different search or select location on map.',
-            ),
-            duration: const Duration(seconds: 3),
-          ),
+        showAppSnack(
+          context,
+          'Could not find that address. Try a different search or tap the '
+          'spot on the map.',
+          tone: AppTone.warning,
         );
       }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isSearching = false);
     }
   }
 
   Future<void> _updateLocation(LatLng location) async {
+    // Only the most recent request may write its result.
+    final request = ++_resolveRequest;
     setState(() {
       _selectedLocation = location;
-      _isLoading = true;
+      _isResolving = true;
     });
 
     try {
@@ -166,6 +211,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
         location.latitude,
         location.longitude,
       );
+      if (!mounted || request != _resolveRequest) return;
 
       if (placemarks.isNotEmpty) {
         final place = placemarks.first;
@@ -185,11 +231,14 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
     } catch (e) {
       debugPrint('Error reverse geocoding: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted && request == _resolveRequest) {
+        setState(() => _isResolving = false);
+      }
     }
   }
 
   void _onMapTap(TapPosition tapPosition, LatLng location) {
+    FocusScope.of(context).unfocus();
     _updateLocation(location);
   }
 
@@ -202,151 +251,514 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pick Location'),
-        actions: [
-          if (_selectedLocation != null)
-            IconButton(
-              onPressed: _confirmLocation,
-              icon: const Icon(Icons.check),
-              tooltip: 'Confirm Location',
+      appBar: AppBar(title: const Text('Pickup location')),
+      body: SafeArea(
+        top: false,
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.page,
+                AppSpacing.xs,
+                AppSpacing.page,
+                AppSpacing.md,
+              ),
+              child: _buildSearchField(),
             ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.page,
+                ),
+                child: _buildMap(context),
+              ),
+            ),
+            if (!keyboardOpen)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.page,
+                  AppSpacing.md,
+                  AppSpacing.page,
+                  AppSpacing.md,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_issue != null) ...[
+                      _buildIssueBanner(_issue!),
+                      const SizedBox(height: AppSpacing.md),
+                    ],
+                    _buildAddressCard(context),
+                  ],
+                ),
+              )
+            else
+              const SizedBox(height: AppSpacing.md),
+          ],
+        ),
+      ),
+      bottomNavigationBar: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          border: Border(top: BorderSide(color: context.colors.outlineVariant)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.page,
+              AppSpacing.md,
+              AppSpacing.page,
+              AppSpacing.md,
+            ),
+            child: FilledButton.icon(
+              onPressed: _selectedLocation == null ? null : _confirmLocation,
+              icon: const Icon(LucideIcons.check, size: 18),
+              label: const Text('Use this location'),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchField() {
+    return TextField(
+      controller: _searchController,
+      textInputAction: TextInputAction.search,
+      keyboardType: TextInputType.streetAddress,
+      textCapitalization: TextCapitalization.words,
+      onSubmitted: (_) => _searchAddress(),
+      decoration: InputDecoration(
+        hintText: 'Search an area, road or landmark',
+        prefixIcon: const Icon(LucideIcons.search, size: 20),
+        suffixIcon: _isSearching
+            ? const Padding(
+                padding: EdgeInsets.all(AppSpacing.lg),
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            : IconButton(
+                onPressed: _searchAddress,
+                tooltip: 'Search',
+                icon: const Icon(LucideIcons.arrowRight, size: 20),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildMap(BuildContext context) {
+    final radius = BorderRadius.circular(AppRadius.xl);
+
+    return DecoratedBox(
+      position: DecorationPosition.foreground,
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        border: Border.all(color: context.colors.outlineVariant),
+      ),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: ColoredBox(
+                color: context.colors.surfaceContainerHighest,
+                child: FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter:
+                        _selectedLocation ??
+                        const LatLng(23.8103, 90.4125), // Dhaka
+                    initialZoom: _selectedLocation != null ? 15.0 : 12.0,
+                    onTap: _onMapTap,
+                    interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.all,
+                    ),
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate: _tileUrl,
+                      userAgentPackageName: _tileUserAgent,
+                    ),
+                    if (_selectedLocation != null)
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: _selectedLocation!,
+                            width: LocationMapPin.width,
+                            height: LocationMapPin.height,
+                            alignment: Alignment.topCenter,
+                            child: const LocationMapPin(),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Progress
+            if (_isBusy)
+              const Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: LinearProgressIndicator(minHeight: 3),
+              ),
+
+            // Hint
+            if (_selectedLocation == null)
+              Positioned(
+                top: AppSpacing.md,
+                left: AppSpacing.md,
+                right: AppSpacing.md,
+                child: Center(
+                  child: IgnorePointer(
+                    child: _MapLabel(
+                      icon: LucideIcons.mapPin,
+                      label: 'Tap the map to place the pin',
+                      style: context.text.labelMedium,
+                    ),
+                  ),
+                ),
+              ),
+
+            // Attribution
+            Positioned(
+              left: AppSpacing.sm,
+              bottom: AppSpacing.sm,
+              child: IgnorePointer(
+                child: _MapLabel(
+                  label: '© OpenStreetMap contributors',
+                  style: context.text.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                  dense: true,
+                ),
+              ),
+            ),
+
+            // Current location button
+            Positioned(
+              right: AppSpacing.md,
+              bottom: AppSpacing.md,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: context.softShadow,
+                ),
+                child: _isLocating
+                    ? Container(
+                        width: 48,
+                        height: 48,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: context.colors.surface,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: context.colors.outlineVariant,
+                          ),
+                        ),
+                        child: const CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : CircleIconButton(
+                        icon: LucideIcons.locateFixed,
+                        tooltip: 'Use my current location',
+                        size: 48,
+                        onPressed: _getCurrentLocation,
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIssueBanner(_LocationIssue issue) {
+    switch (issue) {
+      case _LocationIssue.denied:
+        return AppBanner(
+          tone: AppTone.warning,
+          icon: LucideIcons.mapPinOff,
+          title: 'Location access is off',
+          message:
+              'No problem. Search for an address or tap the map to place '
+              'the pin yourself.',
+          actionLabel: 'Try again',
+          onAction: _getCurrentLocation,
+        );
+      case _LocationIssue.deniedForever:
+        return AppBanner(
+          tone: AppTone.warning,
+          icon: LucideIcons.mapPinOff,
+          title: 'Location access is blocked',
+          message:
+              'Allow location for Boichokro in your phone settings, or '
+              'search and tap the map instead.',
+          actionLabel: 'Open settings',
+          onAction: Geolocator.openAppSettings,
+        );
+      case _LocationIssue.serviceOff:
+        return AppBanner(
+          tone: AppTone.warning,
+          icon: LucideIcons.mapPinOff,
+          title: 'Location is turned off',
+          message:
+              'Turn on location on your phone and try again, or search '
+              'and tap the map instead.',
+          actionLabel: 'Open location settings',
+          onAction: Geolocator.openLocationSettings,
+        );
+    }
+  }
+
+  Widget _buildAddressCard(BuildContext context) {
+    final location = _selectedLocation;
+
+    if (location == null) {
+      return AppCard(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.md,
+          AppSpacing.sm,
+          AppSpacing.md,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('No spot chosen yet', style: context.text.titleSmall),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Pick where readers can collect the book.',
+                    style: context.text.bodySmall?.copyWith(
+                      color: context.colors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            TextButton.icon(
+              onPressed: _isLocating ? null : _getCurrentLocation,
+              icon: const Icon(LucideIcons.locateFixed, size: 16),
+              label: const Text('Locate me'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final showSkeleton = _isResolving;
+
+    return AppCard(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: context.colors.primaryContainer,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              LucideIcons.mapPin,
+              size: 18,
+              color: context.colors.onPrimaryContainer,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Eyebrow('Selected spot'),
+                const SizedBox(height: AppSpacing.xs),
+                if (showSkeleton) ...[
+                  const SizedBox(height: 2),
+                  const Skeleton(height: 14),
+                  const SizedBox(height: AppSpacing.sm),
+                ] else
+                  Text(
+                    _selectedAddress.isEmpty
+                        ? 'Pinned spot (no street address found)'
+                        : _selectedAddress,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.text.bodyMedium?.copyWith(
+                      color: context.colors.onSurface,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                const SizedBox(height: 2),
+                Text(
+                  formatLatLng(location),
+                  style: context.text.bodySmall?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
-      body: Stack(
+    );
+  }
+}
+
+/// Small paper label floated over map tiles.
+class _MapLabel extends StatelessWidget {
+  const _MapLabel({
+    required this.label,
+    required this.style,
+    this.icon,
+    this.dense = false,
+  });
+
+  final String label;
+  final TextStyle? style;
+  final IconData? icon;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: dense ? AppSpacing.sm : AppSpacing.md,
+        vertical: dense ? 3 : AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: context.colors.surface.withValues(alpha: dense ? 0.85 : 1),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: dense ? null : Border.all(color: context.colors.outlineVariant),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Map
-          FlutterMap(
-            mapController: _mapController,
+          if (icon != null) ...[
+            Icon(icon, size: 14, color: context.colors.primary),
+            const SizedBox(width: 6),
+          ],
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: style?.copyWith(color: context.colors.onSurface),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The pin that marks a pickup spot. Use it in a [Marker] sized
+/// [width] x [height] with `alignment: Alignment.topCenter` so that the tip
+/// sits on the coordinate.
+class LocationMapPin extends StatelessWidget {
+  const LocationMapPin({super.key});
+
+  static const double width = 44;
+  static const double height = 52;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: colors.primary,
+            shape: BoxShape.circle,
+            border: Border.all(color: colors.surface, width: 2.5),
+            boxShadow: [
+              BoxShadow(
+                color: context.palette.softShadow,
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Icon(LucideIcons.bookOpen, size: 18, color: colors.onPrimary),
+        ),
+        Container(
+          width: 3,
+          height: 12,
+          decoration: BoxDecoration(
+            color: colors.primary,
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(2),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Non-interactive map snapshot centred on [location], used to preview a
+/// chosen pickup spot inside a card.
+class LocationPreviewMap extends StatelessWidget {
+  const LocationPreviewMap({
+    super.key,
+    required this.location,
+    this.height = 136,
+  });
+
+  final LatLng location;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: height,
+      child: IgnorePointer(
+        child: ColoredBox(
+          color: context.colors.surfaceContainerHighest,
+          child: FlutterMap(
+            // A new key recentres the preview when the spot changes.
+            key: ValueKey(location),
             options: MapOptions(
-              initialCenter:
-                  _selectedLocation ?? const LatLng(23.8103, 90.4125), // Dhaka
-              initialZoom: _selectedLocation != null ? 15.0 : 12.0,
-              onTap: _onMapTap,
+              initialCenter: location,
+              initialZoom: 15.0,
               interactionOptions: const InteractionOptions(
-                flags: InteractiveFlag.all,
+                flags: InteractiveFlag.none,
               ),
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.example.boichokro',
+                urlTemplate: _tileUrl,
+                userAgentPackageName: _tileUserAgent,
               ),
-              if (_selectedLocation != null)
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      point: _selectedLocation!,
-                      width: 60,
-                      height: 60,
-                      child: Icon(
-                        Icons.location_pin,
-                        color: colorScheme.error,
-                        size: 60,
-                      ),
-                    ),
-                  ],
-                ),
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: location,
+                    width: LocationMapPin.width,
+                    height: LocationMapPin.height,
+                    alignment: Alignment.topCenter,
+                    child: const LocationMapPin(),
+                  ),
+                ],
+              ),
             ],
           ),
-
-          // Search Bar
-          Positioned(
-            top: 16,
-            left: 16,
-            right: 16,
-            child: Card(
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: const InputDecoration(
-                          hintText: 'Search address...',
-                          border: InputBorder.none,
-                          prefixIcon: Icon(Icons.search),
-                        ),
-                        onSubmitted: (_) => _searchAddress(),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: _searchAddress,
-                      icon: const Icon(Icons.arrow_forward),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Current Location Button
-          Positioned(
-            bottom: 100,
-            right: 16,
-            child: FloatingActionButton(
-              heroTag: 'current_location',
-              onPressed: _getCurrentLocation,
-              child: const Icon(Icons.my_location),
-            ),
-          ),
-
-          // Address Display Card
-          if (_selectedLocation != null)
-            Positioned(
-              bottom: 16,
-              left: 16,
-              right: 16,
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.location_on, color: colorScheme.primary),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Selected Location',
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _selectedAddress.isEmpty
-                            ? 'Loading address...'
-                            : _selectedAddress,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${_selectedLocation!.latitude.toStringAsFixed(6)}, ${_selectedLocation!.longitude.toStringAsFixed(6)}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-          // Loading Indicator
-          if (_isLoading)
-            Container(
-              color: Colors.black26,
-              child: const Center(child: CircularProgressIndicator()),
-            ),
-        ],
+        ),
       ),
     );
   }

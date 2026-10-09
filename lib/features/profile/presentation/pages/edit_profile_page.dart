@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../../core/design/design.dart';
 import '../../../discover/domain/entities/user.dart';
 import '../bloc/profile_bloc.dart';
 import '../bloc/profile_event.dart';
 import '../bloc/profile_state.dart';
+import 'settings_page.dart' show ProfileMenuRow;
 
 /// Edit Profile Page - Update name and profile picture
 class EditProfilePage extends StatelessWidget {
@@ -32,6 +33,8 @@ class _EditProfilePageContent extends StatefulWidget {
 }
 
 class _EditProfilePageContentState extends State<_EditProfilePageContent> {
+  static const double _avatarRadius = 56;
+
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
 
@@ -41,10 +44,14 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
   bool _isUploadingPhoto = false;
   bool _isUpdatingProfile = false;
 
+  /// Set once the page is closing on purpose, so the guard lets it through.
+  bool _allowPop = false;
+
   @override
   void initState() {
     super.initState();
     _initializeUserData();
+    _nameController.addListener(_onNameChanged);
   }
 
   void _initializeUserData() {
@@ -74,68 +81,88 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
 
   @override
   void dispose() {
+    _nameController.removeListener(_onNameChanged);
     _nameController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickImage(ImageSource source) async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(
-      source: source,
-      maxWidth: 512,
-      maxHeight: 512,
-      imageQuality: 85,
-    );
+  /// Rebuilds so the unsaved-changes guard follows the text field.
+  void _onNameChanged() => setState(() {});
 
-    if (pickedFile != null) {
-      setState(() {
-        _selectedImage = File(pickedFile.path);
-      });
+  bool get _hasChanges {
+    if (_selectedImage != null) return true;
+    final original = _currentUser?.name.trim() ?? '';
+    return _nameController.text.trim() != original;
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: source,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null && mounted) {
+        setState(() {
+          _selectedImage = File(pickedFile.path);
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        showAppSnack(
+          context,
+          source == ImageSource.camera
+              ? 'We couldn\'t open the camera. Check the app\'s permissions.'
+              : 'We couldn\'t open your photos. Check the app\'s permissions.',
+          tone: AppTone.danger,
+        );
+      }
     }
   }
 
   void _showImagePickerOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(LucideIcons.camera),
-                title: const Text('Take Photo'),
+    showAppSheet<void>(
+      context,
+      builder: (sheetContext) => SheetScaffold(
+        title: 'Profile photo',
+        subtitle: 'Other readers see this when you exchange books.',
+        padding: EdgeInsets.zero,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ProfileMenuRow(
+              icon: LucideIcons.camera,
+              title: 'Take a photo',
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ProfileMenuRow(
+              icon: LucideIcons.image,
+              title: 'Choose from gallery',
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            if (_selectedImage != null)
+              ProfileMenuRow(
+                icon: LucideIcons.undo2,
+                tone: AppTone.neutral,
+                title: 'Keep my current photo',
+                subtitle: 'Discard the photo you just picked',
                 onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.camera);
+                  Navigator.pop(sheetContext);
+                  setState(() {
+                    _selectedImage = null;
+                  });
                 },
               ),
-              ListTile(
-                leading: const Icon(LucideIcons.image),
-                title: const Text('Choose from Gallery'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.gallery);
-                },
-              ),
-              if (_currentPhotoUrl != null || _selectedImage != null)
-                ListTile(
-                  leading: const Icon(LucideIcons.trash2, color: Colors.red),
-                  title: const Text(
-                    'Remove Photo',
-                    style: TextStyle(color: Colors.red),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    setState(() {
-                      _selectedImage = null;
-                      _currentPhotoUrl = null;
-                    });
-                  },
-                ),
-            ],
-          ),
+          ],
         ),
       ),
     );
@@ -144,50 +171,70 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_currentUser == null) return;
+    final user = _currentUser;
+    if (user == null) {
+      showAppSnack(
+        context,
+        'Your profile is still loading. Try again in a moment.',
+        tone: AppTone.warning,
+      );
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+    final selectedImage = _selectedImage;
 
     setState(() {
       _isUpdatingProfile = true;
+      _isUploadingPhoto = selectedImage != null;
     });
 
-    try {
-      // If a new image is selected, upload it first
-      if (_selectedImage != null) {
-        setState(() {
-          _isUploadingPhoto = true;
-        });
+    if (selectedImage != null) {
+      // Upload the new photo first; the name is saved once it succeeds.
+      context.read<ProfileBloc>().add(
+        UpdateProfilePhoto(userId: user.id, filePath: selectedImage.path),
+      );
+    } else {
+      // Just update the name
+      final updatedUser = user.copyWith(name: _nameController.text.trim());
+      context.read<ProfileBloc>().add(UpdateProfileInfo(updatedUser));
+    }
+  }
 
-        context.read<ProfileBloc>().add(
-          UpdateProfilePhoto(
-            userId: _currentUser!.id,
-            filePath: _selectedImage!.path,
+  Future<void> _confirmDiscard() async {
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Discard changes?'),
+        content: const Text(
+          'You have changes that are not saved yet. If you leave now they will be lost.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Keep editing'),
           ),
-        );
-      } else if (_currentUser != null) {
-        // Just update the name
-        final updatedUser = _currentUser!.copyWith(
-          name: _nameController.text.trim(),
-        );
-        context.read<ProfileBloc>().add(UpdateProfileInfo(updatedUser));
-      }
-    } catch (e) {
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: context.colors.error,
+              foregroundColor: context.colors.onError,
+            ),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+    if (discard == true && mounted) {
       setState(() {
-        _isUpdatingProfile = false;
-        _isUploadingPhoto = false;
+        _allowPop = true;
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
+      context.pop();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
     return BlocConsumer<ProfileBloc, ProfileState>(
       listener: (context, state) {
         if (state is ProfileLoaded) {
@@ -203,10 +250,9 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
         } else if (state is ProfileUpdated) {
           setState(() {
             _isUpdatingProfile = false;
+            _allowPop = true;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Profile updated successfully!')),
-          );
+          showAppSnack(context, 'Profile updated', tone: AppTone.success);
           // Reload user data after update
           context.read<ProfileBloc>().add(const LoadProfile());
           context.pop();
@@ -227,10 +273,9 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
           } else {
             setState(() {
               _isUpdatingProfile = false;
+              _allowPop = true;
             });
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Photo updated successfully!')),
-            );
+            showAppSnack(context, 'Photo updated', tone: AppTone.success);
             // Reload user data after photo update only
             context.read<ProfileBloc>().add(const LoadProfile());
             context.pop();
@@ -240,161 +285,135 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
             _isUpdatingProfile = false;
             _isUploadingPhoto = false;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
-          );
+          showAppSnack(context, state.message, tone: AppTone.danger);
         }
       },
       builder: (context, state) {
         final isLoading =
             state is ProfileLoading || _isUpdatingProfile || _isUploadingPhoto;
+        final isSaving = _isUpdatingProfile || _isUploadingPhoto;
 
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Edit Profile'),
-            actions: [
-              TextButton(
-                onPressed: isLoading ? null : _saveProfile,
-                child: isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.black,
-                        ),
-                      )
-                    : const Text(
-                        'Save',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+        return PopScope(
+          canPop: _allowPop || !_hasChanges,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop) _confirmDiscard();
+          },
+          child: Scaffold(
+            appBar: AppBar(title: const Text('Edit profile')),
+            body: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.page,
+                AppSpacing.xxl,
+                AppSpacing.page,
+                AppSpacing.xxl,
               ),
-            ],
-          ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Profile Picture
-                  Stack(
-                    children: [
-                      GestureDetector(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: _buildAvatar(
+                        context,
                         onTap: isLoading ? null : _showImagePickerOptions,
-                        child: CircleAvatar(
-                          radius: 60,
-                          backgroundColor: colorScheme.primaryContainer,
-                          backgroundImage: _getProfileImage(),
-                          child: _getProfileImage() == null
-                              ? Icon(
-                                  LucideIcons.user,
-                                  size: 60,
-                                  color: colorScheme.onPrimaryContainer,
-                                )
-                              : null,
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: GestureDetector(
-                          onTap: isLoading ? null : _showImagePickerOptions,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: colorScheme.primary,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: colorScheme.surface,
-                                width: 3,
-                              ),
-                            ),
-                            child: Icon(
-                              LucideIcons.camera,
-                              size: 20,
-                              color: colorScheme.onPrimary,
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (_isUploadingPhoto)
-                        Positioned.fill(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.black45,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: isLoading ? null : _showImagePickerOptions,
-                    child: const Text('Change Photo'),
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Name Field
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Display Name',
-                      hintText: 'Enter your name',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(LucideIcons.user),
-                    ),
-                    textCapitalization: TextCapitalization.words,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter your name';
-                      }
-                      if (value.trim().length < 2) {
-                        return 'Name must be at least 2 characters';
-                      }
-                      if (value.trim().length > 50) {
-                        return 'Name must be less than 50 characters';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Info Card
-                  Card(
-                    color: colorScheme.surfaceContainerHighest,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          Icon(
-                            LucideIcons.info,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Your profile picture will be visible to other users when you share or exchange books.',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                        ],
                       ),
                     ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Center(
+                      child: TextButton(
+                        onPressed: isLoading ? null : _showImagePickerOptions,
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(64, 44),
+                        ),
+                        child: Text(
+                          _isUploadingPhoto
+                              ? 'Uploading photo…'
+                              : 'Change photo',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                    const Padding(
+                      padding: EdgeInsets.only(
+                        left: AppSpacing.xs,
+                        bottom: AppSpacing.sm,
+                      ),
+                      child: Eyebrow('Display name'),
+                    ),
+                    TextFormField(
+                      controller: _nameController,
+                      enabled: !isSaving,
+                      decoration: const InputDecoration(
+                        hintText: 'Enter your name',
+                        helperText: 'This is how other readers will see you.',
+                        prefixIcon: Icon(LucideIcons.user, size: 20),
+                      ),
+                      textCapitalization: TextCapitalization.words,
+                      textInputAction: TextInputAction.done,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter your name';
+                        }
+                        if (value.trim().length < 2) {
+                          return 'Name must be at least 2 characters';
+                        }
+                        if (value.trim().length > 50) {
+                          return 'Name must be less than 50 characters';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                    const AppBanner(
+                      tone: AppTone.neutral,
+                      message:
+                          'Your profile picture will be visible to other users when you share or exchange books.',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            bottomNavigationBar: DecoratedBox(
+              decoration: BoxDecoration(
+                color: context.colors.surface,
+                border: Border(
+                  top: BorderSide(color: context.colors.outlineVariant),
+                ),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    AppSpacing.page,
+                    AppSpacing.md,
+                    AppSpacing.page,
+                    AppSpacing.md + MediaQuery.viewInsetsOf(context).bottom,
                   ),
-                ],
+                  child: FilledButton(
+                    onPressed: isLoading ? null : _saveProfile,
+                    child: isSaving
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.2,
+                                  color: context.colors.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.md),
+                              Text(
+                                _isUploadingPhoto
+                                    ? 'Uploading photo…'
+                                    : 'Saving…',
+                              ),
+                            ],
+                          )
+                        : const Text('Save changes'),
+                  ),
+                ),
               ),
             ),
           ),
@@ -403,13 +422,81 @@ class _EditProfilePageContentState extends State<_EditProfilePageContent> {
     );
   }
 
-  ImageProvider? _getProfileImage() {
-    if (_selectedImage != null) {
-      return FileImage(_selectedImage!);
-    }
-    if (_currentPhotoUrl != null && _currentPhotoUrl!.isNotEmpty) {
-      return CachedNetworkImageProvider(_currentPhotoUrl!);
-    }
-    return null;
+  Widget _buildAvatar(BuildContext context, {required VoidCallback? onTap}) {
+    final colors = context.colors;
+    final selectedImage = _selectedImage;
+    const size = _avatarRadius * 2;
+
+    return Semantics(
+      button: true,
+      label: 'Change profile photo',
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: size + AppSpacing.sm,
+          height: size + AppSpacing.sm,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: colors.outlineVariant),
+                ),
+                child: selectedImage != null
+                    ? CircleAvatar(
+                        radius: _avatarRadius - 3,
+                        backgroundColor: colors.primaryContainer,
+                        backgroundImage: FileImage(selectedImage),
+                      )
+                    : UserAvatar(
+                        photoUrl: _currentPhotoUrl,
+                        name: _nameController.text,
+                        radius: _avatarRadius - 3,
+                      ),
+              ),
+              if (_isUploadingPhoto)
+                Container(
+                  width: size,
+                  height: size,
+                  decoration: BoxDecoration(
+                    color: colors.scrim.withValues(alpha: 0.45),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: SizedBox.square(
+                      dimension: 28,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.6,
+                        color: context.palette.onHero,
+                      ),
+                    ),
+                  ),
+                ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: colors.primary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: colors.surface, width: 3),
+                  ),
+                  child: Icon(
+                    LucideIcons.camera,
+                    size: 18,
+                    color: colors.onPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

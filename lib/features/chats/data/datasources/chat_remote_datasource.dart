@@ -158,15 +158,24 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
           .collection(FirebaseConstants.messagesCollection)
           .add(messageData);
 
-      // Update chat room with last message
-      await _firebaseService.firestore
+      // Update chat room with last message and bump the unread count of
+      // everyone except the sender.
+      final roomRef = _firebaseService.firestore
           .collection(FirebaseConstants.chatRoomsCollection)
-          .doc(message.chatRoomId)
-          .update({
-            'lastMessage': message.content,
-            'lastMessageTime': Timestamp.fromDate(now),
-            'updatedAt': Timestamp.fromDate(now),
-          });
+          .doc(message.chatRoomId);
+      final roomSnapshot = await roomRef.get();
+      final participantIds = List<String>.from(
+        roomSnapshot.data()?['participantIds'] ?? const <String>[],
+      );
+
+      await roomRef.update({
+        'lastMessage': message.content,
+        'lastMessageTime': Timestamp.fromDate(now),
+        'updatedAt': Timestamp.fromDate(now),
+        for (final id in participantIds)
+          if (id != message.senderId)
+            FieldPath(['unreadCount', id]): FieldValue.increment(1),
+      });
 
       // Return immediately without fetching (avoid timestamp null issue)
       return MessageModel(

@@ -55,11 +55,16 @@ class MyApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('en'),
-        Locale('bn'),
-      ],
+      supportedLocales: const [Locale('en'), Locale('bn')],
       routerConfig: AppRouter.router,
+      // Screens without an AppBar still need dark status-bar icons on paper.
+      builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.dark.copyWith(
+          statusBarColor: Colors.transparent,
+          systemNavigationBarColor: Colors.transparent,
+        ),
+        child: child ?? const SizedBox.shrink(),
+      ),
     );
   }
 }

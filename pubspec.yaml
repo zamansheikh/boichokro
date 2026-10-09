@@ -11,11 +11,11 @@ dependencies:
     sdk: flutter
 
   # UI & Icons
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^2.0.0
   
   # State Management
   flutter_bloc: ^9.1.1
-  equatable: ^2.0.8
+  equatable: ^3.0.0
   
   # Dependency Injection
   get_it: ^9.2.1
@@ -60,7 +60,7 @@ dependencies:
   
   # URL Launcher (for map suggestions)
   url_launcher: ^6.3.2
-  google_fonts: ^8.0.2
+  google_fonts: ^9.0.0
   
   # UI Components for Library
   flutter_rating_bar: ^4.0.1

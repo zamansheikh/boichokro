@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Boichokro uses your location to show books near you and, only when you choose to, to share a meeting point in chat.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Boichokro uses the camera to photograph book covers and your profile picture.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Boichokro lets you choose book cover and profile photos from your library.</string>
 </dict>
 </plist>

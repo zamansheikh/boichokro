@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'core/design/design.dart';
 import 'core/utils/constants.dart';
 import 'features/auth/presentation/pages/splash_page.dart';
 import 'features/auth/presentation/pages/onboarding_page.dart';
@@ -142,22 +144,14 @@ class AppRouter {
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            Text(
-              'Page not found: ${state.uri}',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => context.go(RoutePaths.home),
-              child: const Text('Go Home'),
-            ),
-          ],
+      body: SafeArea(
+        child: AppEmptyState(
+          icon: LucideIcons.compass,
+          tone: AppTone.neutral,
+          title: 'This page is not here',
+          message: 'The link may be old or the book may have moved on.',
+          actionLabel: 'Back to Discover',
+          onAction: () => context.go(RoutePaths.home),
         ),
       ),
     ),
