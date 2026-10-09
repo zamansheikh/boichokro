@@ -584,11 +584,16 @@ class _DiscoverPageState extends State<DiscoverPage>
                 children: [
                   Row(
                     children: [
-                      Flexible(child: StatusPill.mode(book.mode, dense: true)),
+                      StatusPill.mode(book.mode, dense: true),
                       if (book.status != BookStatus.available) ...[
                         const SizedBox(width: AppSpacing.xs),
                         Flexible(
-                          child: StatusPill.book(book.status, dense: true),
+                          child: StatusPill(
+                            label: _shortStatus(book.status),
+                            icon: book.status.icon,
+                            tone: book.status.tone,
+                            dense: true,
+                          ),
                         ),
                       ],
                       const Spacer(),
@@ -624,6 +629,21 @@ class _DiscoverPageState extends State<DiscoverPage>
         ],
       ),
     );
+  }
+
+  /// Card-sized status wording; the full label is too long beside the
+  /// mode pill and the distance.
+  String _shortStatus(BookStatus status) {
+    switch (status) {
+      case BookStatus.available:
+        return 'Available';
+      case BookStatus.requested:
+        return 'Requested';
+      case BookStatus.pending:
+        return 'Reserved';
+      case BookStatus.completed:
+        return 'Gone';
+    }
   }
 
   Widget _buildOwnerSummary(String ownerId) {

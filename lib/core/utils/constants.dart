@@ -88,6 +88,7 @@ class RoutePaths {
   static const String chatRoom = '/chat/:roomId';
   static const String profile = '/profile';
   static const String editProfile = '/profile/edit';
+  static const String userProfile = '/user/:id';
   static const String editBook = '/book/:id/edit';
   static const String settings = '/settings';
   static const String privacyPolicy = '/privacy-policy';

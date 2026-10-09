@@ -1,4 +1,6 @@
+import '../../../profile/presentation/pages/user_profile_page.dart';
 import '../../../discover/presentation/pages/home_page.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
@@ -94,7 +96,28 @@ class _MyLibraryPageState extends State<MyLibraryPage>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Requests and books change from other screens, so reload whenever the
+    // Library tab comes back into view.
+    if (_homeTab == null) {
+      _homeTab = HomePage.tabOf(context);
+      _homeTab?.addListener(_onHomeTabChanged);
+    }
+  }
+
+  void _onHomeTabChanged() {
+    if (_homeTab?.value == 1) {
+      _reloadBooks();
+      _reloadRequests();
+    }
+  }
+
+  ValueListenable<int>? _homeTab;
+
+  @override
   void dispose() {
+    _homeTab?.removeListener(_onHomeTabChanged);
     _tabController.dispose();
     _bookBloc.close();
     _requestBloc.close();
@@ -692,18 +715,23 @@ class _MyLibraryPageState extends State<MyLibraryPage>
         }
         final (book, other) = snapshot.data ?? (null, null);
         final chatRoomId = request.chatRoomId;
+        final offeredId = request.offeredBookId;
+        // A reader can back out until the exchange completes, including after
+        // a confirmation tapped by mistake; cancelling releases both books.
         final canCancel =
             isSeeker &&
             (request.status == RequestStatus.pending ||
-                (request.status == RequestStatus.accepted &&
-                    !request.ownerConfirmed &&
-                    !request.seekerConfirmed));
+                request.status == RequestStatus.accepted);
 
         return _RequestCard(
           request: request,
           isSeeker: isSeeker,
           book: book,
           other: other,
+          offeredBook: offeredId == null
+              ? null
+              : _bookCache[offeredId] ??= _fetchBook(offeredId),
+          onOpenOffered: offeredId == null ? null : () => _openBook(offeredId),
           busy: _requestsBusy,
           onOpenBook: () => _openBook(request.bookId),
           onOpenChat: chatRoomId == null ? null : () => _openChat(chatRoomId),
@@ -1156,6 +1184,14 @@ class _PersonRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = this.user;
 
+    return InkWell(
+      onTap: user == null ? null : () => context.push(userProfilePath(user.id)),
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: _buildRow(context, user),
+    );
+  }
+
+  Widget _buildRow(BuildContext context, User? user) {
     return Row(
       children: [
         UserAvatar(
@@ -1275,6 +1311,8 @@ class _RequestCard extends StatelessWidget {
     required this.isSeeker,
     required this.book,
     required this.other,
+    required this.offeredBook,
+    required this.onOpenOffered,
     required this.busy,
     required this.onOpenBook,
     required this.onOpenChat,
@@ -1288,6 +1326,10 @@ class _RequestCard extends StatelessWidget {
   final bool isSeeker;
   final Book? book;
   final User? other;
+
+  /// The book offered in return, for swap requests; null for gifts.
+  final Future<Book?>? offeredBook;
+  final VoidCallback? onOpenOffered;
 
   /// A request change is being saved; actions are disabled meanwhile.
   final bool busy;
@@ -1348,6 +1390,55 @@ class _RequestCard extends StatelessWidget {
               ),
             ],
           ),
+          if (offeredBook != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: context.tone(AppTone.exchange).background,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        LucideIcons.repeat,
+                        size: 14,
+                        color: context.tone(AppTone.exchange).foreground,
+                      ),
+                      const SizedBox(width: 6),
+                      Eyebrow(
+                        isSeeker
+                            ? 'You offered in return'
+                            : 'Offered in return',
+                        color: context.tone(AppTone.exchange).foreground,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  FutureBuilder<Book?>(
+                    future: offeredBook,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState != ConnectionState.done) {
+                        return const Skeleton(height: 56);
+                      }
+                      final offered = snapshot.data;
+                      return _BookRow(
+                        book: offered,
+                        onTap: offered == null ? null : onOpenOffered,
+                        meta: [
+                          if (offered != null)
+                            ConditionMeter(condition: offered.condition),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: AppSpacing.md),
           _buildNextStep(context),
           if (arrangement != null) ...[
@@ -1411,7 +1502,9 @@ class _RequestCard extends StatelessWidget {
         icon = LucideIcons.hourglass;
         tone = AppTone.neutral;
       } else {
-        title = '$_name would like this book';
+        title = request.offeredBookId != null
+            ? '$_name is offering a swap'
+            : '$_name would like this book';
         message =
             'Accepting opens a chat to arrange the hand-off and declines any '
             'other requests for this book.';

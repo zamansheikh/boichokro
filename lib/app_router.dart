@@ -18,6 +18,7 @@ import 'features/discover/presentation/pages/edit_book_page.dart';
 import 'features/discover/domain/entities/book.dart' as book_entity;
 import 'features/discover/domain/entities/user.dart';
 import 'features/profile/presentation/pages/edit_profile_page.dart';
+import 'features/profile/presentation/pages/user_profile_page.dart';
 import 'features/library/presentation/pages/my_library_page.dart';
 
 /// App router configuration using GoRouter
@@ -120,6 +121,16 @@ class AppRouter {
         builder: (context, state) {
           final user = state.extra as User?;
           return EditProfilePage(user: user);
+        },
+      ),
+
+      // Another reader's public profile
+      GoRoute(
+        path: RoutePaths.userProfile,
+        name: 'userProfile',
+        builder: (context, state) {
+          final userId = state.pathParameters['id']!;
+          return UserProfilePage(userId: userId);
         },
       ),
 

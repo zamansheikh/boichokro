@@ -159,7 +159,8 @@ class _RequestTimelineWidgetState extends State<RequestTimelineWidget> {
 
     final index = steps.indexWhere((s) => s.state != _StepState.done);
     final step = steps[index];
-    return 'Step ${index + 1} of ${steps.length} · ${step.title}';
+    // Name the step still ahead as "next" so it never reads as already done.
+    return '$doneCount of ${steps.length} done · Next: ${step.title}';
   }
 
   List<_JourneyStep> _buildSteps() {

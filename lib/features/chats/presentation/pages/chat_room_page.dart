@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -11,7 +12,13 @@ import '../../../../core/design/design.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/network/firebase_service.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../discover/domain/entities/user.dart';
+import '../../../discover/domain/usecases/book_usecases.dart';
+import '../../../discover/domain/usecases/user_usecases.dart';
 import '../../../discover/presentation/bloc/user/user_bloc.dart';
+import '../../../discover/presentation/widgets/location_picker_widget.dart'
+    show LocationPreviewMap;
+import '../../../profile/presentation/pages/user_profile_page.dart';
 import '../../../discover/presentation/bloc/user/user_event.dart';
 import '../../../discover/presentation/bloc/user/user_state.dart';
 import '../../domain/entities/chat.dart';
@@ -54,6 +61,9 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   bool _safetyTipDismissed = false;
   bool _sharingLocation = false;
   String? _lastMarkedRead;
+  String? _bookCoverUrl;
+  String? _bookOwnerId;
+  User? _otherUser;
 
   @override
   void initState() {
@@ -81,6 +91,8 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
         _chatRoom = state.chatRoom;
         _loadError = null;
       });
+      _loadBookCover(state.chatRoom.bookId);
+      _loadOtherUser(state.chatRoom);
     } else if (state is MessagesLoaded) {
       setState(() {
         for (final message in state.messages) {
@@ -127,6 +139,37 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     getIt<MarkMessagesAsReadUseCase>()(
       MarkMessagesAsReadParams(chatRoomId: widget.roomId, userId: userId),
     );
+  }
+
+  /// The room only stores the book's id and name, so the cover is looked up
+  /// from the book itself.
+  Future<void> _loadBookCover(String? bookId) async {
+    if (bookId == null || bookId.isEmpty || _bookCoverUrl != null) return;
+    final result = await getIt<GetBookByIdUseCase>()(GetBookByIdParams(bookId));
+    if (!mounted) return;
+    result.fold((_) {}, (book) {
+      setState(() {
+        _bookOwnerId = book.ownerId;
+        if (book.coverUrl.isNotEmpty) _bookCoverUrl = book.coverUrl;
+      });
+    });
+  }
+
+  /// The room keeps the names it was created with, so the other reader's
+  /// current name and photo come from their profile.
+  Future<void> _loadOtherUser(ChatRoom room) async {
+    if (_otherUser != null) return;
+    final me = getIt<FirebaseService>().currentUser?.uid;
+    final otherId = room.participantIds.firstWhere(
+      (id) => id != me,
+      orElse: () => '',
+    );
+    if (otherId.isEmpty) return;
+    final result = await getIt<GetUserByIdUseCase>()(
+      GetUserByIdParams(otherId),
+    );
+    if (!mounted) return;
+    result.fold((_) {}, (user) => setState(() => _otherUser = user));
   }
 
   void _retryLoad() {
@@ -365,7 +408,9 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
       (id) => id != currentUserId,
       orElse: () => '',
     );
-    final otherName = _otherName(chatRoom);
+    final liveName = _otherUser?.name.trim() ?? '';
+    final otherName = liveName.isNotEmpty ? liveName : _otherName(chatRoom);
+    final otherPhoto = _otherUser?.photoUrl;
 
     return BlocProvider.value(
       value: _userBloc,
@@ -383,10 +428,20 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
         child: Scaffold(
           appBar: AppBar(
             titleSpacing: 0,
-            title: _RoomTitle(
-              name: otherName,
-              bookName: chatRoom?.bookName,
-              showAvatar: chatRoom != null,
+            title: InkWell(
+              onTap: otherUserId == null || otherUserId.isEmpty
+                  ? null
+                  : () => context.push(userProfilePath(otherUserId)),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                child: _RoomTitle(
+                  name: otherName,
+                  photoUrl: otherPhoto,
+                  bookName: chatRoom?.bookName,
+                  showAvatar: chatRoom != null,
+                ),
+              ),
             ),
             actions: [
               if (chatRoom != null &&
@@ -478,6 +533,14 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     return Column(
       children: [
         _BookContextStrip(
+          coverUrl: _bookCoverUrl,
+          // Once the book is known, say whose it is with the live name
+          // rather than the names saved when the chat was created.
+          people: _bookOwnerId == null
+              ? null
+              : _bookOwnerId == currentUserId
+              ? 'Your book · $otherName asked about it'
+              : 'Shared by $otherName',
           chatRoom: chatRoom,
           onTap: chatRoom.bookId != null ? _openBook : null,
         ),
@@ -613,6 +676,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
             message: message,
             isMe: message.senderId == currentUserId,
             otherName: otherName,
+            otherPhotoUrl: _otherUser?.photoUrl,
             firstInGroup: firstInGroup,
             lastInGroup: lastInGroup,
             location: message.type == MessageType.location
@@ -664,11 +728,13 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
 class _RoomTitle extends StatelessWidget {
   const _RoomTitle({
     required this.name,
+    required this.photoUrl,
     required this.bookName,
     required this.showAvatar,
   });
 
   final String name;
+  final String? photoUrl;
   final String? bookName;
   final bool showAvatar;
 
@@ -679,7 +745,7 @@ class _RoomTitle extends StatelessWidget {
     return Row(
       children: [
         if (showAvatar) ...[
-          UserAvatar(name: name, radius: 18),
+          UserAvatar(name: name, photoUrl: photoUrl, radius: 18),
           const SizedBox(width: AppSpacing.md),
         ],
         Expanded(
@@ -735,9 +801,18 @@ class _MenuRow extends StatelessWidget {
 /// Slim strip pinned under the app bar that says which book the chat is
 /// about and opens it.
 class _BookContextStrip extends StatelessWidget {
-  const _BookContextStrip({required this.chatRoom, required this.onTap});
+  const _BookContextStrip({
+    required this.chatRoom,
+    required this.coverUrl,
+    required this.people,
+    required this.onTap,
+  });
 
   final ChatRoom chatRoom;
+  final String? coverUrl;
+
+  /// Overrides the stored owner/requester names when known.
+  final String? people;
   final VoidCallback? onTap;
 
   @override
@@ -751,10 +826,12 @@ class _BookContextStrip extends StatelessWidget {
       return Divider(height: 1, thickness: 1, color: colors.outlineVariant);
     }
 
-    final people = [
-      if (owner.isNotEmpty) 'Shared by $owner',
-      if (requester.isNotEmpty) 'requested by $requester',
-    ].join(' · ');
+    final people =
+        this.people ??
+        [
+          if (owner.isNotEmpty) 'Shared by $owner',
+          if (requester.isNotEmpty) 'requested by $requester',
+        ].join(' · ');
 
     return Material(
       color: colors.surface,
@@ -774,9 +851,9 @@ class _BookContextStrip extends StatelessWidget {
           child: Row(
             children: [
               BookCover(
-                imageUrl: null,
+                imageUrl: coverUrl,
                 title: bookName,
-                width: 28,
+                width: 32,
                 elevated: false,
               ),
               const SizedBox(width: AppSpacing.md),
@@ -897,6 +974,7 @@ class _MessageBubble extends StatelessWidget {
     required this.message,
     required this.isMe,
     required this.otherName,
+    required this.otherPhotoUrl,
     required this.firstInGroup,
     required this.lastInGroup,
     required this.location,
@@ -909,6 +987,7 @@ class _MessageBubble extends StatelessWidget {
   final Message message;
   final bool isMe;
   final String otherName;
+  final String? otherPhotoUrl;
 
   /// Top-most and bottom-most bubble of a run from the same sender.
   final bool firstInGroup;
@@ -984,7 +1063,11 @@ class _MessageBubble extends StatelessWidget {
             children: [
               if (!isMe) ...[
                 if (lastInGroup)
-                  UserAvatar(name: otherName, radius: _avatarRadius)
+                  UserAvatar(
+                    name: otherName,
+                    photoUrl: otherPhotoUrl,
+                    radius: _avatarRadius,
+                  )
                 else
                   const SizedBox(width: _avatarRadius * 2),
                 const SizedBox(width: AppSpacing.sm),
@@ -1038,6 +1121,32 @@ class _LocationContent extends StatelessWidget {
     final colors = context.colors;
     final point = location;
     final muted = foreground.withValues(alpha: 0.78);
+
+    if (point == null) return _buildCaption(context, colors, muted);
+
+    return SizedBox(
+      width: 236,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // The preview ignores touches, so a tap anywhere opens maps.
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            child: LocationPreviewMap(
+              location: LatLng(point.lat, point.lng),
+              height: 132,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _buildCaption(context, colors, muted),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCaption(BuildContext context, ColorScheme colors, Color muted) {
+    final point = location;
 
     return Row(
       mainAxisSize: MainAxisSize.min,

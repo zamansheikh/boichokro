@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -24,6 +25,12 @@ class HomePage extends StatefulWidget {
 
   /// Switches the bottom-navigation tab (0 Discover, 1 Library, 2 Chats,
   /// 3 Profile). Works from inside a tab and from pushed routes.
+  /// The selected tab index, for tabs that refresh when they come into view.
+  /// Null when [context] is not inside the home shell (e.g. a pushed route).
+  static ValueListenable<int>? tabOf(BuildContext context) {
+    return context.findAncestorStateOfType<_HomePageState>()?._tab;
+  }
+
   static void goToTab(BuildContext context, int index) {
     final home = context.findAncestorStateOfType<_HomePageState>();
     if (home != null) {
@@ -39,6 +46,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late int _currentIndex;
+  late final ValueNotifier<int> _tab = ValueNotifier<int>(_currentIndex);
 
   @override
   void initState() {
@@ -54,7 +62,14 @@ class _HomePageState extends State<HomePage> {
     final index = widget.initialIndex;
     if (index != null && index != oldWidget.initialIndex) {
       _currentIndex = index.clamp(0, _pages.length - 1);
+      _tab.value = _currentIndex;
     }
+  }
+
+  @override
+  void dispose() {
+    _tab.dispose();
+    super.dispose();
   }
 
   final List<Widget> _pages = [
@@ -68,6 +83,7 @@ class _HomePageState extends State<HomePage> {
     if (index == _currentIndex) return;
     HapticFeedback.selectionClick();
     setState(() => _currentIndex = index);
+    _tab.value = index;
   }
 
   @override

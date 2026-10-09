@@ -118,8 +118,17 @@ class _ProfilePageState extends State<ProfilePage> {
                     _ProfileHeader(
                       user: userData,
                       books: myBooks,
-                      onEdit: () =>
-                          context.push(RoutePaths.editProfile, extra: userData),
+                      onEdit: () async {
+                        await context.push(
+                          RoutePaths.editProfile,
+                          extra: userData,
+                        );
+                        // The edit screen saves through its own bloc, so pull
+                        // the fresh name and photo when it closes.
+                        if (context.mounted) {
+                          context.read<ProfileBloc>().add(const LoadProfile());
+                        }
+                      },
                     ),
                     if (!_JourneyCard.isComplete(userData, myBooks)) ...[
                       const SizedBox(height: AppSpacing.lg),

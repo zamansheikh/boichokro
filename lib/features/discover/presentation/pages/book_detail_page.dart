@@ -1,3 +1,4 @@
+import '../../../profile/presentation/pages/user_profile_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -613,7 +614,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         }
 
         return AppCard(
-          onTap: () => _showOwnerSheet(user),
+          onTap: () => context.push(userProfilePath(user.id)),
           child: Row(
             children: [
               UserAvatar(
@@ -648,56 +649,6 @@ class _BookDetailPageState extends State<BookDetailPage> {
           ),
         );
       },
-    );
-  }
-
-  void _showOwnerSheet(User user) {
-    showAppSheet<void>(
-      context,
-      builder: (sheetContext) => SheetScaffold(
-        title: 'About the owner',
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-          child: Column(
-            children: [
-              UserAvatar(
-                photoUrl: user.photoUrl,
-                name: user.name,
-                radius: 40,
-                verified: user.verifiedBadge,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                user.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: sheetContext.text.titleLarge,
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              RatingBadge(rating: user.ratingAvg, swaps: user.totalSwaps),
-              const SizedBox(height: AppSpacing.lg),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                children: [
-                  if (user.verifiedBadge)
-                    const StatusPill(
-                      label: 'Verified member',
-                      icon: LucideIcons.badgeCheck,
-                      tone: AppTone.primary,
-                    ),
-                  StatusPill(
-                    label: 'Joined ${user.createdAt.toFormattedDate()}',
-                    icon: LucideIcons.calendarDays,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -1840,13 +1791,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
           listener: (listenerContext, state) {
             if (state is ChatRoomLoaded) {
               Navigator.pop(dialogContext);
-              // Navigate to home page with chat tab (index 2)
-              listenerContext.go(RoutePaths.home, extra: {'initialIndex': 2});
-              showAppSnack(
-                listenerContext,
-                'Chat created for ${book.title}',
-                tone: AppTone.success,
-              );
+              // Open the conversation itself; back returns to this book.
+              if (mounted) {
+                context.push('${RoutePaths.chat}/${state.chatRoom.id}');
+              }
             } else if (state is ChatError) {
               final message = state.message;
               Navigator.pop(dialogContext);

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +10,8 @@ import '../../../../core/di/injection_container.dart';
 import '../../../../core/network/firebase_service.dart';
 import '../../../../core/utils/constants.dart';
 import '../../../discover/presentation/pages/home_page.dart';
+import '../../../discover/domain/entities/user.dart';
+import '../../../discover/domain/usecases/user_usecases.dart';
 import '../../domain/entities/chat.dart';
 import '../bloc/chat_bloc.dart';
 import '../bloc/chat_event.dart';
@@ -28,6 +31,13 @@ class _ChatListPageState extends State<ChatListPage>
   bool get wantKeepAlive => true;
 
   ChatBloc? _chatBloc;
+  ValueListenable<int>? _tab;
+
+  /// Last loaded rooms, kept on screen while a reload is in flight.
+  List<ChatRoom>? _rooms;
+  final Map<String, Future<User?>> _users = {};
+
+  static const int _chatsTabIndex = 2;
 
   @override
   void initState() {
@@ -39,7 +49,45 @@ class _ChatListPageState extends State<ChatListPage>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Chats can be created from other screens, so reload whenever this tab
+    // comes back into view.
+    if (_tab == null) {
+      _tab = HomePage.tabOf(context);
+      _tab?.addListener(_onTabChanged);
+    }
+  }
+
+  /// Current profile of the other participant; the names stored on the room
+  /// are only a fallback because they go stale when someone edits theirs.
+  Future<User?>? _otherUser(ChatRoom room, String uid) {
+    final otherId = room.participantIds.firstWhere(
+      (id) => id != uid,
+      orElse: () => '',
+    );
+    if (otherId.isEmpty) return null;
+    return _users[otherId] ??= () async {
+      final result = await getIt<GetUserByIdUseCase>()(
+        GetUserByIdParams(otherId),
+      );
+      return result.fold((_) => null, (user) => user);
+    }();
+  }
+
+  void _onTabChanged() {
+    if (_tab?.value == _chatsTabIndex) _reload();
+  }
+
+  void _reload() {
+    _users.clear(); // Names and photos may have changed since the last load.
+    final uid = getIt<FirebaseService>().auth.currentUser?.uid;
+    if (uid != null) _chatBloc?.add(LoadChatRooms(uid));
+  }
+
+  @override
   void dispose() {
+    _tab?.removeListener(_onTabChanged);
     _chatBloc?.close();
     super.dispose();
   }
@@ -78,7 +126,7 @@ class _ChatListPageState extends State<ChatListPage>
     }
 
     final uid = currentUser.uid;
-    void reload() => chatBloc.add(LoadChatRooms(uid));
+    final reload = _reload;
 
     return BlocProvider.value(
       value: chatBloc,
@@ -122,19 +170,22 @@ class _ChatListPageState extends State<ChatListPage>
     required String? myName,
     required VoidCallback reload,
   }) {
-    if (state is ChatInitial || state is ChatLoading) {
+    if (state is ChatRoomsLoaded) _rooms = state.chatRooms;
+    final loaded = _rooms;
+
+    if (loaded == null && (state is ChatInitial || state is ChatLoading)) {
       return const _ChatListSkeleton();
     }
 
-    if (state is ChatError) {
+    if (state is ChatError && loaded == null) {
       return Padding(
         padding: const EdgeInsets.only(bottom: AppSpacing.navClearance),
         child: AppErrorState(message: state.message, onRetry: reload),
       );
     }
 
-    if (state is ChatRoomsLoaded) {
-      final chatRooms = state.chatRooms;
+    if (loaded != null) {
+      final chatRooms = loaded;
 
       if (chatRooms.isEmpty) {
         return Padding(
@@ -176,7 +227,12 @@ class _ChatListPageState extends State<ChatListPage>
               chatRoom: chatRoom,
               unread: chatRoom.unreadCount[uid] ?? 0,
               myName: myName,
-              onTap: () => context.push('${RoutePaths.chat}/${chatRoom.id}'),
+              other: _otherUser(chatRoom, uid),
+              onTap: () async {
+                await context.push('${RoutePaths.chat}/${chatRoom.id}');
+                // Pick up the new last message and cleared unread count.
+                if (mounted) reload();
+              },
             );
           },
         ),
@@ -252,12 +308,14 @@ class _ChatRoomTile extends StatelessWidget {
     required this.chatRoom,
     required this.unread,
     required this.myName,
+    required this.other,
     required this.onTap,
   });
 
   final ChatRoom chatRoom;
   final int unread;
   final String? myName;
+  final Future<User?>? other;
   final VoidCallback onTap;
 
   /// The room stores both display names but not which participant is which,
@@ -304,10 +362,18 @@ class _ChatRoomTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return FutureBuilder<User?>(
+      future: other,
+      builder: (context, snapshot) => _buildTile(context, snapshot.data),
+    );
+  }
+
+  Widget _buildTile(BuildContext context, User? user) {
     final colors = context.colors;
     final text = context.text;
     final hasUnread = unread > 0;
-    final name = _otherName;
+    final liveName = user?.name.trim() ?? '';
+    final name = liveName.isNotEmpty ? liveName : _otherName;
     final bookName = chatRoom.bookName?.trim() ?? '';
     final time = chatRoom.lastMessageTime;
 
@@ -321,7 +387,12 @@ class _ChatRoomTile extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            UserAvatar(name: name, radius: 26),
+            UserAvatar(
+              name: name,
+              photoUrl: user?.photoUrl,
+              radius: 26,
+              verified: user?.verifiedBadge ?? false,
+            ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
